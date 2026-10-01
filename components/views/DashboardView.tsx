@@ -46,7 +46,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const db = Store.getDB();
   const S = db.settings || { criticalDays: 5, alertDays: [30, 15, 10, 5, 3, 1] };
 
-  // Semáforo levels
+  // Niveles del semáforo
   const lvKeys = ['ok', 'warn', 'risk', 'crit', 'na'] as const;
   const semDoughnut = {
     type: 'doughnut' as const,
@@ -299,9 +299,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   return (
-    <div className="view-content">
-      {/* Header */}
-      <PageHeader variant="hero" className="page-h">
+    <div className="view-content [&_.kpi-v]:text-balance [&_.kpi-l]:pr-3 motion-safe:[&_.btn]:hover:-translate-y-0.5 [&_.btn]:hover:shadow-[var(--shadow-2)]! [&_.btn]:focus-visible:shadow-[var(--shadow-2)]! motion-safe:[&_.btn]:[transition:translate_var(--t-fast)_var(--ease),box-shadow_var(--t-fast)_var(--ease),background-color_var(--t-fast)_var(--ease)]! motion-safe:[&_a]:hover:-translate-y-0.5 [&_a]:hover:shadow-[var(--shadow-1)]">
+      {/* Cabecera con acciones elevadas; se conserva la navegación existente. */}
+      <PageHeader variant="hero" className="page-h anim-fade-rise">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span
@@ -361,7 +361,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Grid: Qué debo hacer hoy (66%) + Semáforo contractual (33%) */}
       <div className="grid g-21 mb">
         {/* Qué debo hacer hoy */}
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '40ms' }}>
           <div className="panel-h">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="clipboard-check" />
@@ -378,9 +378,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             ) : (
               T.map((t, idx) => (
-                <div
+                <button
+                  type="button"
                   key={idx}
-                  className="todo anim-fade-rise"
+                  className="todo anim-fade-rise w-full text-left hover:shadow-[var(--shadow-2)] focus-visible:shadow-[var(--shadow-2)] motion-safe:hover:-translate-y-0.5"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -392,7 +393,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     cursor: 'pointer',
                     fontSize: '12.5px',
                     animationDelay: `${idx * 40}ms`,
-                    transition: 'all var(--t-fast) var(--ease)'
+                    transition: 'translate var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease)'
                   }}
                   onClick={() => {
                     if (t.view) onNavigate?.(t.view, t.filterKey);
@@ -409,14 +410,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     {t.t}
                   </span>
                   <Icon name="chevron-right" />
-                </div>
+                </button>
               ))
             )}
           </div>
         </Surface>
 
         {/* Semáforo contractual */}
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '80ms' }}>
           <div className="panel-h">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="chart-pie" />
@@ -441,10 +442,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="kpis mb">
           <Kpi
             icon="folder"
+            color="brand"
             label="Total contratos"
             value={P.n}
             sub={`${P.act} activos en portafolio`}
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '0ms' }}
             onClick={() => onNavigate?.('contratos')}
           />
@@ -454,7 +456,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             value={P.act}
             sub={`${pct(P.n ? (P.act / P.n) * 100 : 0)} del total`}
             sem="ok"
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '40ms' }}
             onClick={() => onNavigate?.('contratos', 'activos')}
           />
@@ -464,7 +466,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             value={P.prox}
             sub="En ≤ 30 días"
             sem={P.prox > 0 ? 'warn' : 'ok'}
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '80ms' }}
             onClick={() => onNavigate?.('agenda')}
           />
@@ -474,7 +476,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             value={P.venc}
             sub="Sin liquidar / prorrogar"
             sem={P.venc > 0 ? 'crit' : 'ok'}
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '120ms' }}
             onClick={() => onNavigate?.('contratos', 'vencidos')}
           />
@@ -483,17 +485,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             label="Suspendidos"
             value={P.susp}
             sub="Con acta de suspensión"
-            sem={P.susp > 0 ? 'warn' : undefined}
-            className="anim-fade-rise"
+            sem={P.susp > 0 ? 'warn' : 'na'}
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '160ms' }}
             onClick={() => onNavigate?.('contratos', 'Suspendido')}
           />
           <Kpi
             icon="file-signature"
+            color="na"
             label="En liquidación"
             value={P.liq}
             sub="Pendientes de cierre"
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '200ms' }}
             onClick={() => onNavigate?.('contratos', 'En liquidación')}
           />
@@ -506,19 +509,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="kpis mb">
           <Kpi
             icon="dollar-sign"
+            color="info"
             label="Valor contratado"
             value={moneyM(P.valor)}
             sub={money(P.valor)}
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '240ms' }}
             onClick={() => onNavigate?.('ejecucion')}
           />
           <Kpi
             icon="wallet"
+            color="info"
             label="Valor ejecutado"
             value={moneyM(P.ejec)}
             sub={money(P.ejec)}
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '280ms' }}
             onClick={() => onNavigate?.('ejecucion')}
           />
@@ -528,7 +533,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             value={moneyM(P.saldo)}
             sub={money(P.saldo)}
             sem={P.saldo < 0 ? 'crit' : 'ok'}
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '320ms' }}
             onClick={() => onNavigate?.('ejecucion')}
           />
@@ -538,7 +543,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             value={pct(P.pctFin)}
             sub="Ejecutado ÷ valor"
             sem={P.pctFin > 100 ? 'crit' : 'ok'}
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '360ms' }}
             onClick={() => onNavigate?.('ejecucion')}
           />
@@ -548,7 +553,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             value={pct(P.pctCont)}
             sub="Avance físico ponderado"
             color="info"
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '400ms' }}
             onClick={() => onNavigate?.('ejecucion')}
           />
@@ -565,7 +570,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             value={P.conAlerta}
             sub="Requieren gestión"
             sem={P.conAlerta > 0 ? 'risk' : 'ok'}
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '440ms' }}
             onClick={() => onNavigate?.('alertas')}
           />
@@ -575,7 +580,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             value={P.conInc}
             sub="Casos abiertos"
             sem={P.conInc > 0 ? 'risk' : 'ok'}
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '480ms' }}
             onClick={() => onNavigate?.('incumplimientos')}
           />
@@ -585,7 +590,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             value={P.garProx}
             sub="En los próximos 30 días"
             sem={P.garProx > 0 ? 'warn' : 'ok'}
-            className="anim-fade-rise"
+            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
             style={{ animationDelay: '520ms' }}
             onClick={() => onNavigate?.('garantias', 'proximas')}
           />
@@ -593,14 +598,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* Mapa de Colombia coroplético */}
-      <MapaColombia
-        onSelectContract={onSelectContract}
-        onNavigateToContractsFilter={(k, v) => onNavigate?.('contratos', `${k}:${v}`)}
-      />
+      <div className="anim-fade-rise stagger-3">
+        <MapaColombia
+          onSelectContract={onSelectContract}
+          onNavigateToContractsFilter={(k, v) => onNavigate?.('contratos', `${k}:${v}`)}
+        />
+      </div>
 
       {/* Tarjetas: Contratos próximos a vencer */}
       {soon.length > 0 && (
-        <Surface className="panel mb">
+        <Surface className="panel mb anim-fade-rise" style={{ animationDelay: '120ms' }}>
           <div className="panel-h">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="clock" />
@@ -620,15 +627,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               return (
                 <div
                   key={c.id}
-                  className={`expcard ${cl} anim-fade-rise`}
+                  className={`expcard ${cl} anim-fade-rise hover:shadow-[var(--shadow-3)]! focus-within:shadow-[var(--shadow-3)]! motion-safe:hover:-translate-y-1 motion-safe:focus-within:-translate-y-1`}
                   style={{
-                    borderRadius: 8,
+                    borderRadius: 'var(--r)',
                     padding: '14px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 8,
                     animationDelay: `${idx * 40}ms`,
-                    transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)'
+                    transition: 'translate var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease)'
                   }}
                 >
                   <div
@@ -693,7 +700,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Fila de 3 gráficas */}
       <div className="grid g3 mb">
         {/* Contratos por estado */}
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '160ms' }}>
           <div className="panel-h">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="chart-pie" />
@@ -708,7 +715,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </Surface>
 
         {/* Contratos por empresa */}
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '200ms' }}>
           <div className="panel-h">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="building" />
@@ -723,7 +730,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </Surface>
 
         {/* Vencimientos próximos */}
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '240ms' }}>
           <div className="panel-h">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="clock" />
@@ -741,7 +748,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Fila de 2 gráficas grandes */}
       <div className="grid g2 mb">
         {/* Valor contratado vs ejecutado */}
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '40ms' }}>
           <div className="panel-h">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -759,7 +766,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </Surface>
 
         {/* Ejecución mensual */}
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '80ms' }}>
           <div className="panel-h">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -780,7 +787,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Fila de 2 gráficas finales */}
       <div className="grid g2">
         {/* Riesgos por nivel */}
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '120ms' }}>
           <div className="panel-h">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="alert-triangle" />
@@ -795,7 +802,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </Surface>
 
         {/* Cumplimiento de obligaciones */}
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '160ms' }}>
           <div className="panel-h">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="clipboard-check" />

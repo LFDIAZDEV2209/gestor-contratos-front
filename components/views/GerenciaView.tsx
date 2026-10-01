@@ -1,7 +1,6 @@
 'use client';
 import { Button } from '../ui/button';
 import { PageHeader, Surface } from '../ui/Workspace';
-import { useState } from 'react';
 import type { Contract, Guarantee, Breach, Obligation, Exec, Payment } from '../../lib/types';
 import { Store } from '../../lib/store';
 import { M, portfolio, companyName } from '../../lib/metrics';
@@ -28,11 +27,11 @@ export const GerenciaView = ({
     ? sum(allObligations, (o) => Number(o.cumplimiento || 0)) / allObligations.length
     : 0;
 
-  // Contracts requiring executive decision
+  // Contratos que requieren una decisión gerencial
   const criticalContracts = P.cs
     .filter((c) => {
       const m = M(c);
-      return LEVEL[m.nivel] >= 3; // crit or risk
+      return LEVEL[m.nivel] >= 3; // Crítico o en riesgo
     })
     .sort((a, b) => {
       const ma = M(a);
@@ -40,7 +39,7 @@ export const GerenciaView = ({
       return LEVEL[mb.nivel] - LEVEL[ma.nivel] || mb.valorActual - ma.valorActual;
     });
 
-  // Chart 1: Monthly Evolution (12 months accumulated)
+  // Gráfica 1: evolución mensual acumulada (12 meses)
   const mk = lastMonths(12);
   const execsByPeriod = groupBy(Store.all('execs') as Exec[], (e) => e.periodo);
   const paymentsByPeriod = groupBy(
@@ -79,7 +78,7 @@ export const GerenciaView = ({
     ]
   };
 
-  // Chart 2: Guarantees status
+  // Gráfica 2: estado de las garantías
   const now = todayIso();
   const gVigentes = allGuarantees.filter((g) => diffDays(now, g.fechaVenc) > 30).length;
   const gPorVencer = allGuarantees.filter((g) => {
@@ -98,7 +97,7 @@ export const GerenciaView = ({
     ]
   };
 
-  // Chart 3: Value by Company
+  // Gráfica 3: valor por empresa
   const byCompany = groupBy(P.cs, (c) => c.companyId);
   const companyKeys = Object.keys(byCompany);
   const companyLabels = companyKeys.map((k) => {
@@ -143,9 +142,9 @@ export const GerenciaView = ({
   };
 
   return (
-    <div>
-      {/* Page Header */}
-      <PageHeader variant="hero" className="page-h">
+    <div className="motion-safe:[&_.btn]:hover:-translate-y-0.5 [&_.btn]:hover:shadow-[var(--shadow-2)]! [&_.btn]:focus-visible:shadow-[var(--shadow-2)]! motion-safe:[&_.btn]:[transition:translate_var(--t-fast)_var(--ease),box-shadow_var(--t-fast)_var(--ease),background-color_var(--t-fast)_var(--ease)]! motion-safe:[&_a]:hover:-translate-y-0.5 [&_a]:hover:shadow-[var(--shadow-1)]">
+      {/* Cabecera gerencial con feedback de foco y elevación en acciones. */}
+      <PageHeader variant="hero" className="page-h anim-fade-rise">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span
@@ -181,9 +180,9 @@ export const GerenciaView = ({
         </div>
       </PageHeader>
 
-      {/* Big Strip of 8 Executive Metrics */}
-      <div className="bigstrip mb">
-        <div className="anim-fade-rise" style={{ animationDelay: '0ms', transition: 'all var(--t-fast) var(--ease)' }}>
+      {/* Ocho indicadores ejecutivos; cifras Geist tabulares del sistema vigente. */}
+      <div className="bigstrip mb [&_.v]:[font-family:var(--font-fig,var(--font-sans))]! [&_.v]:tabular-nums [&_.v]:text-balance [&>div]:hover:bg-[var(--side-active)] motion-safe:[&>div]:hover:-translate-y-0.5">
+        <div className="anim-fade-rise" style={{ animationDelay: '0ms', transition: 'translate var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}>
           <div className="l" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="folder" size={13} style={{ color: 'var(--brand-3)' }} />
             <span>Total contratos</span>
@@ -191,7 +190,7 @@ export const GerenciaView = ({
           <div className="v">{P.n}</div>
           <div className="s">{P.act} activos</div>
         </div>
-        <div className="anim-fade-rise" style={{ animationDelay: '40ms', transition: 'all var(--t-fast) var(--ease)' }}>
+        <div className="anim-fade-rise" style={{ animationDelay: '40ms', transition: 'translate var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}>
           <div className="l" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="dollar-sign" size={13} style={{ color: 'var(--brand-3)' }} />
             <span>Valor administrado</span>
@@ -199,7 +198,7 @@ export const GerenciaView = ({
           <div className="v">{moneyM(P.valor)}</div>
           <div className="s">Valor actualizado</div>
         </div>
-        <div className="anim-fade-rise" style={{ animationDelay: '80ms', transition: 'all var(--t-fast) var(--ease)' }}>
+        <div className="anim-fade-rise" style={{ animationDelay: '80ms', transition: 'translate var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}>
           <div className="l" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="wallet" size={13} style={{ color: 'var(--brand-3)' }} />
             <span>Valor ejecutado</span>
@@ -207,7 +206,7 @@ export const GerenciaView = ({
           <div className="v">{moneyM(P.ejec)}</div>
           <div className="s">{pct(P.pctFin)} del total</div>
         </div>
-        <div className="anim-fade-rise" style={{ animationDelay: '120ms', transition: 'all var(--t-fast) var(--ease)' }}>
+        <div className="anim-fade-rise" style={{ animationDelay: '120ms', transition: 'translate var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}>
           <div className="l" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="chart-pie" size={13} style={{ color: 'var(--brand-3)' }} />
             <span>Saldo disponible</span>
@@ -215,7 +214,7 @@ export const GerenciaView = ({
           <div className="v">{moneyM(P.saldo)}</div>
           <div className="s">Por ejecutar</div>
         </div>
-        <div className="anim-fade-rise" style={{ animationDelay: '160ms', transition: 'all var(--t-fast) var(--ease)' }}>
+        <div className="anim-fade-rise" style={{ animationDelay: '160ms', transition: 'translate var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}>
           <div className="l" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="shield-alert" size={13} style={{ color: 'var(--risk)' }} />
             <span>Riesgo contractual</span>
@@ -224,11 +223,29 @@ export const GerenciaView = ({
             {Math.round(riesgo)}
             <span style={{ fontSize: '13px', fontWeight: 400 }}>/100</span>
           </div>
+          {/* El degradado se anima una sola vez; reduced-motion lo desactiva globalmente. */}
+          <div
+            role="meter"
+            aria-label="Riesgo contractual"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(riesgo)}
+            className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--side-line)]"
+          >
+            <div style={{
+              height: '100%',
+              width: `${riesgo}%`,
+              borderRadius: 'inherit',
+              background: 'linear-gradient(90deg, var(--ok), var(--warn), var(--risk), var(--crit))',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer calc(var(--t-slow) * 3) var(--ease) both'
+            }} />
+          </div>
           <div className="s">
             {P.byLevel.crit} críticos · {P.byLevel.risk} en riesgo
           </div>
         </div>
-        <div className="anim-fade-rise" style={{ animationDelay: '200ms', transition: 'all var(--t-fast) var(--ease)' }}>
+        <div className="anim-fade-rise" style={{ animationDelay: '200ms', transition: 'translate var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}>
           <div className="l" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="clock" size={13} style={{ color: 'var(--warn)' }} />
             <span>Vencimientos ≤ 30 d</span>
@@ -236,7 +253,7 @@ export const GerenciaView = ({
           <div className="v">{P.prox}</div>
           <div className="s">{P.venc} vencidos</div>
         </div>
-        <div className="anim-fade-rise" style={{ animationDelay: '240ms', transition: 'all var(--t-fast) var(--ease)' }}>
+        <div className="anim-fade-rise" style={{ animationDelay: '240ms', transition: 'translate var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}>
           <div className="l" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="alert-triangle" size={13} style={{ color: 'var(--crit)' }} />
             <span>Incumplimientos</span>
@@ -244,7 +261,7 @@ export const GerenciaView = ({
           <div className="v">{allBreaches.length}</div>
           <div className="s">Abiertos</div>
         </div>
-        <div className="anim-fade-rise" style={{ animationDelay: '280ms', transition: 'all var(--t-fast) var(--ease)' }}>
+        <div className="anim-fade-rise" style={{ animationDelay: '280ms', transition: 'translate var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}>
           <div className="l" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="clipboard-check" size={13} style={{ color: 'var(--ok)' }} />
             <span>Obligaciones</span>
@@ -254,9 +271,9 @@ export const GerenciaView = ({
         </div>
       </div>
 
-      {/* Row 1: Evolution Line & Guarantees Doughnut */}
+      {/* Evolución financiera y estado de garantías. */}
       <div className="grid g-21 mb">
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '80ms' }}>
           <div className="panel-h">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -273,7 +290,7 @@ export const GerenciaView = ({
           </div>
         </Surface>
 
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '120ms' }}>
           <div className="panel-h">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -295,9 +312,9 @@ export const GerenciaView = ({
         </Surface>
       </div>
 
-      {/* Row 2: Value by Company & Decision Needed List */}
+      {/* Distribución por empresa y decisiones pendientes. */}
       <div className="grid g2 mb">
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '160ms' }}>
           <div className="panel-h">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -323,7 +340,7 @@ export const GerenciaView = ({
           </div>
         </Surface>
 
-        <Surface className="panel">
+        <Surface className="panel anim-fade-rise" style={{ animationDelay: '200ms' }}>
           <div className="panel-h">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -338,26 +355,27 @@ export const GerenciaView = ({
               const m = M(c);
               const reason = m.razones.filter((r) => r.l === m.nivel).map((r) => r.t).join(' ') || 'Requiere atención inmediata';
               return (
-                <div
+                <button
+                  type="button"
                   key={c.id}
-                  className="todo anim-fade-rise"
+                  className="todo anim-fade-rise w-full text-left hover:shadow-[var(--shadow-2)] focus-visible:shadow-[var(--shadow-2)] motion-safe:hover:-translate-y-0.5"
                   onClick={() => onSelectContract(c.id)}
                   style={{
                     cursor: 'pointer',
                     animationDelay: `${idx * 40}ms`,
-                    transition: 'all var(--t-fast) var(--ease)'
+                    transition: 'translate var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)'
                   }}
                 >
                   <span className={`sem ${m.sem}`} style={{ marginTop: '2px' }}></span>
-                  <div className="x">
+                  <span className="x">
                     <b>{c.numero}</b> · {companyName(c.companyId)}
-                    <div className="small muted" style={{ marginTop: '2px' }}>
+                    <span className="small muted block" style={{ marginTop: '2px' }}>
                       {reason}
-                    </div>
-                  </div>
+                    </span>
+                  </span>
                   <span className="small strong">{moneyM(m.valorActual)}</span>
                   <Icon name="chevron-right" />
-                </div>
+                </button>
               );
             })}
             {criticalContracts.length === 0 && (
