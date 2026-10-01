@@ -1,4 +1,5 @@
 'use client';
+import { PBar } from '../ui/PBar';
 import { Select, Input, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
@@ -289,12 +290,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
                 <td>{p.responsable || '—'}</td>
                 <td className="nw">{fdate(p.fecha)}</td>
                 <td className="nw">
-                  <div className="row-flex" style={{ gap: '8px' }}>
-                    <div className="bar" style={{ flex: 1, minWidth: '60px' }}>
-                      <i style={{ width: pct(p.avance || 0) }}></i>
-                    </div>
-                    <span className="small">{pct(p.avance || 0)}</span>
-                  </div>
+<PBar value={p.avance || 0} />
                 </td>
                 <td className="nw">
                   <Badge

@@ -8,13 +8,13 @@ export function PageHeader({ className = '', children, ...props }: BoxProps) { r
 export function Surface({ className = '', ...props }: BoxProps) { return <div {...props} className={`panel ${className}`} />; }
 export function MetricCard({ className = '', ...props }: BoxProps) { return <div {...props} className={`kpi metric-card ${className}`} />; }
 export function TableViewport({ className = '', ...props }: BoxProps) { return <div {...props} className={`tbl-wrap ${className}`} tabIndex={0} role="region" aria-label={props['aria-label'] || 'Tabla de datos; desplazamiento horizontal disponible'} />; }
-export function DataTable({ className = '', children, ...props }: TableHTMLAttributes<HTMLTableElement>) {
+export function DataTable({ className = '', children, layout = 'compact', ...props }: TableHTMLAttributes<HTMLTableElement> & { layout?: 'compact' | 'readable' }) {
   const body = Children.toArray(children).find(child=>isValidElement<ChildProps>(child) && child.type === 'tbody');
   const rows = isValidElement<ChildProps>(body) ? Children.toArray(body.props.children).filter(Boolean) : [];
   const cells = rows.length === 1 && isValidElement<ChildProps>(rows[0]) ? Children.toArray(rows[0].props.children) : [];
   const cell = cells.length === 1 && isValidElement<ChildProps & { colSpan?: number }>(cells[0]) ? cells[0] : null;
   if (cell && cell.props.colSpan && cell.props.className?.includes('empty')) return <EmptyState description="Los registros aparecerán en esta sección cuando estén disponibles.">{cell.props.children}</EmptyState>;
-  return <table {...props} className={`tbl ${className}`}>{children}</table>;
+  return <table {...props} className={`tbl ${layout === 'readable' ? 'tbl-readable' : ''} ${className}`}>{children}</table>;
 }
 type ChildProps = { children?: ReactNode; className?: string; id?: string; htmlFor?: string };
 export function Field({ children, className = '', ...props }: BoxProps) {

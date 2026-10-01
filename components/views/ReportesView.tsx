@@ -605,7 +605,7 @@ export const ReportesView: React.FC = () => {
           </div>
 
           <TableViewport className="tbl-wrap" style={{ maxHeight: '55vh', overflow: 'auto' }}>
-            <DataTable className="tbl">
+            <DataTable layout="readable">
               <thead>
                 <tr>
                   {previewData.cols.map((col, idx) => (

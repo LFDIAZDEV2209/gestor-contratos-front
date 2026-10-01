@@ -1,4 +1,5 @@
 'use client';
+import { PBar } from '../ui/PBar';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
@@ -221,12 +222,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
                 <td className="nw">{fdate(s.fechaInicio)}</td>
                 <td className="nw">{fdate(s.fechaFin)}</td>
                 <td className="nw">
-                  <div className="row-flex" style={{ gap: '6px' }}>
-                    <div className="bar" style={{ flex: 1, minWidth: '50px' }}>
-                      <i style={{ width: pct(Number(s.ejecucion) || 0) }}></i>
-                    </div>
-                    <span className="small">{pct(Number(s.ejecucion) || 0)}</span>
-                  </div>
+<PBar value={Number(s.ejecucion) || 0} />
                 </td>
                 <td className="nw">
                   <Badge

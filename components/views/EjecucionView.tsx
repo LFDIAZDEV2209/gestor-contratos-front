@@ -1,4 +1,5 @@
 'use client';
+import { PBar } from '../ui/PBar';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
@@ -282,25 +283,10 @@ export const EjecucionView = ({
                       {money(m.saldo)}
                     </td>
                     <td className="nw">
-                      <div className="row-flex" style={{ gap: '6px' }}>
-                        <div className="bar" style={{ flex: 1, minWidth: '50px' }}>
-                          <i
-                            style={{
-                              width: pct(m.pctFin),
-                              background: m.pctFin > 100 ? 'var(--crit)' : 'var(--brand)'
-                            }}
-                          ></i>
-                        </div>
-                        <span className="small">{pct(m.pctFin)}</span>
-                      </div>
+<PBar value={m.pctFin} />
                     </td>
                     <td className="nw">
-                      <div className="row-flex" style={{ gap: '6px' }}>
-                        <div className="bar" style={{ flex: 1, minWidth: '50px' }}>
-                          <i style={{ width: pct(m.pctFis), background: '#4E9A8F' }}></i>
-                        </div>
-                        <span className="small">{pct(m.pctFis)}</span>
-                      </div>
+<PBar value={m.pctFis} color="var(--brand-3)" />
                     </td>
                     <td className="nw">
                       <span className={`badge ${gap >= 20 ? 'crit' : gap >= 10 ? 'warn' : 'ok'}`}>

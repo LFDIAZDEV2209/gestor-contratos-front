@@ -1,4 +1,5 @@
 'use client';
+import { PBar } from '../ui/PBar';
 import { Input, Select } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable } from '../ui/Workspace';
@@ -309,22 +310,7 @@ export const ObligacionesView = ({
                       </span>
                     </td>
                     <td className="nw">
-                      <div className="row-flex" style={{ gap: '6px' }}>
-                        <div className="bar" style={{ flex: 1, minWidth: '50px' }}>
-                          <i
-                            style={{
-                              width: pct(o.cumplimiento || 0),
-                              background:
-                                eff === 'Cumplida'
-                                  ? 'var(--ok)'
-                                  : eff === 'Vencida'
-                                  ? 'var(--crit)'
-                                  : 'var(--brand)'
-                            }}
-                          ></i>
-                        </div>
-                        <span className="small">{pct(o.cumplimiento || 0)}</span>
-                      </div>
+<PBar value={o.cumplimiento || 0} color={eff === 'Cumplida' ? 'var(--ok)' : eff === 'Vencida' ? 'var(--crit)' : 'var(--brand)'} />
                     </td>
                     <td className="nw">
                       <Badge

@@ -39,6 +39,7 @@ export const Chart = ({ type, data, options, height, config }: ChartProps) => {
     maintainAspectRatio: false,
     plugins: {
       legend: {
+        display: chartType === 'pie' || chartType === 'doughnut' || chartData?.datasets?.some((dataset: { label?: string }) => Boolean(dataset.label)),
         position: 'bottom' as const,
         labels: {
           boxWidth: 12,
