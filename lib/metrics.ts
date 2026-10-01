@@ -1,0 +1,12 @@
+import type { UID } from './types';
+export const MCACHE = {};
+export const M = (cid: UID) => ({});
+export const Semaforo = () => ({});
+export const ControlScore = () => 0;
+export const effOblig = () => 0;
+export const effDeliv = () => 0;
+export const riskLevel = () => 0;
+export const riskClass = () => '';
+export const cupoStats = () => ({});
+export const activeContracts = () => 0;
+export const semSummary = () => ({ ok:0, warn:0, risk:0, crit:0 });
