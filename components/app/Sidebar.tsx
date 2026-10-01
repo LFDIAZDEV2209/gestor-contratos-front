@@ -1,7 +1,7 @@
 'use client';
 import { Icon } from '../icons';
 
-export const Sidebar = ({ current, onNavigate }: { current: string, onNavigate: (v: string) => void }) => {
+export const Sidebar = ({ current, onNavigate }: { current: string, onNavigate: (v: string, id?: string) => void }) => {
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -16,6 +16,7 @@ export const Sidebar = ({ current, onNavigate }: { current: string, onNavigate: 
         <a className={current === 'dash' ? 'on' : ''} onClick={() => onNavigate('dash')}><Icon name="home"/> Inicio</a>
         <div className="nav-g">Contratación</div>
         <a className={current === 'contracts' ? 'on' : ''} onClick={() => onNavigate('contracts')}><Icon name="folder"/> Contratos</a>
+        <a className={current.startsWith('empresa') ? 'on' : ''} onClick={() => onNavigate('empresas')}><Icon name="file-contract"/> Empresas</a>
         <div className="nav-g">Control</div>
         <a className={current === 'risks' ? 'on' : ''} onClick={() => onNavigate('risks')}><Icon name="shield"/> Riesgos</a>
         <div className="nav-g">Sistema</div>
