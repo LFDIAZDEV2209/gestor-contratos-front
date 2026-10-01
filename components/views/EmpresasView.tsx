@@ -20,11 +20,21 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
     if (editing) {
       if (editing.id) {
         Store.update('companies', editing.id, editing);
-        Audit.log('u1', 'Editar', 'Empresa', editing.id, 'Editó empresa');
+        Audit.log({
+          modulo: 'Empresas',
+          accion: 'Edición',
+          campo: 'Empresa ' + (editing.razon || editing.name || editing.id),
+          nuevo: 'Actualización de empresa'
+        });
       } else {
         const newId = uid();
         Store.insert('companies', { ...editing, id: newId, risk: 0, level: '1', status: 'Activo' } as Company);
-        Audit.log('u1', 'Crear', 'Empresa', newId, 'Creó empresa');
+        Audit.log({
+          modulo: 'Empresas',
+          accion: 'Creación',
+          campo: 'Empresa ' + (editing.razon || editing.name || newId),
+          nuevo: 'Registro de empresa'
+        });
       }
       setCompanies(Store.all('companies'));
       setEditing(null);
@@ -35,7 +45,12 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
     const motivo = window.prompt('Motivo de anulación:');
     if (motivo) {
       Store.update('companies', id, { status: 'Anulado' });
-      Audit.log('u1', 'Anular', 'Empresa', id, `Motivo: ${motivo}`);
+      Audit.log({
+        modulo: 'Empresas',
+        accion: 'Anulación',
+        campo: 'Empresa ' + id,
+        obs: `Motivo: ${motivo}`
+      });
       setCompanies(Store.all('companies'));
     }
   };

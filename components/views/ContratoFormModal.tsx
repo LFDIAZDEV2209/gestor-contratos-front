@@ -6,7 +6,15 @@ import { Validator } from '../../lib/validator';
 import { Modal } from '../ui/Modal';
 import { uid, addDays, iso } from '../../lib/format';
 
-export const ContratoFormModal = ({ contract, onClose }: { contract?: Partial<Contract>, onClose: () => void }) => {
+export const ContratoFormModal = ({
+  contract,
+  onClose,
+  onSave
+}: {
+  contract?: Partial<Contract>;
+  onClose: () => void;
+  onSave?: () => void;
+}) => {
   const [tab, setTab] = useState('General');
   const [form, setForm] = useState<Partial<Contract>>(contract || { status: 'Borrador' });
   const companies = Store.all('companies');
@@ -23,11 +31,24 @@ export const ContratoFormModal = ({ contract, onClose }: { contract?: Partial<Co
     
     if (isNew) {
       Store.insert('contracts', finalData);
-      Audit.log('u1', 'Crear', 'Contrato', saveId, 'Creó contrato');
+      Audit.log({
+        contractId: saveId,
+        modulo: 'Contratos',
+        accion: 'Creación',
+        campo: 'Contrato ' + (form.numero || form.num || saveId),
+        nuevo: 'Registro de contrato'
+      });
     } else {
       Store.update('contracts', saveId, finalData);
-      Audit.log('u1', 'Editar', 'Contrato', saveId, 'Editó contrato');
+      Audit.log({
+        contractId: saveId,
+        modulo: 'Contratos',
+        accion: 'Edición',
+        campo: 'Contrato ' + (form.numero || form.num || saveId),
+        nuevo: 'Actualización de contrato'
+      });
     }
+    if (onSave) onSave();
     onClose();
   };
 

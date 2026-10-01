@@ -6,7 +6,7 @@ import { M } from '../../lib/metrics';
 import { Icon } from '../icons';
 import { Badge } from '../ui/Badge';
 import { ContratoFormModal } from './ContratoFormModal';
-import { money, pct, STATE_BADGE } from '../../lib/catalog'; // Wait, pct/money is in format
+import { STATE_BADGE } from '../../lib/catalog';
 import { money as fmtMoney, pct as fmtPct } from '../../lib/format';
 
 export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) => {
@@ -16,9 +16,11 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
   // Basic filter state
   const [q, setQ] = useState('');
   
-  const filtered = contracts.filter(c => 
-    !q || c.num.toLowerCase().includes(q.toLowerCase()) || c.obj.toLowerCase().includes(q.toLowerCase())
-  );
+  const filtered = contracts.filter(c => {
+    const num = c.numero || c.num || '';
+    const obj = c.objeto || c.obj || '';
+    return !q || num.toLowerCase().includes(q.toLowerCase()) || obj.toLowerCase().includes(q.toLowerCase());
+  });
 
   return (
     <div>
@@ -67,13 +69,17 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
                 const metrics = M(c.id);
                 // Rail class depends on sem, simple mapping for demo
                 const rail = metrics.sem === 'ok' ? 'var(--ok)' : 'var(--warn)';
+                const co = Store.get('companies', c.companyId || c.company || '');
+                const num = c.numero || c.num || '';
+                const obj = c.objeto || c.obj || '';
+                const st = c.estado || c.status || '';
                 return (
                   <tr key={c.id} className="rail" style={{ '--railc': rail } as any}>
                     <td><div className={`sem ${metrics.sem}`}></div></td>
-                    <td><a className="link" onClick={() => onSelect(c.id)}>{c.num}</a></td>
-                    <td>{Store.get('companies', c.company)?.name}</td>
-                    <td><div className="clip">{c.obj}</div></td>
-                    <td><Badge text={c.status} color={c.status === 'Activo' ? 'ok' : 'na'} /></td>
+                    <td><a className="link" onClick={() => onSelect(c.id)}>{num}</a></td>
+                    <td>{co?.razon || co?.name || '—'}</td>
+                    <td><div className="clip">{obj}</div></td>
+                    <td><Badge text={st} color={st === 'Activo' ? 'ok' : 'na'} /></td>
                     <td className="num">{fmtMoney(metrics.valAct)}</td>
                     <td>
                       <div className="pbar"><div className="bar"><i style={{width: fmtPct(metrics.pExecFin)}}></i></div><span>{fmtPct(metrics.pExecFin)}</span></div>
