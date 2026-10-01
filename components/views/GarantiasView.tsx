@@ -1,4 +1,6 @@
 'use client';
+import { contractHref } from '../app/routes';
+import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
@@ -304,13 +306,13 @@ export const GarantiasView = ({
                   <tr key={g.id}>
                     <td className="nw">
                       {c ? (
-                        <a
+                        <Link
                           className="link font-bold"
-                          onClick={() => onSelectContract(c.id, 'garantias')}
+                          href={contractHref(c.id, 'garantias')}
                           style={{ cursor: 'pointer' }}
                         >
                           {c.numero}
-                        </a>
+                        </Link>
                       ) : (
                         '—'
                       )}

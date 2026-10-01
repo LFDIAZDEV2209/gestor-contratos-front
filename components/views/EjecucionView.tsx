@@ -1,4 +1,6 @@
 'use client';
+import { contractHref } from '../app/routes';
+import Link from 'next/link';
 import { PBar } from '../ui/PBar';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -263,13 +265,13 @@ export const EjecucionView = ({
                 return (
                   <tr key={c.id}>
                     <td className="nw">
-                      <a
+                      <Link
                         className="link font-bold"
-                        onClick={() => onSelectContract(c.id, 'ejecucion')}
+                        href={contractHref(c.id, 'ejecucion')}
                         style={{ cursor: 'pointer' }}
                       >
                         {c.numero}
-                      </a>
+                      </Link>
                     </td>
                     <td className="clip" style={{ maxWidth: '160px' }}>
                       {companyName(c.companyId)}

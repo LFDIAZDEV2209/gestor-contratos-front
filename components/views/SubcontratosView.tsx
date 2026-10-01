@@ -1,4 +1,6 @@
 'use client';
+import { contractHref } from '../app/routes';
+import Link from 'next/link';
 import { PBar } from '../ui/PBar';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -315,13 +317,13 @@ export const SubcontratosView = ({
                       </td>
                       <td className="nw">
                         {c ? (
-                          <a
+                          <Link
                             className="link"
-                            onClick={() => onSelectContract(c.id, 'subcontratos')}
+                            href={contractHref(c.id, 'subcontratos')}
                             style={{ cursor: 'pointer' }}
                           >
                             {c.numero}
-                          </a>
+                          </Link>
                         ) : (
                           '—'
                         )}

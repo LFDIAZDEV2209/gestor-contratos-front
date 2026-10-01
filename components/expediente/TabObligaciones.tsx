@@ -1,4 +1,6 @@
 'use client';
+import Link from 'next/link';
+import { obligationHref } from '../app/routes';
 import { Input } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable } from '../ui/Workspace';
@@ -122,9 +124,9 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
                 return (
                   <tr key={o.id}>
                     <td>
-                      <a className="link font-medium cursor-pointer" onClick={() => setSelectedOb(o)}>
+                      <Link className="link font-medium cursor-pointer" href={obligationHref(o.id)}>
                         {o.descripcion}
-                      </a>
+                      </Link>
                       {o.evidencia && (
                         <div className="small muted flex items-center gap-1 mt-1">
                           <Icon name="file-text" /> {o.evidencia}

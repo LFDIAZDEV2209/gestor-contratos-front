@@ -1,4 +1,7 @@
 'use client';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { contractHref, companyHref, obligationHref } from './routes';
 import { Input } from '../ui/Controls';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -10,20 +13,15 @@ import { Icon } from '../icons';
 import type { User, Guarantee, Payment, Acta, Obligation, Subcontract } from '../../lib/types';
 
 interface HeaderProps {
-  onSelectContract?: (cid: string, tab?: string) => void;
-  onSelectCompany?: (cid: string) => void;
-  onNavigate?: (v: string, filter?: string) => void;
   onUserChanged?: () => void;
   onToggleMobileMenu?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  onSelectContract,
-  onSelectCompany,
-  onNavigate,
   onUserChanged,
   onToggleMobileMenu
 }) => {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showBellDropdown, setShowBellDropdown] = useState(false);
@@ -71,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   // 7 fuentes de búsqueda global (files/04 y prototipo HTML)
   const q = searchQuery.trim().toLowerCase();
-  let searchGroups: [string, Array<{ t: string; s: string; onClick: () => void }>][] = [];
+  let searchGroups: [string, Array<{ t: string; s: string; href: string; onClick: () => void }>][] = [];
 
   if (q.length >= 2) {
     const has = (...args: any[]) =>
@@ -91,9 +89,9 @@ export const Header: React.FC<HeaderProps> = ({
       )
       .map((c) => ({
         t: `${c.numero} · ${c.contratista}`,
+        href: contractHref(c.id),
         s: c.objeto || '',
         onClick: () => {
-          onSelectContract?.(c.id);
           setShowSearchResults(false);
           setSearchQuery('');
         }
@@ -103,9 +101,9 @@ export const Header: React.FC<HeaderProps> = ({
       .filter((c) => has(c.razon, c.nit, (c as any).rep))
       .map((c) => ({
         t: c.razon || (c as any).name,
+        href: companyHref(c.id),
         s: `NIT ${c.nit}`,
         onClick: () => {
-          onSelectCompany?.(c.id);
           setShowSearchResults(false);
           setSearchQuery('');
         }
@@ -115,9 +113,9 @@ export const Header: React.FC<HeaderProps> = ({
       .filter((s: Subcontract) => has(s.numero, s.contratista, s.nit, s.objeto))
       .map((s: Subcontract) => ({
         t: `${s.numero} · ${s.contratista}`,
+        href: contractHref(s.contractId, 'subcontratos'),
         s: s.objeto || '',
         onClick: () => {
-          onSelectContract?.(s.contractId, 'subcontratos');
           setShowSearchResults(false);
           setSearchQuery('');
         }
@@ -127,9 +125,9 @@ export const Header: React.FC<HeaderProps> = ({
       .filter((g: Guarantee) => has(g.poliza, g.aseguradora, g.tipo))
       .map((g: Guarantee) => ({
         t: `Póliza ${g.poliza}`,
+        href: contractHref(g.contractId, 'garantias'),
         s: `${g.tipo} · ${g.aseguradora}`,
         onClick: () => {
-          onSelectContract?.(g.contractId, 'garantias');
           setShowSearchResults(false);
           setSearchQuery('');
         }
@@ -139,9 +137,9 @@ export const Header: React.FC<HeaderProps> = ({
       .filter((p: Payment) => has(p.factura, p.numero, p.concepto))
       .map((p: Payment) => ({
         t: `${p.factura || p.numero} · ${p.concepto}`,
+        href: contractHref(p.contractId, 'pagos'),
         s: `${money(p.neto)} · ${p.estado}`,
         onClick: () => {
-          onSelectContract?.(p.contractId, 'pagos');
           setShowSearchResults(false);
           setSearchQuery('');
         }
@@ -151,9 +149,9 @@ export const Header: React.FC<HeaderProps> = ({
       .filter((a: Acta) => has(a.numero, a.tipo, a.descripcion))
       .map((a: Acta) => ({
         t: `${a.tipo} ${a.numero}`,
+        href: contractHref(a.contractId, 'actas'),
         s: fdate(a.fecha),
         onClick: () => {
-          onSelectContract?.(a.contractId, 'actas');
           setShowSearchResults(false);
           setSearchQuery('');
         }
@@ -165,9 +163,9 @@ export const Header: React.FC<HeaderProps> = ({
         const c = Store.get('contracts', o.contractId);
         return {
           t: o.descripcion,
+          href: obligationHref(o.id),
           s: c ? `Contrato ${c.numero}` : '',
           onClick: () => {
-            onSelectContract?.(o.contractId, 'obligaciones');
             setShowSearchResults(false);
             setSearchQuery('');
           }
@@ -228,7 +226,7 @@ export const Header: React.FC<HeaderProps> = ({
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               const first = searchGroups[0]?.[1]?.[0];
-              if (first) first.onClick();
+              if (first) { router.push(first.href); first.onClick(); }
             }
           }}
         />
@@ -248,8 +246,9 @@ export const Header: React.FC<HeaderProps> = ({
                     {groupName} ({items.length})
                   </div>
                   {items.slice(0, 5).map((r, idx) => (
-                    <div
+                    <Link
                       key={idx}
+                      href={r.href}
                       className="dd-i"
                       onClick={r.onClick}
                     >
@@ -266,7 +265,7 @@ export const Header: React.FC<HeaderProps> = ({
                       >
                         {r.s}
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               ))
@@ -320,13 +319,12 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               ) : (
                 unreadAlerts.slice(0, 8).map((a) => (
-                  <div
+                  <Link
+                    href={a.contractId ? contractHref(a.contractId) : "/alertas"}
                     key={a.key}
                     className={`dd-i alert-line lv-${a.nivel}`}
                     onClick={() => {
                       setShowBellDropdown(false);
-                      if (a.contractId) onSelectContract?.(a.contractId);
-                      else onNavigate?.('alertas');
                     }}
                   >
                     <div style={{ flex: 1 }}>
@@ -337,12 +335,13 @@ export const Header: React.FC<HeaderProps> = ({
                         {a.descripcion}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))
               )}
             </div>
 
-            <div
+            <Link
+              href="/alertas"
               className="dd-i"
               style={{
                 padding: '11px',
@@ -354,11 +353,10 @@ export const Header: React.FC<HeaderProps> = ({
               }}
               onClick={() => {
                 setShowBellDropdown(false);
-                onNavigate?.('alertas');
               }}
             >
               Ir al centro de alertas →
-            </div>
+            </Link>
           </div>
         )}
       </div>

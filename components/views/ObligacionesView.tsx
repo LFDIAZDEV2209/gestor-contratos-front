@@ -6,8 +6,9 @@ import { PageHeader, Surface, Field, TableViewport, DataTable } from '../ui/Work
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { obligationHref } from '../app/routes';
+import { obligationHref, contractHref } from '../app/routes';
 import { DetailFrame } from '../ui/DetailFrame';
+import { obligationPresentation } from '../ui/presentation';
 import type { Obligation, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { effOblig } from '../../lib/metrics';
@@ -30,7 +31,10 @@ export const ObligacionesView = ({
   const [filterTipo, setFilterTipo] = useState('');
   const [filterContract, setFilterContract] = useState('');
   const [q, setQ] = useState('');
-  const [selectedObl, setSelectedObl] = useState<Obligation | null>(() => detailId ? Store.get('obligations', detailId) : null);
+  const [selectedObl, setSelectedObl] = useState<Obligation | null>(() => {
+    const obligation = detailId ? Store.get('obligations', detailId) : null;
+    return obligation ? obligationPresentation(obligation) : null;
+  });
   const closeDetail = () => detailId ? router.push('/obligaciones') : setSelectedObl(null);
   const [newComment, setNewComment] = useState('');
 
@@ -288,13 +292,13 @@ export const ObligacionesView = ({
                   <tr key={o.id}>
                     <td className="nw">
                       {c ? (
-                        <a
+                        <Link
                           className="link font-bold"
-                          onClick={() => onSelectContract(c.id, 'obligaciones')}
+                          href={contractHref(c.id, 'obligaciones')}
                           style={{ cursor: 'pointer' }}
                         >
                           {c.numero}
-                        </a>
+                        </Link>
                       ) : (
                         '—'
                       )}

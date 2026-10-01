@@ -1,4 +1,6 @@
 'use client';
+import { contractHref } from '../app/routes';
+import Link from 'next/link';
 import { Select, Input } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
@@ -316,13 +318,13 @@ export const AseguradorasView = ({
                 return (
                   <tr key={c.id}>
                     <td className="nw">
-                      <a
+                      <Link
                         className="link font-bold"
-                        onClick={() => onSelectContract(c.id, 'garantias')}
+                        href={contractHref(c.id, 'garantias')}
                         style={{ cursor: 'pointer' }}
                       >
                         {c.numero}
-                      </a>
+                      </Link>
                     </td>
                     <td className="clip" style={{ maxWidth: '200px' }} title={c.contratista}>
                       {c.contratista}

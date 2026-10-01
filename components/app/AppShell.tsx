@@ -1,20 +1,18 @@
 'use client';
 import { useState, useEffect, type ReactNode } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Store } from '../../lib/store';
 import { WorkspaceSkeleton } from '../ui/Workspace';
 import { FeedbackHost } from '../ui/Feedback';
 import { SessionRevision } from './SessionContext';
-import { contractHref, companyHref, viewHref } from './routes';
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const [mounted, setMounted] = useState(false);
   const [userRevision, setUserRevision] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
   useEffect(() => {
     if (typeof document !== 'undefined') {
       if (mobileOpen) {
@@ -64,9 +62,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         {mobileOpen && <div className="backdrop" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú lateral" />}
         <main className="main">
           {mounted ? <Header
-            onSelectContract={(cid, tab) => router.push(contractHref(cid, tab))}
-            onSelectCompany={(cid) => router.push(companyHref(cid))}
-            onNavigate={(view, filter) => router.push(viewHref(view, filter))}
             onUserChanged={() => setUserRevision(v => v + 1)}
             onToggleMobileMenu={() => setMobileOpen(v => !v)}
           /> : <header className="header"><div className="skeleton skeleton-title" /></header>}

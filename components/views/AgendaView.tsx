@@ -1,4 +1,6 @@
 'use client';
+import { contractHref } from '../app/routes';
+import Link from 'next/link';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, TableViewport, DataTable } from '../ui/Workspace';
 import { useState } from 'react';
@@ -155,13 +157,13 @@ export const AgendaView = ({
                     return (
                       <tr key={c.id} className="rail" style={{ '--railc': rail } as any}>
                         <td className="nw">
-                          <a
+                          <Link
                             className="link font-bold"
-                            onClick={() => onSelectContract(c.id)}
+                            href={contractHref(c.id)}
                             style={{ cursor: 'pointer' }}
                           >
                             {c.numero}
-                          </a>
+                          </Link>
                         </td>
                         <td className="clip" style={{ maxWidth: '180px' }}>
                           {companyName(c.companyId)}
