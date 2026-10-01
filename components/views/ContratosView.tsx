@@ -15,7 +15,7 @@ import { Badge } from '../ui/Badge';
 import { PBar } from '../ui/PBar';
 import { Kpi } from '../ui/Kpi';
 import { ContratoFormModal } from './ContratoFormModal';
-import { money as fmtMoney, daysTxt } from '../../lib/format';
+import { money as fmtMoney, moneyM as fmtMoneyM, daysTxt } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { DEPTOS } from '../../lib/geo';
 
@@ -215,7 +215,8 @@ export const ContratosView = () => {
         />
         <Kpi
           label="Compromiso Total"
-          value={fmtMoney(valorTotal)}
+          value={fmtMoneyM(valorTotal)}
+          sub={fmtMoney(valorTotal)}
           icon="wallet"
           className="anim-fade-rise stagger-5"
         />
@@ -358,11 +359,11 @@ export const ContratosView = () => {
             <thead>
               <tr>
                 <th style={{ width: 56, textAlign: 'center' }}>Sem</th>
-                <th style={{ width: 140 }}>Número</th>
-                <th style={{ width: 180 }}>Empresa</th>
+                <th style={{ width: 118, whiteSpace: 'nowrap' }}>Número</th>
+                <th style={{ width: 190 }}>Empresa</th>
                 <th style={{ minWidth: 260 }}>Contratista y Objeto</th>
                 <th style={{ width: 120 }}>Estado</th>
-                <th className="num" style={{ width: 140 }}>Valor Actual</th>
+                <th className="num" style={{ width: 140, whiteSpace: 'nowrap' }}>Valor Actual</th>
                 <th style={{ width: 160 }}>Avance Fin.</th>
                 <th style={{ width: 140 }}>Días Restantes</th>
                 <th style={{ width: 90, textAlign: 'right' }}>Acciones</th>
