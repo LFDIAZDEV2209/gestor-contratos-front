@@ -59,13 +59,15 @@ const TABS: TabDef[] = [
 export const ExpedienteView = ({
   id,
   onBack,
-  onOpenCompany
+  onOpenCompany,
+  initialTab
 }: {
   id: string;
   onBack: () => void;
   onOpenCompany?: (cid: string) => void;
+  initialTab?: string;
 }) => {
-  const [activeTab, setActiveTab] = useState('resumen');
+  const [activeTab, setActiveTab] = useState(initialTab || 'resumen');
   const [showValidator, setShowValidator] = useState(false);
   const [showReconcile, setShowReconcile] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);

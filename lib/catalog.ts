@@ -179,11 +179,11 @@ export const LEVEL_COLOR: Record<string, string> = {
   na: '#98A4A8'
 };
 
-export const ALV: Record<string, { o: number; l: string; c: string; ic: string }> = {
-  critica: { o: 4, l: 'Crítica', c: 'crit', ic: 'alert-circle' },
-  riesgo:  { o: 3, l: 'Riesgo', c: 'risk', ic: 'alert-triangle' },
-  proxima: { o: 2, l: 'Próxima', c: 'warn', ic: 'clock' },
-  info:    { o: 1, l: 'Informativa', c: 'info', ic: 'info' }
+export const ALV: Record<string, { o: number; l: string; t: string; c: string; ic: string }> = {
+  critica: { o: 4, l: 'Crítica', t: 'Crítica', c: 'crit', ic: 'alert-circle' },
+  riesgo:  { o: 3, l: 'Riesgo', t: 'Riesgo', c: 'risk', ic: 'alert-triangle' },
+  proxima: { o: 2, l: 'Próxima', t: 'Próxima', c: 'warn', ic: 'clock' },
+  info:    { o: 1, l: 'Informativa', t: 'Informativa', c: 'info', ic: 'info' }
 };
 
 export const STATE_BADGE: Record<string, string> = {

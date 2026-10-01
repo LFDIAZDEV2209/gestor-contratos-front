@@ -287,15 +287,18 @@ export interface Risk {
   id: UID;
   contractId: UID;
   categoria?: string;
-  riesgo: string;
-  prob: number; // 1-5
-  impacto: number; // 1-5
+  riesgo?: string;
+  descripcion?: string;
+  prob?: number; // 1-5
+  probabilidad?: number;
+  impacto?: number; // 1-5
   responsable?: string;
   tratamiento?: string;
   fecha?: ISODate;
-  estado: 'Abierto' | 'Controlado' | 'Cerrado' | string;
+  estado: 'Abierto' | 'Controlado' | 'Cerrado' | 'Mitigado' | string;
   mitigacion?: string;
   evidencia?: string;
+  nivel?: number;
   // Aliases
   type?: string;
   score?: number;
@@ -314,6 +317,7 @@ export interface Breach {
   impacto: 'Bajo' | 'Medio' | 'Alto' | string;
   estado: 'Abierto' | 'En análisis' | 'En gestión' | 'Subsanado' | 'Cerrado' | string;
   plan?: string;
+  planAccion?: string;
   fechaLimite?: ISODate;
   medida?: string;
   multa?: number;
@@ -330,11 +334,14 @@ export interface Plan {
   id: UID;
   contractId: UID;
   fecha?: ISODate;
-  hallazgo: string;
+  fechaInicio?: ISODate;
+  fechaFin?: ISODate;
+  fechaCompromiso?: ISODate;
+  hallazgo?: string;
   causa?: string;
   accion: string;
   responsable?: string;
-  estado: 'Abierto' | 'En ejecución' | 'Cerrado' | string;
+  estado: 'Abierto' | 'En ejecución' | 'En curso' | 'Cumplido' | 'Incumplido' | 'Cerrado' | string;
   avance: number;
   evidencia?: string;
   // Aliases
@@ -446,7 +453,7 @@ export interface Settings {
   criticalDays: number;
   budgetPct: number;
   gapPct: number;
-  perms: Record<string, Record<string, boolean>>;
+  perms: Record<string, Record<string, boolean | number>>;
   catalogs: Record<string, string[]>;
   theme?: string;
   notify?: boolean;

@@ -26,7 +26,7 @@ export function effDeliv(d: Deliverable): string {
 }
 
 export function riskLevel(r: Risk | number): 'Extremo' | 'Alto' | 'Moderado' | 'Bajo' {
-  const s = typeof r === 'number' ? r : (+r.prob || 0) * (+r.impacto || 0);
+  const s = typeof r === 'number' ? r : (Number(r.prob ?? r.probabilidad ?? 0)) * (Number(r.impacto ?? 0));
   return s >= 15 ? 'Extremo' : s >= 10 ? 'Alto' : s >= 5 ? 'Moderado' : 'Bajo';
 }
 

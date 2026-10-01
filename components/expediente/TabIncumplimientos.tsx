@@ -125,7 +125,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
       modulo: 'Planes',
       accion: 'Creación',
       campo: 'Nuevo plan de mejoramiento ' + newPlan.id,
-      nuevo: `${newPlan.hallazgo.slice(0, 40)}`
+      nuevo: `${(newPlan.hallazgo || newPlan.accion || '').slice(0, 40)}`
     });
 
     setShowPlanModal(false);

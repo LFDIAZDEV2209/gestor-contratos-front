@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
@@ -19,6 +20,12 @@ import { AseguradorasView } from '../views/AseguradorasView';
 import { DocumentosView } from '../views/DocumentosView';
 import { ActasView } from '../views/ActasView';
 import { ModificacionesView } from '../views/ModificacionesView';
+import { AlertasView } from '../views/AlertasView';
+import { RiesgosView } from '../views/RiesgosView';
+import { IncumplimientosView } from '../views/IncumplimientosView';
+import { AuditoriaView } from '../views/AuditoriaView';
+import { ReportesView } from '../views/ReportesView';
+import { ConfiguracionView } from '../views/ConfiguracionView';
 import { Store } from '../../lib/store';
 import { Seed } from '../../lib/demo';
 
@@ -26,6 +33,7 @@ export const AppShell = () => {
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState('dash');
   const [selectedId, setSelectedId] = useState('');
+  const [selectedTab, setSelectedTab] = useState<string | undefined>();
 
   useEffect(() => {
     Store.init(Seed.build());
@@ -35,8 +43,10 @@ export const AppShell = () => {
     const handleHash = () => {
       const hash = window.location.hash.replace('#', '');
       if (hash.startsWith('contrato/')) {
+        const parts = hash.split('/');
         setView('contrato');
-        setSelectedId(hash.split('/')[1]);
+        setSelectedId(parts[1]);
+        if (parts[2]) setSelectedTab(parts[2]);
       } else if (hash.startsWith('empresa/')) {
         setView('empresa');
         setSelectedId(hash.split('/')[1]);
@@ -51,12 +61,16 @@ export const AppShell = () => {
 
   if (!mounted) return null;
 
-  const navigate = (v: string, id?: string) => {
+  const navigate = (v: string, id?: string, tab?: string) => {
     setView(v);
+    setSelectedTab(tab);
     if (id) {
       setSelectedId(id);
-      if (v === 'contrato') window.location.hash = `contrato/${id}`;
-      if (v === 'empresa') window.location.hash = `empresa/${id}`;
+      if (v === 'contrato') {
+        window.location.hash = tab ? `contrato/${id}/${tab}` : `contrato/${id}`;
+      } else if (v === 'empresa') {
+        window.location.hash = `empresa/${id}`;
+      }
     } else {
       window.location.hash = v;
     }
@@ -64,23 +78,35 @@ export const AppShell = () => {
 
   return (
     <div className="app">
-      <Sidebar current={view} onNavigate={navigate} />
+      <Sidebar current={view} onNavigate={(v, id) => navigate(v, id)} />
       <main className="main">
         <Header />
         <div className="content">
           {view === 'dash' && <DashboardView />}
-          {view === 'gerencia' && <GerenciaView onSelectContract={(cid) => navigate('contrato', cid)} />}
-          {view === 'agenda' && <AgendaView onSelectContract={(cid) => navigate('contrato', cid)} />}
-          {view === 'calendario' && <CalendarioView onSelectContract={(cid) => navigate('contrato', cid)} />}
+          {view === 'gerencia' && (
+            <GerenciaView onSelectContract={(cid) => navigate('contrato', cid)} />
+          )}
+          {view === 'agenda' && (
+            <AgendaView onSelectContract={(cid) => navigate('contrato', cid)} />
+          )}
+          {view === 'calendario' && (
+            <CalendarioView onSelectContract={(cid, tab) => navigate('contrato', cid, tab)} />
+          )}
 
-          {view === 'empresas' && <EmpresasView onSelect={(id) => navigate('empresa', id)} />}
-          {view === 'empresa' && <EmpresaView id={selectedId} onBack={() => navigate('empresas')} />}
+          {view === 'empresas' && (
+            <EmpresasView onSelect={(id) => navigate('empresa', id)} />
+          )}
+          {view === 'empresa' && (
+            <EmpresaView id={selectedId} onBack={() => navigate('empresas')} />
+          )}
           {(view === 'contracts' || view === 'contratos') && (
             <ContratosView onSelect={(id) => navigate('contrato', id)} />
           )}
           {view === 'contrato' && (
             <ExpedienteView
+              key={`${selectedId}-${selectedTab || 'resumen'}`}
               id={selectedId}
+              initialTab={selectedTab}
               onBack={() => navigate('contratos')}
               onOpenCompany={(cid) => navigate('empresa', cid)}
             />
@@ -115,6 +141,26 @@ export const AppShell = () => {
           )}
           {view === 'modificaciones' && (
             <ModificacionesView onSelectContract={(cid) => navigate('contrato', cid)} />
+          )}
+
+          {view === 'alertas' && (
+            <AlertasView onSelectContract={(cid, tab) => navigate('contrato', cid, tab)} />
+          )}
+          {view === 'riesgos' && (
+            <RiesgosView onSelectContract={(cid, tab) => navigate('contrato', cid, tab)} />
+          )}
+          {view === 'incumplimientos' && (
+            <IncumplimientosView onSelectContract={(cid, tab) => navigate('contrato', cid, tab)} />
+          )}
+          {view === 'auditoria' && (
+            <AuditoriaView onSelectContract={(cid, tab) => navigate('contrato', cid, tab)} />
+          )}
+          {view === 'reportes' && <ReportesView />}
+          {(view === 'configuracion' || view === 'settings') && (
+            <ConfiguracionView
+              onNavigateToEmpresas={() => navigate('empresas')}
+              onOpenCompany={(cid) => navigate('empresa', cid)}
+            />
           )}
         </div>
       </main>

@@ -88,7 +88,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
       modulo: 'Riesgos',
       accion: 'Creación',
       campo: 'Nuevo riesgo ' + newRisk.id,
-      nuevo: `${newRisk.categoria}: ${newRisk.riesgo.slice(0, 40)} (P${newRisk.prob}xI${newRisk.impacto})`
+      nuevo: `${newRisk.categoria}: ${(newRisk.riesgo || newRisk.descripcion || '').slice(0, 40)} (P${newRisk.prob}xI${newRisk.impacto})`
     });
 
     setShowModal(false);
