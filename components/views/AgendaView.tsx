@@ -7,7 +7,7 @@ import { useState } from 'react';
 import type { Contract } from '../../lib/types';
 import { Store } from '../../lib/store';
 import { M, activeContracts, companyName } from '../../lib/metrics';
-import { fdate, daysTxt, money } from '../../lib/format';
+import { fdate, daysTxt, money, todayIso } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
@@ -27,27 +27,37 @@ export const AgendaView = ({
     {
       title: 'Vencen hoy',
       filter: (d: number | null) => d === 0,
-      sem: 'crit'
+      sem: 'crit',
+      icon: 'clock',
+      desc: 'Acción inmediata requerida'
     },
     {
       title: 'Vencen en 1 a 5 días',
       filter: (d: number | null) => d !== null && d >= 1 && d <= 5,
-      sem: 'crit'
+      sem: 'crit',
+      icon: 'hourglass',
+      desc: 'Plazo crítico de gestión'
     },
     {
       title: 'Vencen en 6 a 15 días',
       filter: (d: number | null) => d !== null && d >= 6 && d <= 15,
-      sem: 'risk'
+      sem: 'risk',
+      icon: 'alert-triangle',
+      desc: 'Próxima prórroga o liquidación'
     },
     {
       title: 'Vencen en 16 a 30 días',
       filter: (d: number | null) => d !== null && d >= 16 && d <= 30,
-      sem: 'warn'
+      sem: 'warn',
+      icon: 'calendar',
+      desc: 'En seguimiento preventivo'
     },
     {
       title: 'Contratos vencidos',
       filter: (d: number | null) => d !== null && d < 0,
-      sem: 'crit'
+      sem: 'crit',
+      icon: 'alert-circle',
+      desc: 'Pendientes de liquidar o cerrar'
     }
   ];
 
@@ -78,58 +88,83 @@ export const AgendaView = ({
   return (
     <div>
       {/* Page Header */}
-      <PageHeader className="ph">
+      <PageHeader variant="hero" className="page-h">
         <div>
-          <h1>Agenda contractual</h1>
-          <p>
-            Vencimientos por ventana de tiempo. Alertas automáticas a 60, 30, 15 y 5 días; nivel
-            crítico en los últimos 5 días.
-          </p>
-        </div>
-        <div className="ph-actions">
-          <div className="exp-actions">
-            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
-              <Icon name="file-excel" /> Excel
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
-              <Icon name="file-pdf" /> PDF
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
-              <Icon name="file-csv" /> CSV
-            </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 12,
+                display: 'inline-grid',
+                placeItems: 'center',
+                background: 'rgba(255, 255, 255, 0.16)',
+                backdropFilter: 'blur(6px)',
+                flexShrink: 0
+              }}
+            >
+              <Icon name="calendar-days" size={22} style={{ color: 'var(--color-primary-foreground, white)' }} />
+            </span>
+            <div>
+              <h1 style={{ margin: 0 }}>Agenda contractual</h1>
+              <p style={{ margin: '4px 0 0' }}>
+                Vencimientos por ventana de tiempo al {fdate(todayIso())}. Alertas automáticas a 60, 30, 15 y 5 días; nivel
+                crítico en los últimos 5 días.
+              </p>
+            </div>
           </div>
+        </div>
+        <div className="ph-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Icon name="file-excel" /> Excel
+          </Button>
+          <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            <Icon name="file-pdf" /> PDF
+          </Button>
+          <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            <Icon name="file-csv" /> CSV
+          </Button>
         </div>
       </PageHeader>
 
       {/* KPI Cards */}
       <div className="kpis mb">
-        {buckets.map((b) => {
+        {buckets.map((b, idx) => {
           const count = cs.filter((c) => b.filter(M(c).restantes)).length;
           return (
             <Kpi
               key={b.title}
               label={b.title}
               value={count}
+              sub={count === 1 ? '1 contrato' : `${count} contratos`}
+              icon={b.icon}
               color={count > 0 ? b.sem : undefined}
+              className="anim-fade-rise click"
+              style={{ animationDelay: `${idx * 40}ms` }}
+              onClick={() => {
+                const el = document.getElementById(`bucket-${idx}`);
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
             />
           );
         })}
       </div>
 
       {/* 5 Bucket Panels */}
-      {buckets.map((b) => {
+      {buckets.map((b, idx) => {
         const rows = cs
           .filter((c) => b.filter(M(c).restantes))
           .sort((a, x) => (M(a).restantes ?? 999) - (M(x).restantes ?? 999));
 
         return (
-          <Surface key={b.title} className="panel mb">
+          <Surface key={b.title} id={`bucket-${idx}`} className="panel mb anim-fade-rise" style={{ animationDelay: `${idx * 60}ms` }}>
             <div className="panel-h">
-              <div>
-                <span className={`sem ${b.sem}`} style={{ display: 'inline-block', marginRight: '8px' }}></span>
-                <h3 style={{ display: 'inline' }}>{b.title}</h3>
-                <span className="sub" style={{ marginLeft: '10px' }}>
-                  {rows.length} contrato{rows.length === 1 ? '' : 's'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className={`sem ${b.sem}`} />
+                <Icon name={b.icon} />
+                <h3 style={{ margin: 0 }}>{b.title}</h3>
+                <span className="sub">
+                  {rows.length} contrato{rows.length === 1 ? '' : 's'} · {b.desc}
                 </span>
               </div>
             </div>
@@ -204,7 +239,7 @@ export const AgendaView = ({
                             onClick={() => onSelectContract(c.id)}
                             title="Ver expediente del contrato"
                           >
-                            Ver expediente
+                            <Icon name="eye" /> Ver expediente
                           </Button>
                         </td>
                       </tr>

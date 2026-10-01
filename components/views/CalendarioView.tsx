@@ -18,15 +18,15 @@ interface CalEvt {
   tab: string;
 }
 
-const EVT_CONFIG: Record<string, { label: string; color: string }> = {
-  inicio: { label: 'Inicio de contrato', color: '#0B6E68' },
-  fin: { label: 'Terminación', color: '#BE3A2E' },
-  garantia: { label: 'Vencimiento de garantía', color: '#8C6BB1' },
-  obligacion: { label: 'Obligación', color: '#D0691A' },
-  entregable: { label: 'Entregable', color: '#2F6FA3' },
-  pago: { label: 'Pago', color: '#1E8E4E' },
-  acta: { label: 'Acta', color: '#6B7F86' },
-  auditoria: { label: 'Auditoría', color: '#98A4A8' }
+const EVT_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
+  inicio: { label: 'Inicio de contrato', color: 'var(--brand)', icon: 'play' },
+  fin: { label: 'Terminación', color: 'var(--crit)', icon: 'clock' },
+  garantia: { label: 'Vencimiento de garantía', color: 'var(--brand-3)', icon: 'shield' },
+  obligacion: { label: 'Obligación', color: 'var(--risk)', icon: 'clipboard-check' },
+  entregable: { label: 'Entregable', color: 'var(--info)', icon: 'file-text' },
+  pago: { label: 'Pago', color: 'var(--ok)', icon: 'wallet' },
+  acta: { label: 'Acta', color: 'var(--muted)', icon: 'file-signature' },
+  auditoria: { label: 'Auditoría', color: 'var(--na)', icon: 'fingerprint' }
 };
 
 const MONTH_NAMES = [
@@ -203,39 +203,95 @@ export const CalendarioView = ({
   return (
     <div>
       {/* Page Header */}
-      <PageHeader className="ph">
+      <PageHeader variant="hero" className="page-h">
         <div>
-          <h1>Calendario contractual</h1>
-          <p>Inicios, terminaciones, garantías, obligaciones, entregables, pagos, actas y auditorías</p>
-        </div>
-        <div className="ph-actions">
-          <div className="row-flex" style={{ gap: '4px' }}>
-            <Button
-              className={`btn sm ${mode === 'mes' ? 'pri' : 'ghost'}`}
-              onClick={() => setMode('mes')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 12,
+                display: 'inline-grid',
+                placeItems: 'center',
+                background: 'rgba(255, 255, 255, 0.16)',
+                backdropFilter: 'blur(6px)',
+                flexShrink: 0
+              }}
             >
-              Mes
-            </Button>
-            <Button
-              className={`btn sm ${mode === 'semana' ? 'pri' : 'ghost'}`}
-              onClick={() => setMode('semana')}
-            >
-              Semana
-            </Button>
-            <Button
-              className={`btn sm ${mode === 'dia' ? 'pri' : 'ghost'}`}
-              onClick={() => setMode('dia')}
-            >
-              Día
-            </Button>
+              <Icon name="calendar" size={22} style={{ color: 'var(--color-primary-foreground, white)' }} />
+            </span>
+            <div>
+              <h1 style={{ margin: 0 }}>Calendario contractual</h1>
+              <p style={{ margin: '4px 0 0' }}>
+                Inicios, terminaciones, garantías, obligaciones, entregables, pagos, actas y auditorías
+              </p>
+            </div>
           </div>
+        </div>
+
+        <div className="ph-actions" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <Button
+            className={`btn sm ${mode === 'mes' ? 'pri' : ''}`}
+            onClick={() => setMode('mes')}
+            title="Vista mensual"
+          >
+            <Icon name="calendar" /> Mes
+          </Button>
+          <Button
+            className={`btn sm ${mode === 'semana' ? 'pri' : ''}`}
+            onClick={() => setMode('semana')}
+            title="Vista semanal"
+          >
+            <Icon name="calendar-days" /> Semana
+          </Button>
+          <Button
+            className={`btn sm ${mode === 'dia' ? 'pri' : ''}`}
+            onClick={() => setMode('dia')}
+            title="Vista diaria"
+          >
+            <Icon name="clock" /> Día
+          </Button>
+        </div>
+
+        {/* Leyenda interactiva de tipos de evento dentro del hero banner */}
+        <div
+          className="legend"
+          style={{ width: '100%', marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: '12px' }}
+        >
+          {Object.keys(EVT_CONFIG).map((k) => {
+            const cfg = EVT_CONFIG[k];
+            const isOff = offTypes[k];
+            return (
+              <span
+                key={k}
+                onClick={() => toggleType(k)}
+                style={{
+                  cursor: 'pointer',
+                  opacity: isOff ? 0.38 : 1,
+                  textDecoration: isOff ? 'line-through' : 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '3px 9px',
+                  borderRadius: 'var(--r-pill)',
+                  background: isOff ? 'transparent' : 'rgba(255, 255, 255, 0.12)',
+                  backdropFilter: 'blur(4px)',
+                  transition: 'all var(--t-fast) var(--ease)'
+                }}
+                title={`Clic para ${isOff ? 'mostrar' : 'ocultar'} ${cfg.label}`}
+              >
+                <span className="sem" style={{ background: cfg.color }} />
+                <span>{cfg.label}</span>
+              </span>
+            );
+          })}
         </div>
       </PageHeader>
 
       <Surface className="panel">
         {/* Calendar Toolbar */}
-        <div className="panel-h" style={{ flexWrap: 'wrap', gap: '12px' }}>
-          <div className="row-flex" style={{ gap: '6px' }}>
+        <div className="panel-h" style={{ flexWrap: 'wrap', gap: 12 }}>
+          <div className="row-flex" style={{ gap: 8, alignItems: 'center' }}>
             <Button
               className="icon-btn"
               onClick={() => handleNav(-1)}
@@ -244,7 +300,7 @@ export const CalendarioView = ({
             >
               <Icon name="chevron-left" />
             </Button>
-            <Button className="btn sm" onClick={handleToday}>
+            <Button className="btn sm" onClick={handleToday} title="Ir a la fecha actual">
               Hoy
             </Button>
             <Button
@@ -255,35 +311,15 @@ export const CalendarioView = ({
             >
               <Icon name="chevron-right" />
             </Button>
-            <h3 style={{ marginLeft: '10px' }}>{title}</h3>
+            <h3 style={{ marginLeft: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="calendar-days" />
+              <span>{title}</span>
+            </h3>
           </div>
 
-          {/* Interactive Legend */}
-          <div className="legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-            {Object.keys(EVT_CONFIG).map((k) => {
-              const cfg = EVT_CONFIG[k];
-              const isOff = offTypes[k];
-              return (
-                <span
-                  key={k}
-                  onClick={() => toggleType(k)}
-                  style={{
-                    cursor: 'pointer',
-                    opacity: isOff ? 0.35 : 1,
-                    textDecoration: isOff ? 'line-through' : 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontSize: '12px'
-                  }}
-                  title={`Clic para ${isOff ? 'mostrar' : 'ocultar'} ${cfg.label}`}
-                >
-                  <span className="sem" style={{ background: cfg.color }}></span>
-                  {cfg.label}
-                </span>
-              );
-            })}
-          </div>
+          <span className="sub">
+            {events.length} evento{events.length === 1 ? '' : 's'} activo{events.length === 1 ? '' : 's'}
+          </span>
         </div>
 
         {/* View Mode: Mes */}
@@ -328,12 +364,12 @@ export const CalendarioView = ({
                   </div>
 
                   {dayEvts.slice(0, 3).map((e, idx) => {
-                    const cfg = EVT_CONFIG[e.t] || { color: '#0B6E68' };
+                    const cfg = EVT_CONFIG[e.t] || { label: e.t, color: 'var(--brand)' };
                     return (
                       <span
                         key={idx}
                         className="ev"
-                        style={{ borderLeftColor: cfg.color, cursor: 'pointer' }}
+                        style={{ borderLeftColor: cfg.color, cursor: 'pointer', transition: 'all var(--t-fast) var(--ease)' }}
                         onClick={() => onSelectContract(e.cid, e.tab)}
                         title={`${cfg.label} · ${e.txt}`}
                       >
@@ -371,12 +407,12 @@ export const CalendarioView = ({
                   <span className="dn font-bold mb-2 block">{d.getDate()}</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {dayEvts.map((e, idx) => {
-                      const cfg = EVT_CONFIG[e.t] || { color: '#0B6E68' };
+                      const cfg = EVT_CONFIG[e.t] || { label: e.t, color: 'var(--brand)' };
                       return (
                         <span
                           key={idx}
                           className="ev"
-                          style={{ borderLeftColor: cfg.color, cursor: 'pointer' }}
+                          style={{ borderLeftColor: cfg.color, cursor: 'pointer', transition: 'all var(--t-fast) var(--ease)' }}
                           onClick={() => onSelectContract(e.cid, e.tab)}
                           title={`${cfg.label} · ${e.txt}`}
                         >
@@ -404,19 +440,26 @@ export const CalendarioView = ({
               const dayEvts: CalEvt[] = eventsByDay[k] || [];
               return (
                 <div>
-                  <h4 style={{ marginBottom: '16px' }}>
-                    Eventos del día ({dayEvts.length} programados)
+                  <h4 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Icon name="clock" />
+                    <span>Eventos del día ({dayEvts.length} programados)</span>
                   </h4>
                   {dayEvts.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {dayEvts.map((e, idx) => {
-                        const cfg = EVT_CONFIG[e.t] || { label: e.t, color: '#0B6E68' };
+                        const cfg = EVT_CONFIG[e.t] || { label: e.t, color: 'var(--brand)' };
                         const c = Store.get('contracts', e.cid);
                         return (
                           <div
                             key={idx}
-                            className="todo"
-                            style={{ cursor: 'pointer' }}
+                            className="todo anim-fade-rise"
+                            style={{
+                              cursor: 'pointer',
+                              animationDelay: `${idx * 40}ms`,
+                              transition: 'all var(--t-fast) var(--ease)',
+                              border: '1px solid var(--line)',
+                              borderRadius: 'var(--r)'
+                            }}
                             onClick={() => onSelectContract(e.cid, e.tab)}
                           >
                             <span
@@ -427,7 +470,9 @@ export const CalendarioView = ({
                               <b>{cfg.label}</b> {c ? `· Contrato ${c.numero}` : ''}
                               <div className="small muted">{e.txt}</div>
                             </div>
-                            <Button className="btn sm">Ver en {e.tab}</Button>
+                            <Button className="btn sm">
+                              <Icon name="eye" /> Ver en {e.tab}
+                            </Button>
                           </div>
                         );
                       })}
@@ -456,13 +501,17 @@ export const CalendarioView = ({
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {selectedDayEvents.events.map((e, idx) => {
-              const cfg = EVT_CONFIG[e.t] || { label: e.t, color: '#0B6E68' };
+              const cfg = EVT_CONFIG[e.t] || { label: e.t, color: 'var(--brand)' };
               const c = Store.get('contracts', e.cid);
               return (
                 <div
                   key={idx}
-                  className="todo"
-                  style={{ cursor: 'pointer' }}
+                  className="todo anim-fade-rise"
+                  style={{
+                    cursor: 'pointer',
+                    animationDelay: `${idx * 40}ms`,
+                    transition: 'all var(--t-fast) var(--ease)'
+                  }}
                   onClick={() => {
                     setSelectedDayEvents(null);
                     onSelectContract(e.cid, e.tab);
