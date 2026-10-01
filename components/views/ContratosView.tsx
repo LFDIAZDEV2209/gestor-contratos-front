@@ -184,40 +184,58 @@ export const ContratosView = () => {
         </div>
       </PageHeader>
 
-      {/* KPI Cards con entrada escalonada */}
+      {/* KPI Cards con lenguaje canónico Kpi v2 y entrada escalonada */}
       <div className="kpis mb">
         <Kpi
           label="Total Registros"
           value={contracts.length.toString()}
           icon="file-contract"
-          className="anim-fade-rise stagger-1"
+          color="brand"
+          className="anim-fade-rise stagger-1 click"
+          onClick={() => {
+            updateQuery({ vista: null, estado: null, nivel: null });
+            setPage(1);
+          }}
         />
         <Kpi
           label="Contratos Activos"
           value={totalActivos.toString()}
           color="ok"
           icon="check-circle"
-          className="anim-fade-rise stagger-2"
+          className="anim-fade-rise stagger-2 click"
+          onClick={() => {
+            updateQuery({ estado: 'Activo', vista: null });
+            setPage(1);
+          }}
         />
         <Kpi
           label="Vencidos / Críticos"
           value={totalCriticos.toString()}
           color="crit"
           icon="alert-circle"
-          className="anim-fade-rise stagger-3"
+          className="anim-fade-rise stagger-3 click"
+          onClick={() => {
+            updateQuery({ vista: 'vencidos' });
+            setPage(1);
+          }}
         />
         <Kpi
           label="En Atención / Riesgo"
           value={totalRiesgo.toString()}
           color="warn"
           icon="alert-triangle"
-          className="anim-fade-rise stagger-4"
+          className="anim-fade-rise stagger-4 click"
+          onClick={() => {
+            updateQuery({ vista: 'riesgo' });
+            setPage(1);
+          }}
         />
         <Kpi
           label="Compromiso Total"
           value={fmtMoneyM(valorTotal)}
           sub={fmtMoney(valorTotal)}
           icon="wallet"
+          color="info"
           className="anim-fade-rise stagger-5"
         />
       </div>
@@ -234,12 +252,14 @@ export const ContratosView = () => {
         </div>
       )}
 
-      {/* Panel de Filtros y Búsqueda */}
+      {/* Panel de Filtros y Búsqueda con focus ring de marca */}
       <Surface className="panel mb">
         <div className="filters">
           <div className="gsearch" style={{ minWidth: 260 }}>
             <Icon name="search" />
             <Input
+              className="inp"
+              style={{ transition: 'border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
@@ -252,6 +272,8 @@ export const ContratosView = () => {
           <Field className="f">
             <label>Estado</label>
             <Select
+              className="inp"
+              style={{ transition: 'border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
               value={filterEstado}
               onChange={(e) => {
                 setFilterEstado(e.target.value);
@@ -270,6 +292,8 @@ export const ContratosView = () => {
           <Field className="f">
             <label>Empresa</label>
             <Select
+              className="inp"
+              style={{ transition: 'border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
               value={filterEmpresa}
               onChange={(e) => {
                 setFilterEmpresa(e.target.value);
@@ -288,6 +312,8 @@ export const ContratosView = () => {
           <Field className="f">
             <label>Semáforo</label>
             <Select
+              className="inp"
+              style={{ transition: 'border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
               value={filterSem}
               onChange={(e) => {
                 setFilterSem(e.target.value);
@@ -313,10 +339,11 @@ export const ContratosView = () => {
           )}
         </div>
 
-        {/* Chips de acceso rápido seleccionables */}
-        <div className="filter-chips">
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginRight: 6 }}>
-            Vistas rápidas:
+        {/* Chips de acceso rápido seleccionables con microinteracción de escala al activar */}
+        <div className="filter-chips" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 2 }}>
+            <Icon name="clock" size={13} />
+            <span>Vistas rápidas:</span>
           </span>
           {[
             { id: 'proximos', label: 'Próximos a vencer (≤30d)', icon: 'clock' },
@@ -340,20 +367,32 @@ export const ContratosView = () => {
                   color: isActive ? 'var(--selection-text, var(--brand-2))' : 'var(--ink-2)',
                   borderColor: isActive ? 'var(--brand)' : 'var(--border-control)',
                   fontWeight: isActive ? 600 : 500,
-                  transition: 'all var(--t-fast) var(--ease)',
+                  transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                  boxShadow: isActive ? '0 2px 8px -2px rgba(11, 110, 104, 0.35)' : 'none',
+                  transition: 'transform var(--t-fast) cubic-bezier(0.34, 1.56, 0.64, 1), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease)',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 6
+                  gap: 6,
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.transform = 'scale(1.03)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = isActive ? 'scale(1.05)' : 'scale(1)';
                 }}
               >
-                <Icon name={chip.icon} size={12} />
-                {chip.label}
+                <Icon name={chip.icon} size={12} style={{ color: isActive ? 'var(--brand)' : 'var(--muted)' }} />
+                <span>{chip.label}</span>
+                {isActive && (
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--brand)', marginLeft: 2 }} />
+                )}
               </button>
             );
           })}
         </div>
 
-        {/* Tabla de Contratos */}
+        {/* Tabla de Contratos con efecto hover lift */}
         <TableViewport className="tbl-wrap">
           <DataTable className="tbl">
             <thead>
@@ -391,9 +430,20 @@ export const ContratosView = () => {
                     className="rail anim-fade-rise"
                     style={{
                       '--railc': rail,
-                      animationDelay: `${idx * 40}ms`,
+                      animationDelay: `${idx * 25}ms`,
                       transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)'
                     } as any}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow-2)';
+                      e.currentTarget.style.position = 'relative';
+                      e.currentTarget.style.zIndex = '2';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'none';
+                      e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.zIndex = 'auto';
+                    }}
                   >
                     <td style={{ textAlign: 'center' }}>
                       <span className={`sem ${metrics.sem}`} title={`Semáforo: ${metrics.sem}`} />

@@ -127,7 +127,7 @@ export const AgendaView = ({
         </div>
       </PageHeader>
 
-      {/* KPI Cards */}
+      {/* Tarjetas KPI de ventanas temporales (Kpi v2 con tiles de tono suave y cifras Geist) */}
       <div className="kpis mb">
         {buckets.map((b, idx) => {
           const count = cs.filter((c) => b.filter(M(c).restantes)).length;
@@ -136,28 +136,33 @@ export const AgendaView = ({
               key={b.title}
               label={b.title}
               value={count}
-              sub={count === 1 ? '1 contrato' : `${count} contratos`}
+              sub={count === 1 ? '1 contrato pendiente' : `${count} contratos pendientes`}
               icon={b.icon}
-              color={count > 0 ? b.sem : undefined}
+              color={count > 0 ? b.sem : 'na'}
               className="anim-fade-rise click"
               style={{ animationDelay: `${idx * 40}ms` }}
               onClick={() => {
                 const el = document.getElementById(`bucket-${idx}`);
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
             />
           );
         })}
       </div>
 
-      {/* 5 Bucket Panels */}
+      {/* Paneles de ventanas de vencimiento con entrada escalonada y scroll suave */}
       {buckets.map((b, idx) => {
         const rows = cs
           .filter((c) => b.filter(M(c).restantes))
           .sort((a, x) => (M(a).restantes ?? 999) - (M(x).restantes ?? 999));
 
         return (
-          <Surface key={b.title} id={`bucket-${idx}`} className="panel mb anim-fade-rise" style={{ animationDelay: `${idx * 60}ms` }}>
+          <Surface
+            key={b.title}
+            id={`bucket-${idx}`}
+            className="panel mb anim-fade-rise"
+            style={{ animationDelay: `${idx * 60}ms`, scrollMarginTop: '80px' }}
+          >
             <div className="panel-h">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span className={`sem ${b.sem}`} />
@@ -186,11 +191,30 @@ export const AgendaView = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((c) => {
+                  {rows.map((c, rIdx) => {
                     const m = M(c);
                     const rail = `var(--${m.sem})`;
                     return (
-                      <tr key={c.id} className="rail" style={{ '--railc': rail } as any}>
+                      <tr
+                        key={c.id}
+                        className="rail anim-fade-rise"
+                        style={{
+                          '--railc': rail,
+                          animationDelay: `${rIdx * 30}ms`,
+                          transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)'
+                        } as any}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = 'var(--shadow-2)';
+                          e.currentTarget.style.position = 'relative';
+                          e.currentTarget.style.zIndex = '2';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'none';
+                          e.currentTarget.style.boxShadow = 'none';
+                          e.currentTarget.style.zIndex = 'auto';
+                        }}
+                      >
                         <td className="nw">
                           <Link
                             className="link font-bold"

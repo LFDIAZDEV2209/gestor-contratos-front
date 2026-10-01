@@ -161,23 +161,73 @@ export const ContratoFormModal = ({
       size="lg"
       onClose={onClose}
       footer={
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 12 }}>
-          <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
+        <div
+          style={{
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            gap: 12,
+            background: 'var(--surface-2)',
+            backdropFilter: 'blur(8px)'
+          }}
+        >
+          {/* Indicador de estado de validaciones con colores de contraste AA */}
+          <div style={{ fontSize: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
             {hasCritical ? (
-              <span style={{ color: 'var(--crit-text)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span
+                style={{
+                  color: 'var(--crit-text)',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'var(--crit-bg)',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--r-pill)',
+                  border: '1px solid var(--crit)'
+                }}
+              >
                 <Icon name="alert-circle" size={14} /> Faltan campos obligatorios o existen incongruencias
               </span>
             ) : issues.length > 0 ? (
-              <span style={{ color: 'var(--warn-text)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span
+                style={{
+                  color: 'var(--warn-text)',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'var(--warn-bg)',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--r-pill)',
+                  border: '1px solid var(--warn)'
+                }}
+              >
                 <Icon name="alert-triangle" size={14} /> {issues.length} advertencia(s) no impeditiva(s)
               </span>
             ) : (
-              <span style={{ color: 'var(--ok-text)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <Icon name="check-circle" size={14} /> Formulario validado correctamente
+              <span
+                style={{
+                  color: 'var(--ok-text)',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'var(--ok-bg)',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--r-pill)',
+                  border: '1px solid var(--ok)'
+                }}
+              >
+                <Icon name="check-circle" size={14} /> Expediente verificado y listo para guardar
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Button className="btn ghost" onClick={onClose}>
               Cancelar
             </Button>
@@ -193,8 +243,52 @@ export const ContratoFormModal = ({
         </div>
       }
     >
-      {/* Navegación por Pestañas */}
-      <div className="tabs mb">
+      {/* Resumen calculado en vivo con cifras Geist siempre visible */}
+      <div
+        className="anim-fade-rise"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          padding: '10px 16px',
+          marginBottom: 16,
+          background: 'var(--surface-2)',
+          border: '1px solid var(--line)',
+          borderRadius: 'var(--r)',
+          flexWrap: 'wrap'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="badge b-brand" style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+            {form.numero || form.num || 'SIN NÚMERO'}
+          </span>
+          <span style={{ color: 'var(--muted)' }}>·</span>
+          <span style={{ color: 'var(--ink)', fontWeight: 600, fontSize: '13px' }}>
+            {form.contratista || 'Contratista por definir'}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: 'var(--muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+            Valor Total en Vivo:
+          </span>
+          <strong
+            style={{
+              fontFamily: 'var(--font-fig, var(--font-sans))',
+              fontFeatureSettings: "'tnum' 1",
+              fontVariantNumeric: 'tabular-nums',
+              color: 'var(--brand)',
+              fontSize: '16px',
+              fontWeight: 700
+            }}
+          >
+            {money(valTotalActual)} {form.cur || 'COP'}
+          </strong>
+        </div>
+      </div>
+
+      {/* Navegación por 4 pestañas con transición suave */}
+      <div className="tabs mb" style={{ borderBottom: '1px solid var(--line)', display: 'flex', gap: 6 }}>
         {[
           { id: 'General', label: 'General', icon: 'file-contract', count: generalIssuesCount },
           { id: 'Fechas', label: 'Plazos y Fechas', icon: 'calendar', count: fechasIssuesCount },
@@ -206,22 +300,37 @@ export const ContratoFormModal = ({
             type="button"
             className={`tab ${tab === t.id ? 'on' : ''}`}
             onClick={() => setTab(t.id as any)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 16px',
+              borderRadius: 'var(--r-md) var(--r-md) 0 0',
+              fontWeight: tab === t.id ? 600 : 500,
+              cursor: 'pointer',
+              transition: 'all var(--t-fast) var(--ease)',
+              background: tab === t.id ? 'var(--surface)' : 'transparent',
+              borderBottom: tab === t.id ? '2px solid var(--brand)' : '2px solid transparent'
+            }}
           >
-            <Icon name={t.icon} size={14} />
+            <Icon name={t.icon} size={15} style={{ color: tab === t.id ? 'var(--brand)' : 'var(--muted)' }} />
             <span>{t.label}</span>
             {t.count > 0 && (
               <span
                 style={{
-                  fontSize: '10px',
+                  fontSize: '10.5px',
                   fontWeight: 700,
                   borderRadius: 'var(--r-pill)',
-                  padding: '1px 6px',
+                  padding: '1px 7px',
                   background: 'var(--crit-bg)',
                   color: 'var(--crit-text)',
-                  border: '1px solid var(--crit)'
+                  border: '1px solid var(--crit)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3
                 }}
               >
+                <Icon name="alert-circle" size={10} />
                 {t.count}
               </span>
             )}
@@ -229,7 +338,8 @@ export const ContratoFormModal = ({
         ))}
       </div>
 
-      <div style={{ minHeight: '320px' }}>
+      {/* Contenedor de pestaña con animación de transición suave al alternar */}
+      <div key={tab} className="anim-fade-rise" style={{ minHeight: '340px', animationDuration: '200ms' }}>
         {/* Pestaña: General */}
         {tab === 'General' && (
           <FormGrid className="form-grid">
@@ -487,25 +597,75 @@ export const ContratoFormModal = ({
               >
                 <div>
                   <span style={{ fontSize: '11.5px', color: 'var(--muted)', display: 'block' }}>Valor Base</span>
-                  <b style={{ fontSize: '15px', color: 'var(--ink)' }}>{money(valBase)}</b>
+                  <b
+                    style={{
+                      fontSize: '15px',
+                      color: 'var(--ink)',
+                      fontFamily: 'var(--font-fig, var(--font-sans))',
+                      fontFeatureSettings: "'tnum' 1",
+                      fontVariantNumeric: 'tabular-nums'
+                    }}
+                  >
+                    {money(valBase)}
+                  </b>
                 </div>
                 <div>
                   <span style={{ fontSize: '11.5px', color: 'var(--muted)', display: 'block' }}>IVA + Otros</span>
-                  <b style={{ fontSize: '15px', color: 'var(--ink)' }}>{money(valIva + valOtros)}</b>
+                  <b
+                    style={{
+                      fontSize: '15px',
+                      color: 'var(--ink)',
+                      fontFamily: 'var(--font-fig, var(--font-sans))',
+                      fontFeatureSettings: "'tnum' 1",
+                      fontVariantNumeric: 'tabular-nums'
+                    }}
+                  >
+                    {money(valIva + valOtros)}
+                  </b>
                 </div>
                 <div>
                   <span style={{ fontSize: '11.5px', color: 'var(--muted)', display: 'block' }}>Adiciones (+)</span>
-                  <b style={{ fontSize: '15px', color: 'var(--ok-text)' }}>{money(valAdic)}</b>
+                  <b
+                    style={{
+                      fontSize: '15px',
+                      color: 'var(--ok-text)',
+                      fontFamily: 'var(--font-fig, var(--font-sans))',
+                      fontFeatureSettings: "'tnum' 1",
+                      fontVariantNumeric: 'tabular-nums'
+                    }}
+                  >
+                    {money(valAdic)}
+                  </b>
                 </div>
                 <div>
                   <span style={{ fontSize: '11.5px', color: 'var(--muted)', display: 'block' }}>Reducciones (-)</span>
-                  <b style={{ fontSize: '15px', color: 'var(--crit-text)' }}>{money(valReduc)}</b>
+                  <b
+                    style={{
+                      fontSize: '15px',
+                      color: 'var(--crit-text)',
+                      fontFamily: 'var(--font-fig, var(--font-sans))',
+                      fontFeatureSettings: "'tnum' 1",
+                      fontVariantNumeric: 'tabular-nums'
+                    }}
+                  >
+                    {money(valReduc)}
+                  </b>
                 </div>
                 <div style={{ borderLeft: '1px solid var(--line)', paddingLeft: 16 }}>
                   <span style={{ fontSize: '11.5px', color: 'var(--brand-2)', fontWeight: 600, display: 'block' }}>
                     Valor Total Actualizado
                   </span>
-                  <b style={{ fontSize: '18px', color: 'var(--brand)' }}>{money(valTotalActual)}</b>
+                  <b
+                    style={{
+                      fontSize: '18px',
+                      color: 'var(--brand)',
+                      fontFamily: 'var(--font-fig, var(--font-sans))',
+                      fontFeatureSettings: "'tnum' 1",
+                      fontVariantNumeric: 'tabular-nums'
+                    }}
+                  >
+                    {money(valTotalActual)}
+                  </b>
                 </div>
               </div>
             </Field>
