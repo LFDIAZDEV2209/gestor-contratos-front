@@ -14,6 +14,11 @@ import { SubcontratosView } from '../views/SubcontratosView';
 import { ObligacionesView } from '../views/ObligacionesView';
 import { EjecucionView } from '../views/EjecucionView';
 import { PagosView } from '../views/PagosView';
+import { GarantiasView } from '../views/GarantiasView';
+import { AseguradorasView } from '../views/AseguradorasView';
+import { DocumentosView } from '../views/DocumentosView';
+import { ActasView } from '../views/ActasView';
+import { ModificacionesView } from '../views/ModificacionesView';
 import { Store } from '../../lib/store';
 import { Seed } from '../../lib/demo';
 
@@ -92,6 +97,24 @@ export const AppShell = () => {
           )}
           {view === 'pagos' && (
             <PagosView onSelectContract={(cid) => navigate('contrato', cid)} />
+          )}
+          {view === 'garantias' && (
+            <GarantiasView onSelectContract={(cid) => navigate('contrato', cid)} />
+          )}
+          {view === 'aseguradoras' && (
+            <AseguradorasView
+              onSelectContract={(cid) => navigate('contrato', cid)}
+              onNavigateToGarantias={() => navigate('garantias')}
+            />
+          )}
+          {view === 'documentos' && (
+            <DocumentosView onSelectContract={(cid) => navigate('contrato', cid)} />
+          )}
+          {view === 'actas' && (
+            <ActasView onSelectContract={(cid) => navigate('contrato', cid)} />
+          )}
+          {view === 'modificaciones' && (
+            <ModificacionesView onSelectContract={(cid) => navigate('contrato', cid)} />
           )}
         </div>
       </main>
