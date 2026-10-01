@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -272,7 +273,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
           <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Número de subcontrato</label>
-              <input
+              <Input
                 className="inp"
                 value={form.numero}
                 placeholder="Ej. SC-001"
@@ -281,7 +282,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl required">Nombre del subcontratista</label>
-              <input
+              <Input
                 className="inp"
                 value={form.contratista}
                 placeholder="Razón social o nombre"
@@ -290,7 +291,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl required">NIT / Documento</label>
-              <input
+              <Input
                 className="inp"
                 value={form.nit}
                 placeholder="NIT 900.000.000-0"
@@ -299,7 +300,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl required">Valor del subcontrato</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={form.valor}
@@ -308,7 +309,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl required">Fecha de inicio</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={form.fechaInicio}
@@ -317,7 +318,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl required">Fecha de terminación</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={form.fechaFin}
@@ -326,7 +327,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl">% Ejecución actual</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={form.ejecucion}
@@ -335,7 +336,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl">Estado</label>
-              <select
+              <Select
                 className="inp"
                 value={form.estado}
                 onChange={(e) => setForm({ ...form, estado: e.target.value })}
@@ -344,11 +345,11 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
                 <option value="Suspendido">Suspendido</option>
                 <option value="Terminado">Terminado</option>
                 <option value="Liquidado">Liquidado</option>
-              </select>
+              </Select>
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Objeto del subcontrato</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={form.objeto}
@@ -358,7 +359,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl">Relación de soportes y documentos</label>
-              <input
+              <Input
                 className="inp"
                 value={form.documentos}
                 placeholder="Contrato firmado, pólizas, habilitaciones..."

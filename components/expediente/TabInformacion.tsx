@@ -186,7 +186,7 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
         </div>
         <div className="panel-b">
           <div className="mb-4">
-            <h5 className="text-xs uppercase text-muted mb-1 font-semibold">Objeto Contractual</h5>
+            <h5 className="text-xs uppercase text-muted-foreground mb-1 font-semibold">Objeto Contractual</h5>
             <p className="text-sm bg-neutral-50 dark:bg-neutral-900 p-3 rounded border border-neutral-200 dark:border-neutral-800">
               {c.objeto || c.obj || '—'}
             </p>
@@ -194,7 +194,7 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
 
           {c.descripcion && (
             <div className="mb-4">
-              <h5 className="text-xs uppercase text-muted mb-1 font-semibold">Descripción y Forma de Pago</h5>
+              <h5 className="text-xs uppercase text-muted-foreground mb-1 font-semibold">Descripción y Forma de Pago</h5>
               <p className="text-sm bg-neutral-50 dark:bg-neutral-900 p-3 rounded border border-neutral-200 dark:border-neutral-800">
                 {c.descripcion}
               </p>
@@ -203,7 +203,7 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
 
           {c.alcance && (
             <div className="mb-4">
-              <h5 className="text-xs uppercase text-muted mb-1 font-semibold">Alcance de los Servicios</h5>
+              <h5 className="text-xs uppercase text-muted-foreground mb-1 font-semibold">Alcance de los Servicios</h5>
               <p className="text-sm bg-neutral-50 dark:bg-neutral-900 p-3 rounded border border-neutral-200 dark:border-neutral-800">
                 {c.alcance}
               </p>
@@ -212,7 +212,7 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
 
           {c.productos && (
             <div className="mb-4">
-              <h5 className="text-xs uppercase text-muted mb-1 font-semibold">Productos y Entregables Esperados</h5>
+              <h5 className="text-xs uppercase text-muted-foreground mb-1 font-semibold">Productos y Entregables Esperados</h5>
               <p className="text-sm bg-neutral-50 dark:bg-neutral-900 p-3 rounded border border-neutral-200 dark:border-neutral-800">
                 {c.productos}
               </p>
@@ -221,7 +221,7 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
 
           {c.indicadores && (
             <div>
-              <h5 className="text-xs uppercase text-muted mb-1 font-semibold">Indicadores y Acuerdos de Nivel de Servicio</h5>
+              <h5 className="text-xs uppercase text-muted-foreground mb-1 font-semibold">Indicadores y Acuerdos de Nivel de Servicio</h5>
               <p className="text-sm bg-neutral-50 dark:bg-neutral-900 p-3 rounded border border-neutral-200 dark:border-neutral-800">
                 {c.indicadores}
               </p>

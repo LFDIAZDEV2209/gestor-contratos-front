@@ -2,22 +2,31 @@
 import { Children, cloneElement, isValidElement, useId, type HTMLAttributes, type ReactNode, type TableHTMLAttributes } from 'react';
 import { Icon } from '../icons';
 import { Button } from './button';
+import { Input, Select, Textarea } from './Controls';
 type BoxProps = HTMLAttributes<HTMLDivElement>;
 export function PageHeader({ className = '', children, ...props }: BoxProps) { return <header {...props} className={`ph workspace-heading ${className}`}>{children}</header>; }
 export function Surface({ className = '', ...props }: BoxProps) { return <div {...props} className={`panel ${className}`} />; }
 export function MetricCard({ className = '', ...props }: BoxProps) { return <div {...props} className={`kpi metric-card ${className}`} />; }
 export function TableViewport({ className = '', ...props }: BoxProps) { return <div {...props} className={`tbl-wrap ${className}`} tabIndex={0} role="region" aria-label={props['aria-label'] || 'Tabla de datos; desplazamiento horizontal disponible'} />; }
-export function DataTable({ className = '', ...props }: TableHTMLAttributes<HTMLTableElement>) { return <table {...props} className={`tbl ${className}`} />; }
+export function DataTable({ className = '', children, ...props }: TableHTMLAttributes<HTMLTableElement>) {
+  const body = Children.toArray(children).find(child=>isValidElement<ChildProps>(child) && child.type === 'tbody');
+  const rows = isValidElement<ChildProps>(body) ? Children.toArray(body.props.children).filter(Boolean) : [];
+  const cells = rows.length === 1 && isValidElement<ChildProps>(rows[0]) ? Children.toArray(rows[0].props.children) : [];
+  const cell = cells.length === 1 && isValidElement<ChildProps & { colSpan?: number }>(cells[0]) ? cells[0] : null;
+  if (cell && cell.props.colSpan && cell.props.className?.includes('empty')) return <EmptyState description="Los registros aparecerán en esta sección cuando estén disponibles.">{cell.props.children}</EmptyState>;
+  return <table {...props} className={`tbl ${className}`}>{children}</table>;
+}
 type ChildProps = { children?: ReactNode; className?: string; id?: string; htmlFor?: string };
 export function Field({ children, className = '', ...props }: BoxProps) {
   const id = useId();
   const parts = Children.toArray(children);
-  const control = parts.find(child => isValidElement<ChildProps>(child) && ['input', 'select', 'textarea'].includes(String(child.type)));
+  const isControl = (child: ReactNode) => isValidElement<ChildProps>(child) && (['input', 'select', 'textarea'].includes(String(child.type)) || child.type === Input || child.type === Select || child.type === Textarea);
+  const control = parts.find(isControl);
   const fieldId = isValidElement<ChildProps>(control) ? control.props.id || id : id;
   return <div {...props} className={`f field ${className}`}>{parts.map(child => {
     if (!isValidElement<ChildProps>(child)) return child;
     if (child.type === 'label') return cloneElement(child, { htmlFor: fieldId });
-    if (['input', 'select', 'textarea'].includes(String(child.type))) return cloneElement(child, { id: fieldId });
+    if (isControl(child)) return cloneElement(child, { id: fieldId });
     return child;
   })}</div>;
 }

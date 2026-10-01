@@ -5,7 +5,7 @@ import { M } from '../../lib/metrics';
 import { Store } from '../../lib/store';
 import { Icon } from '../icons';
 import { Kpi } from '../ui/Kpi';
-import { money, pct } from '../../lib/format';
+import { money, moneyM, pct } from '../../lib/format';
 
 export const EmpresaView = ({ id, onBack }: { id: string, onBack: () => void }) => {
   const company = Store.get('companies', id) as Company | undefined;
@@ -28,7 +28,7 @@ export const EmpresaView = ({ id, onBack }: { id: string, onBack: () => void }) 
 
       <div className="kpis mb">
         <Kpi label="Contratos Activos" value={activeContracts.toString()} color="ok" />
-        <Kpi label="Valor Histórico" value={money(totalVal)} />
+        <Kpi label="Valor Histórico" value={moneyM(totalVal)} sub={money(totalVal)} />
         <Kpi label="Ejecución Promedio" value={contracts.length ? pct(contracts.reduce((sum, c) => sum + M(c).pctFin, 0) / contracts.length) : 'Sin datos'} color="info" />
       </div>
 
@@ -56,7 +56,7 @@ export const EmpresaView = ({ id, onBack }: { id: string, onBack: () => void }) 
               const num = c.num ?? c.numero ?? c.id;
               return (
                 <div key={c.id} className="mb">
-                  <div className="flex justify-between text-xs text-muted mb-1">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
                     <span>{num}</span><span>{money(val)}</span>
                   </div>
                   <div className="bar lg"><i style={{ width: Math.max(10, (val / (totalVal || 1)) * 100) + '%' }}></i></div>
@@ -73,7 +73,7 @@ export const EmpresaView = ({ id, onBack }: { id: string, onBack: () => void }) 
         <div className="tree">
           <ul>
             <li>
-              <div className="node co"><Icon name="folder"/> {company.name}</div>
+              <div className="node co"><Icon name="folder"/> {company.razon || company.name}</div>
               <ul>
                 {contracts.map(c => (
                   <li key={c.id}>

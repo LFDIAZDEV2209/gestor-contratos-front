@@ -1,4 +1,5 @@
 'use client';
+import { Input } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable, FormGrid, Field } from '../ui/Workspace';
@@ -328,7 +329,7 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
               {execs.map((e) => (
                 <tr key={e.id}>
                   <td>
-                    <b>{monthLabel(e.periodo)}</b> <span className="text-muted small">({e.periodo})</span>
+                    <b>{monthLabel(e.periodo)}</b> <span className="text-muted-foreground small">({e.periodo})</span>
                   </td>
                   <td className="num font-semibold">{money(e.valor)}</td>
                   <td className="num">{pct(e.avanceFisico, 0)}</td>
@@ -366,7 +367,7 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
           <FormGrid className="form-grid">
             <Field className="f">
               <label className="req">Periodo (AAAA-MM)</label>
-              <input
+              <Input
                 type="month"
                 value={newExec.periodo}
                 onChange={(e) => setNewExec({ ...newExec, periodo: e.target.value })}
@@ -374,7 +375,7 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label className="req">Valor ejecutado del periodo</label>
-              <input
+              <Input
                 type="number"
                 value={newExec.valor || ''}
                 onChange={(e) => setNewExec({ ...newExec, valor: Number(e.target.value) })}
@@ -383,7 +384,7 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label className="req">% Avance físico acumulado (0–100)</label>
-              <input
+              <Input
                 type="number"
                 min="0"
                 max="100"
@@ -394,7 +395,7 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f span2">
               <label>Observaciones</label>
-              <input
+              <Input
                 value={newExec.obs}
                 onChange={(e) => setNewExec({ ...newExec, obs: e.target.value })}
                 placeholder="Informe o acta de soporte"

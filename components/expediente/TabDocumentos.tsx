@@ -1,4 +1,5 @@
 'use client';
+import { Select, Input } from '../ui/Controls';
 import { notify, requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { Field, Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -95,14 +96,14 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
       <div className="filters mb">
         <Field className="f">
           <label>Categoría</label>
-          <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
+          <Select value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
             <option value="">Todas las categorías</option>
             {cats.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
       </div>
 
@@ -249,7 +250,7 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
           <FormGrid className="form-grid">
             <Field className="f span2">
               <label className="req">Nombre del documento</label>
-              <input
+              <Input
                 value={newDoc.nombre}
                 onChange={(e) => setNewDoc({ ...newDoc, nombre: e.target.value })}
                 placeholder="Ej. Acta de entrega fase 1"
@@ -257,7 +258,7 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label>Categoría</label>
-              <select
+              <Select
                 value={newDoc.categoria}
                 onChange={(e) => setNewDoc({ ...newDoc, categoria: e.target.value })}
               >
@@ -266,11 +267,11 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                     {c}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
             <Field className="f span2">
               <label>Archivo adjunto (PDF / Word / Excel)</label>
-              <input
+              <Input
                 type="text"
                 placeholder="Nombre del archivo (ej. Acta_Fase1.pdf)"
                 value={newDoc.archivo}

@@ -29,6 +29,7 @@ interface ChartProps {
 }
 
 export const Chart = ({ type, data, options, height, config }: ChartProps) => {
+  if (typeof document !== 'undefined') ChartJS.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-sans').trim() || 'sans-serif';
   const chartType = config?.type || type || 'bar';
   const chartData = config?.data || data;
   const chartOptions = config?.options || options;

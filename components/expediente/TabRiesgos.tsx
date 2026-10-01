@@ -1,4 +1,5 @@
 'use client';
+import { Textarea, Select, Input } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -299,7 +300,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
           <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Descripción del riesgo</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={form.riesgo}
@@ -309,7 +310,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl required">Categoría</label>
-              <select
+              <Select
                 className="inp"
                 value={form.categoria}
                 onChange={(e) => setForm({ ...form, categoria: e.target.value })}
@@ -319,11 +320,11 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
                     {cat}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl">Responsable</label>
-              <input
+              <Input
                 className="inp"
                 value={form.responsable}
                 placeholder={c.responsable || 'Supervisor asignado'}
@@ -332,7 +333,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl required">Probabilidad (1 a 5)</label>
-              <select
+              <Select
                 className="inp"
                 value={form.prob}
                 onChange={(e) => setForm({ ...form, prob: Number(e.target.value) })}
@@ -342,11 +343,11 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
                 <option value={3}>3 - Media</option>
                 <option value={4}>4 - Alta</option>
                 <option value={5}>5 - Muy alta</option>
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Impacto (1 a 5)</label>
-              <select
+              <Select
                 className="inp"
                 value={form.impacto}
                 onChange={(e) => setForm({ ...form, impacto: Number(e.target.value) })}
@@ -356,11 +357,11 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
                 <option value={3}>3 - Moderado</option>
                 <option value={4}>4 - Mayor</option>
                 <option value={5}>5 - Catastrófico</option>
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl">Tratamiento sugerido</label>
-              <select
+              <Select
                 className="inp"
                 value={form.tratamiento}
                 onChange={(e) => setForm({ ...form, tratamiento: e.target.value })}
@@ -369,11 +370,11 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
                 <option value="Transferir">Transferir</option>
                 <option value="Aceptar">Aceptar</option>
                 <option value="Evitar">Evitar</option>
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl">Estado</label>
-              <select
+              <Select
                 className="inp"
                 value={form.estado}
                 onChange={(e) => setForm({ ...form, estado: e.target.value })}
@@ -381,11 +382,11 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
                 <option value="Abierto">Abierto</option>
                 <option value="Controlado">Controlado</option>
                 <option value="Cerrado">Cerrado</option>
-              </select>
+              </Select>
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl">Plan de mitigación / controles</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={3}
                 value={form.mitigacion}

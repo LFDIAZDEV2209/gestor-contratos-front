@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select } from '../ui/Controls';
 import { requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, TableViewport, DataTable, FormGrid, Field } from '../ui/Workspace';
@@ -10,13 +11,14 @@ import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
 import { Modal } from '../ui/Modal';
 import { uid } from '../../lib/format';
+import { exportRows } from '../../lib/export';
 
 export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) => {
   const [companies, setCompanies] = useState<Company[]>(Store.all('companies'));
   const [editing, setEditing] = useState<Partial<Company> | null>(null);
   
   const total = companies.length;
-  const activas = companies.filter(c => c.status === 'Activo').length;
+  const activas = companies.filter(c => ['Activa', 'Activo'].includes(c.estado || c.status || '')).length;
   const inactivas = total - activas;
 
   const handleSave = () => {
@@ -31,7 +33,7 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
         });
       } else {
         const newId = uid();
-        Store.insert('companies', { ...editing, id: newId, risk: 0, level: '1', status: 'Activo' } as Company);
+        Store.insert('companies', { ...editing, id: newId, risk: 0, level: '1', estado: 'Activa', status: 'Activo' } as Company);
         Audit.log({
           modulo: 'Empresas',
           accion: 'Creación',
@@ -47,7 +49,7 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
   const handleAnular = async (id: string) => {
     const motivo = await requestReason('Motivo de anulación:');
     if (motivo) {
-      Store.update('companies', id, { status: 'Anulado' });
+      Store.update('companies', id, { estado: 'Anulada', status: 'Anulado' });
       Audit.log({
         modulo: 'Empresas',
         accion: 'Anulación',
@@ -66,7 +68,7 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
           <p>Directorio de contratistas y terceros</p>
         </div>
         <div className="ph-actions">
-          <Button className="btn ghost"><Icon name="file-contract"/> Exportar</Button>
+          <Button className="btn ghost" onClick={()=>exportRows('Empresas', [{l:'NIT',k:'nit'},{l:'Razón social',x:(c:Company)=>c.razon || c.name || ''},{l:'Tipo',x:(c:Company)=>c.tipo || c.type || ''},{l:'Estado',x:(c:Company)=>c.estado || c.status || ''}],companies,'xlsx')}><Icon name="file-contract"/> Exportar</Button>
           <Button className="btn pri" onClick={() => setEditing({})}><Icon name="plus"/> Nueva Empresa</Button>
         </div>
       </PageHeader>
@@ -94,10 +96,10 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
               {companies.map(c => (
                 <tr key={c.id}>
                   <td>{c.nit}</td>
-                  <td>{c.name}</td>
+                  <td><Button variant="link" className="text-link" onClick={()=>onSelect(c.id)}>{c.razon || c.name}</Button></td>
                   <td>{c.rep}</td>
-                  <td>{c.type}</td>
-                  <td><Badge text={c.status} color={c.status === 'Activo' ? 'ok' : 'crit'} /></td>
+                  <td>{c.tipo || c.type}</td>
+                  <td><Badge text={c.estado || c.status} color={['Activa','Activo'].includes(c.estado || c.status || '') ? 'ok' : 'na'} /></td>
                   <td>
                     <div className="acts">
                       <Button className="icon-btn" onClick={() => onSelect(c.id)} title="Ver Ficha"><Icon name="search"/></Button>
@@ -118,23 +120,24 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
           <FormGrid className="form-grid">
             <Field className="f">
               <label className="req">NIT</label>
-              <input value={editing.nit || ''} onChange={e => setEditing({...editing, nit: e.target.value})} />
+              <Input value={editing.nit || ''} onChange={e => setEditing({...editing, nit: e.target.value})} />
             </Field>
             <Field className="f span2">
               <label className="req">Razón Social</label>
-              <input value={editing.name || ''} onChange={e => setEditing({...editing, name: e.target.value})} />
+              <Input value={editing.razon || editing.name || ''} onChange={e => setEditing({...editing, razon: e.target.value, name: e.target.value})} />
             </Field>
             <Field className="f span2">
               <label>Representante Legal</label>
-              <input value={editing.rep || ''} onChange={e => setEditing({...editing, rep: e.target.value})} />
+              <Input value={editing.rep || ''} onChange={e => setEditing({...editing, rep: e.target.value})} />
             </Field>
             <Field className="f">
               <label>Tipo</label>
-              <select value={editing.type || ''} onChange={e => setEditing({...editing, type: e.target.value})}>
+              <Select value={editing.tipo || editing.type || ''} onChange={e => setEditing({...editing, tipo: e.target.value, type: e.target.value})}>
+                <option value={editing.tipo || editing.type || ''}>{editing.tipo || editing.type || 'Seleccione…'}</option>
                 <option value="Privada">Privada</option>
                 <option value="Pública">Pública</option>
                 <option value="Mixta">Mixta</option>
-              </select>
+              </Select>
             </Field>
           </FormGrid>
           <div className="modal-f mt-4">

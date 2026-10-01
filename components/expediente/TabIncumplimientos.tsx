@@ -1,4 +1,5 @@
 'use client';
+import { Select, Input, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -340,7 +341,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Tipo de incumplimiento</label>
-              <select
+              <Select
                 className="inp"
                 value={breachForm.tipo}
                 onChange={(e) => setBreachForm({ ...breachForm, tipo: e.target.value })}
@@ -351,11 +352,11 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
                 <option value="Incumplimiento de pagos a personal">Incumplimiento pagos/seguridad social</option>
                 <option value="Inobservancia técnica">Inobservancia técnica o ambiental</option>
                 <option value="Otro">Otro incumplimiento</option>
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Fecha de reporte</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={breachForm.fecha}
@@ -364,7 +365,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl">Obligación asociada (opcional)</label>
-              <select
+              <Select
                 className="inp"
                 value={breachForm.obligationId}
                 onChange={(e) => setBreachForm({ ...breachForm, obligationId: e.target.value })}
@@ -375,11 +376,11 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
                     {o.id} · {o.descripcion.slice(0, 50)}...
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl">Nivel de impacto</label>
-              <select
+              <Select
                 className="inp"
                 value={breachForm.impacto}
                 onChange={(e) => setBreachForm({ ...breachForm, impacto: e.target.value })}
@@ -387,11 +388,11 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
                 <option value="Bajo">Bajo</option>
                 <option value="Medio">Medio</option>
                 <option value="Alto">Alto</option>
-              </select>
+              </Select>
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Descripción de los hechos</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={3}
                 value={breachForm.descripcion}
@@ -401,7 +402,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl">Medida administrativa o correctiva</label>
-              <input
+              <Input
                 className="inp"
                 value={breachForm.medida}
                 placeholder="Ej. Requerimiento formal escrito / Audiencia"
@@ -410,7 +411,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl">Valor de multa tasada (si aplica)</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={breachForm.multa}
@@ -441,7 +442,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Hallazgo / Hecho observado</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={planForm.hallazgo}
@@ -451,7 +452,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl">Causa raíz</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={planForm.causa}
@@ -461,7 +462,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Acción correctiva comprometida</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={planForm.accion}
@@ -471,7 +472,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl required">Fecha límite de compromiso</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={planForm.fecha}
@@ -480,7 +481,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl">Responsable del cumplimiento</label>
-              <input
+              <Input
                 className="inp"
                 value={planForm.responsable}
                 placeholder={c.contratista || 'Contratista'}

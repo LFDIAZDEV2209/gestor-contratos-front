@@ -1,4 +1,5 @@
 'use client';
+import { Select, Textarea, Input } from '../ui/Controls';
 import { notify, requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, MetricCard, Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -315,7 +316,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
         <div className="panel-h">
           <h3>Matriz de riesgos ({filteredRisks.length})</h3>
           <div className="row-flex">
-            <select
+            <Select
               className="inp"
               style={{ width: 'auto', padding: '4px 8px', fontSize: '12px' }}
               value={filterCat}
@@ -327,8 +328,8 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                   {c}
                 </option>
               ))}
-            </select>
-            <select
+            </Select>
+            <Select
               className="inp"
               style={{ width: 'auto', padding: '4px 8px', fontSize: '12px' }}
               value={filterEstado}
@@ -338,7 +339,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
               <option value="Abierto">Abierto</option>
               <option value="Mitigado">Mitigado</option>
               <option value="Cerrado">Cerrado</option>
-            </select>
+            </Select>
           </div>
         </div>
 
@@ -465,7 +466,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
           <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Contrato *</label>
-              <select
+              <Select
                 className="inp"
                 value={formData.contractId}
                 onChange={(e) => setFormData({ ...formData, contractId: e.target.value })}
@@ -475,12 +476,12 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                     {c.numero} — {c.contratista}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="form-label">Categoría *</label>
-              <select
+              <Select
                 className="inp"
                 value={formData.categoria}
                 onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
@@ -490,12 +491,12 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                     {cat}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="form-label">Estado</label>
-              <select
+              <Select
                 className="inp"
                 value={formData.estado}
                 onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
@@ -503,12 +504,12 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                 <option value="Abierto">Abierto</option>
                 <option value="Mitigado">Mitigado</option>
                 <option value="Cerrado">Cerrado</option>
-              </select>
+              </Select>
             </div>
 
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Descripción del riesgo *</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={formData.descripcion}
@@ -519,7 +520,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
 
             <div>
               <label className="form-label">Probabilidad (1 a 5) *</label>
-              <input
+              <Input
                 type="number"
                 min={1}
                 max={5}
@@ -531,7 +532,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
 
             <div>
               <label className="form-label">Impacto (1 a 5) *</label>
-              <input
+              <Input
                 type="number"
                 min={1}
                 max={5}
@@ -543,7 +544,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
 
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Medidas de mitigación</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={formData.mitigacion}
@@ -554,7 +555,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
 
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Responsable del monitoreo</label>
-              <input
+              <Input
                 className="inp"
                 value={formData.responsable}
                 onChange={(e) => setFormData({ ...formData, responsable: e.target.value })}

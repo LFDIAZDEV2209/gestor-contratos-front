@@ -1,4 +1,5 @@
 'use client';
+import { Input } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable } from '../ui/Workspace';
 import { useState } from 'react';
@@ -206,7 +207,7 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
         >
           <div className="mb-4">
             <h4 className="font-semibold text-base mb-1">{selectedOb.descripcion}</h4>
-            <div className="flex flex-wrap gap-2 text-xs text-muted mb-3">
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mb-3">
               <span>Tipo: <b>{selectedOb.tipo}</b></span>
               <span>·</span>
               <span>Periodicidad: <b>{selectedOb.periodicidad}</b></span>
@@ -231,7 +232,7 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
               </div>
               <div className="panel-b">
                 <div className="flex gap-2 mb-3">
-                  <input
+                  <Input
                     type="text"
                     value={newCheckText}
                     onChange={(e) => setNewCheckText(e.target.value)}
@@ -248,12 +249,12 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
                       key={item.id}
                       className="chk flex items-center gap-2 text-sm p-1 hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded cursor-pointer"
                     >
-                      <input
+                      <Input
                         type="checkbox"
                         checked={item.listo}
                         onChange={() => handleToggleCheck(item.id)}
                       />
-                      <span className={item.listo ? 'line-through text-muted' : ''}>{item.texto}</span>
+                      <span className={item.listo ? 'line-through text-muted-foreground' : ''}>{item.texto}</span>
                     </label>
                   ))}
                   {(!selectedOb.checklist || selectedOb.checklist.length === 0) && (
@@ -270,7 +271,7 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
               </div>
               <div className="panel-b">
                 <div className="flex gap-2 mb-3">
-                  <input
+                  <Input
                     type="text"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
@@ -284,7 +285,7 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {(selectedOb.comentarios || []).map((c) => (
                     <div key={c.id} className="p-2 rounded bg-neutral-50 dark:bg-neutral-900 border text-xs">
-                      <div className="flex justify-between font-semibold text-muted mb-1">
+                      <div className="flex justify-between font-semibold text-muted-foreground mb-1">
                         <span>{c.usuario}</span>
                         <span>{fdate(c.fecha)}</span>
                       </div>

@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, FormGrid, TableViewport, DataTable } from '../ui/Workspace';
@@ -407,7 +408,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 </div>
                 {isAdmin && (
                   <div className="row-flex" style={{ marginTop: 10, gap: 8 }}>
-                    <input
+                    <Input
                       type="number"
                       className="inp"
                       min={1}
@@ -430,7 +431,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
               <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 12 }}>
                 <div>
                   <label className="form-label">Alerta crítica a (días)</label>
-                  <input
+                  <Input
                     type="number"
                     className="inp"
                     disabled={!isAdmin}
@@ -441,7 +442,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 </div>
                 <div>
                   <label className="form-label">Presupuesto próximo a agotarse (% de saldo)</label>
-                  <input
+                  <Input
                     type="number"
                     className="inp"
                     disabled={!isAdmin}
@@ -452,7 +453,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 </div>
                 <div>
                   <label className="form-label">Brecha máxima ejecución financiera vs. física (%)</label>
-                  <input
+                  <Input
                     type="number"
                     className="inp"
                     disabled={!isAdmin}
@@ -508,7 +509,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                       </div>
                       {isAdmin && (
                         <div className="row-flex" style={{ gap: 6 }}>
-                          <input
+                          <Input
                             className="inp"
                             placeholder="Nuevo valor"
                             style={{ flex: 1 }}
@@ -661,7 +662,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                             const isChecked = isAdmRow || Boolean(S.perms?.[r]?.[p]);
                             return (
                               <td key={p} style={{ textAlign: 'center' }}>
-                                <input
+                                <Input
                                   type="checkbox"
                                   checked={isChecked}
                                   disabled={isAdmRow || !isAdmin}
@@ -806,7 +807,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
           <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 12 }}>
             <div>
               <label className="form-label">Nombre completo *</label>
-              <input
+              <Input
                 className="inp"
                 value={userForm.nombre}
                 onChange={(e) => setUserForm({ ...userForm, nombre: e.target.value })}
@@ -816,7 +817,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
 
             <div>
               <label className="form-label">Correo electrónico *</label>
-              <input
+              <Input
                 type="email"
                 className="inp"
                 value={userForm.email}
@@ -827,7 +828,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
 
             <div>
               <label className="form-label">Rol del sistema *</label>
-              <select
+              <Select
                 className="inp"
                 value={userForm.rol}
                 onChange={(e) => setUserForm({ ...userForm, rol: e.target.value })}
@@ -837,19 +838,19 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     {r}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="form-label">Estado</label>
-              <select
+              <Select
                 className="inp"
                 value={userForm.estado}
                 onChange={(e) => setUserForm({ ...userForm, estado: e.target.value as any })}
               >
                 <option value="Activo">Activo</option>
                 <option value="Inactivo">Inactivo</option>
-              </select>
+              </Select>
             </div>
           </FormGrid>
         </Modal>

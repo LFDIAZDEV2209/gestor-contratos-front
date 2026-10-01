@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -217,14 +218,14 @@ export const EjecucionView = ({
         <div className="filters mb" style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
-            <input
+            <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar contrato..."
             />
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
-            <input
+            <Input
               type="checkbox"
               checked={filterGap}
               onChange={(e) => setFilterGap(e.target.checked)}
@@ -357,7 +358,7 @@ export const EjecucionView = ({
           <FormGrid className="grid g-1" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Contrato</label>
-              <select
+              <Select
                 className="inp"
                 value={form.contractId}
                 onChange={(e) => setForm({ ...form, contractId: e.target.value })}
@@ -368,11 +369,11 @@ export const EjecucionView = ({
                     {c.numero} · {c.contratista}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Periodo (Año - Mes)</label>
-              <input
+              <Input
                 type="month"
                 className="inp"
                 value={form.periodo}
@@ -381,7 +382,7 @@ export const EjecucionView = ({
             </div>
             <div>
               <label className="lbl required">Valor ejecutado / facturado en el periodo</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={form.valor}
@@ -390,7 +391,7 @@ export const EjecucionView = ({
             </div>
             <div>
               <label className="lbl">% Avance físico acumulado</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={form.avanceFisico}
@@ -399,7 +400,7 @@ export const EjecucionView = ({
             </div>
             <div>
               <label className="lbl">Observaciones</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={form.obs}

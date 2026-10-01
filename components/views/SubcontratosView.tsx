@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -249,14 +250,14 @@ export const SubcontratosView = ({
           <div className="filters mb" style={{ padding: '12px 16px' }}>
             <div className="gsearch">
               <Icon name="search" />
-              <input
+              <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Buscar por subcontratista, NIT, número u objeto..."
               />
             </div>
             <Field className="f">
-              <select
+              <Select
                 className="inp sm"
                 value={filterCompany}
                 onChange={(e) => setFilterCompany(e.target.value)}
@@ -267,10 +268,10 @@ export const SubcontratosView = ({
                     {co.razon || co.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
             <Field className="f">
-              <select
+              <Select
                 className="inp sm"
                 value={filterEstado}
                 onChange={(e) => setFilterEstado(e.target.value)}
@@ -280,7 +281,7 @@ export const SubcontratosView = ({
                 <option value="Suspendido">Suspendido</option>
                 <option value="Terminado">Terminado</option>
                 <option value="Liquidado">Liquidado</option>
-              </select>
+              </Select>
             </Field>
           </div>
 
@@ -400,7 +401,7 @@ export const SubcontratosView = ({
           <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Contrato principal</label>
-              <select
+              <Select
                 className="inp"
                 value={form.contractId}
                 onChange={(e) => setForm({ ...form, contractId: e.target.value })}
@@ -411,11 +412,11 @@ export const SubcontratosView = ({
                     {c.numero} · {c.contratista} · {moneyM(M(c).valorActual)}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Número de subcontrato</label>
-              <input
+              <Input
                 className="inp"
                 value={form.numero}
                 placeholder="Ej. SC-001"
@@ -424,7 +425,7 @@ export const SubcontratosView = ({
             </div>
             <div>
               <label className="lbl required">Subcontratista</label>
-              <input
+              <Input
                 className="inp"
                 value={form.contratista}
                 placeholder="Nombre o razón social"
@@ -433,7 +434,7 @@ export const SubcontratosView = ({
             </div>
             <div>
               <label className="lbl required">NIT</label>
-              <input
+              <Input
                 className="inp"
                 value={form.nit}
                 placeholder="900.000.000-0"
@@ -442,7 +443,7 @@ export const SubcontratosView = ({
             </div>
             <div>
               <label className="lbl required">Valor</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={form.valor}
@@ -451,7 +452,7 @@ export const SubcontratosView = ({
             </div>
             <div>
               <label className="lbl required">Fecha de inicio</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={form.fechaInicio}
@@ -460,7 +461,7 @@ export const SubcontratosView = ({
             </div>
             <div>
               <label className="lbl required">Fecha de terminación</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={form.fechaFin}
@@ -469,7 +470,7 @@ export const SubcontratosView = ({
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Objeto del subcontrato</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={form.objeto}

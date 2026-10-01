@@ -180,6 +180,9 @@ export const TabTimeline = ({
               className={`tl-i ${ev.future ? 'future' : ''}`}
               style={{ '--tlc': ev.color, cursor: onTabChange ? 'pointer' : 'default' } as any}
               onClick={() => onTabChange && onTabChange(ev.tab)}
+              role={onTabChange ? 'button' : undefined}
+              tabIndex={onTabChange ? 0 : undefined}
+              onKeyDown={event=>{if(onTabChange && (event.key==='Enter'||event.key===' ')){event.preventDefault();onTabChange(ev.tab);}}}
               title={onTabChange ? `Ver en ${ev.tab}` : undefined}
             >
               <div className="tl-d">

@@ -12,7 +12,7 @@ import { LEVEL_TXT } from '../../lib/catalog';
 
 export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (tab: string) => void }) => {
   const c = Store.get('contracts', cid);
-  if (!c) return <div className="p-4 text-muted">Contrato no encontrado</div>;
+  if (!c) return <div className="p-4 text-muted-foreground">Contrato no encontrado</div>;
 
   const m = M(c);
   const sc = m.score;

@@ -1,17 +1,21 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 
-const ibmSans = IBM_Plex_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const ibmSans = localFont({
+  src: './fonts/plex-sans-latin-variable.woff2',
+  weight: '400 700',
   variable: '--font-sans',
   display: 'swap',
 });
 
-const ibmMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const ibmMono = localFont({
+  src: [
+    { path: './fonts/plex-mono-latin-400.woff2', weight: '400' },
+    { path: './fonts/plex-mono-latin-500.woff2', weight: '500' },
+    { path: './fonts/plex-mono-latin-600.woff2', weight: '600' },
+    { path: './fonts/plex-mono-latin-700.woff2', weight: '700' },
+  ],
   variable: '--font-plex-mono',
   display: 'swap',
 });

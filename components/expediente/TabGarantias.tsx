@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable, FormGrid, Field } from '../ui/Workspace';
@@ -264,7 +265,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
           <FormGrid className="form-grid">
             <Field className="f">
               <label className="req">Número de póliza</label>
-              <input
+              <Input
                 value={newGar.poliza}
                 onChange={(e) => setNewGar({ ...newGar, poliza: e.target.value })}
                 placeholder="Ej. PL-992100"
@@ -272,7 +273,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label className="req">Tipo de garantía</label>
-              <select
+              <Select
                 value={newGar.tipo}
                 onChange={(e) => setNewGar({ ...newGar, tipo: e.target.value })}
               >
@@ -281,11 +282,11 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                     {t}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
             <Field className="f span2">
               <label className="req">Aseguradora</label>
-              <select
+              <Select
                 value={newGar.aseguradora}
                 onChange={(e) => setNewGar({ ...newGar, aseguradora: e.target.value, cupoId: '' })}
               >
@@ -294,22 +295,22 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                     {a}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
             <Field className="f">
               <label>Modalidad de expedición</label>
-              <select
+              <Select
                 value={newGar.modalidadPoliza}
                 onChange={(e) => setNewGar({ ...newGar, modalidadPoliza: e.target.value, cupoId: '' })}
               >
                 <option value="Póliza individual">Póliza individual</option>
                 <option value="Póliza por cupo">Póliza por cupo</option>
-              </select>
+              </Select>
             </Field>
             {newGar.modalidadPoliza === 'Póliza por cupo' && (
               <Field className="f">
                 <label className="req">Cupo asignado</label>
-                <select
+                <Select
                   value={newGar.cupoId}
                   onChange={(e) => setNewGar({ ...newGar, cupoId: e.target.value })}
                 >
@@ -322,12 +323,12 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                       </option>
                     );
                   })}
-                </select>
+                </Select>
               </Field>
             )}
             <Field className="f">
               <label className="req">Valor asegurado</label>
-              <input
+              <Input
                 type="number"
                 value={newGar.valor || ''}
                 onChange={(e) => setNewGar({ ...newGar, valor: Number(e.target.value) })}
@@ -335,7 +336,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label>Porcentaje (%)</label>
-              <input
+              <Input
                 type="number"
                 value={newGar.porcentaje || ''}
                 onChange={(e) => setNewGar({ ...newGar, porcentaje: Number(e.target.value) })}
@@ -343,7 +344,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label className="req">Fecha de inicio</label>
-              <input
+              <Input
                 type="date"
                 value={newGar.fechaInicio}
                 onChange={(e) => setNewGar({ ...newGar, fechaInicio: e.target.value })}
@@ -351,7 +352,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label className="req">Fecha de vencimiento</label>
-              <input
+              <Input
                 type="date"
                 value={newGar.fechaVenc}
                 onChange={(e) => setNewGar({ ...newGar, fechaVenc: e.target.value })}

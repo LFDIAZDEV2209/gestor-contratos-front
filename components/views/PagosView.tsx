@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -220,14 +221,14 @@ export const PagosView = ({
         <div className="filters mb" style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
-            <input
+            <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar por número, factura o contrato..."
             />
           </div>
           <Field className="f">
-            <select
+            <Select
               className="inp sm"
               value={filterContract}
               onChange={(e) => setFilterContract(e.target.value)}
@@ -238,7 +239,7 @@ export const PagosView = ({
                   {c.numero} · {c.contratista}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
         </div>
 
@@ -383,7 +384,7 @@ export const PagosView = ({
           <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Contrato</label>
-              <select
+              <Select
                 className="inp"
                 value={form.contractId}
                 onChange={(e) => setForm({ ...form, contractId: e.target.value })}
@@ -394,11 +395,11 @@ export const PagosView = ({
                     {c.numero} · {c.contratista} · Saldo: {moneyM(M(c).saldo)}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Número de pago o cuenta</label>
-              <input
+              <Input
                 className="inp"
                 value={form.numero}
                 placeholder="Ej. Pago 03"
@@ -407,7 +408,7 @@ export const PagosView = ({
             </div>
             <div>
               <label className="lbl">Número de factura</label>
-              <input
+              <Input
                 className="inp"
                 value={form.factura}
                 placeholder="Ej. FE-10492"
@@ -416,7 +417,7 @@ export const PagosView = ({
             </div>
             <div>
               <label className="lbl required">Fecha</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={form.fecha}
@@ -425,7 +426,7 @@ export const PagosView = ({
             </div>
             <div>
               <label className="lbl required">Periodo de facturación</label>
-              <input
+              <Input
                 type="month"
                 className="inp"
                 value={form.periodo}
@@ -434,7 +435,7 @@ export const PagosView = ({
             </div>
             <div>
               <label className="lbl required">Valor bruto (antes de IVA)</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={form.bruto}
@@ -443,7 +444,7 @@ export const PagosView = ({
             </div>
             <div>
               <label className="lbl">IVA (19% o aplicable)</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={form.iva}
@@ -452,7 +453,7 @@ export const PagosView = ({
             </div>
             <div>
               <label className="lbl">Retenciones tributarias</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={form.retenciones}
@@ -461,7 +462,7 @@ export const PagosView = ({
             </div>
             <div>
               <label className="lbl">Valor neto a pagar</label>
-              <input
+              <Input
                 className="inp font-bold"
                 value={money(calcNeto)}
                 disabled
@@ -471,7 +472,7 @@ export const PagosView = ({
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl">Documento soporte (factura / cuenta)</label>
-              <input
+              <Input
                 className="inp"
                 value={form.soporte}
                 placeholder="Nombre del archivo (ej. factura_pago_03.pdf)"

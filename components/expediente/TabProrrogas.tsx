@@ -1,4 +1,5 @@
 'use client';
+import { Input, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -191,12 +192,12 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
           <FormGrid className="grid g-1" style={{ gap: '14px' }}>
             <div>
               <label className="lbl">Fecha de terminación actual</label>
-              <input className="inp" value={fdate(c.fechaFin)} disabled readOnly />
+              <Input className="inp" value={fdate(c.fechaFin)} disabled readOnly />
             </div>
 
             <div>
               <label className="lbl required">Días de ampliación</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={diasAdd}
@@ -210,7 +211,7 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
 
             <div>
               <label className="lbl required">Nueva fecha de terminación</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={nuevaFecha}
@@ -225,7 +226,7 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
 
             <div>
               <label className="lbl required">Número / Referencia de modificación</label>
-              <input
+              <Input
                 className="inp"
                 value={numero}
                 placeholder="Ej. OTROSI-02"
@@ -235,7 +236,7 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
 
             <div>
               <label className="lbl required">Justificación</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={3}
                 value={justificacion}
@@ -246,7 +247,7 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
 
             <div>
               <label className="lbl">Documento soporte (archivo)</label>
-              <input
+              <Input
                 className="inp"
                 value={soporte}
                 placeholder="Nombre del archivo adjunto (ej. otrosi_prorroga.pdf)"

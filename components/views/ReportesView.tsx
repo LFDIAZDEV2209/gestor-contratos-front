@@ -1,4 +1,5 @@
 'use client';
+import { Input } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, ResourceCard, EmptyState, TableViewport, DataTable } from '../ui/Workspace';
@@ -551,7 +552,7 @@ export const ReportesView: React.FC = () => {
         </div>
       </PageHeader>
 
-      <div className="filter-bar mb"><label htmlFor="report-query" className="strong">Biblioteca de reportes</label><input id="report-query" className="inp" type="search" placeholder="Buscar por nombre o contenido…" value={query} onChange={e=>setQuery(e.target.value)} /><span className="muted small">{reports.filter(r=>(r.t+' '+r.d).toLocaleLowerCase().includes(query.toLocaleLowerCase())).length} disponibles</span></div>
+      <div className="filter-bar mb"><label htmlFor="report-query" className="strong">Biblioteca de reportes</label><Input id="report-query" className="inp" type="search" placeholder="Buscar por nombre o contenido…" value={query} onChange={e=>setQuery(e.target.value)} /><span className="muted small">{reports.filter(r=>(r.t+' '+r.d).toLocaleLowerCase().includes(query.toLocaleLowerCase())).length} disponibles</span></div>
       <div className="resource-list">
         {reports.filter(r=>(r.t+' '+r.d).toLocaleLowerCase().includes(query.toLocaleLowerCase())).map(r=><ResourceCard key={r.k} title={r.t} description={r.d} icon={r.ic} onOpen={()=>{setPreviewKey(r.k);setCurrentPage(1);}} actions={<>{(['xlsx','pdf','csv','print'] as const).map(format=><Button key={format} onClick={()=>handleExportDirect(r,format)}>{format==='print'?'Imprimir':format.toUpperCase()}</Button>)}</>} />)}
         {!reports.some(r=>(r.t+' '+r.d).toLocaleLowerCase().includes(query.toLocaleLowerCase())) && <EmptyState title="Ningún reporte coincide" description="Prueba otro término o limpia la búsqueda." action={<Button onClick={()=>setQuery('')}>Limpiar búsqueda</Button>} />}

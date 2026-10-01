@@ -1,4 +1,5 @@
 'use client';
+import { Select, Input, Textarea } from '../ui/Controls';
 import { notify, requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, MetricCard, Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -546,7 +547,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
           <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Contrato *</label>
-              <select
+              <Select
                 className="inp"
                 value={breachForm.contractId}
                 onChange={(e) => setBreachForm({ ...breachForm, contractId: e.target.value })}
@@ -556,12 +557,12 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                     {c.numero} — {c.contratista}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="form-label">Fecha del hecho *</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={breachForm.fecha}
@@ -571,7 +572,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
             <div>
               <label className="form-label">Tipo de incumplimiento *</label>
-              <select
+              <Select
                 className="inp"
                 value={breachForm.tipo}
                 onChange={(e) => setBreachForm({ ...breachForm, tipo: e.target.value })}
@@ -582,12 +583,12 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                 <option value="No renovación de garantía">No renovación de garantía</option>
                 <option value="Falta de personal">Falta de personal</option>
                 <option value="Otro">Otro</option>
-              </select>
+              </Select>
             </div>
 
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Descripción detallada *</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={breachForm.descripcion}
@@ -598,7 +599,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
             <div>
               <label className="form-label">Nivel de impacto *</label>
-              <select
+              <Select
                 className="inp"
                 value={breachForm.impacto}
                 onChange={(e) => setBreachForm({ ...breachForm, impacto: e.target.value })}
@@ -606,12 +607,12 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                 <option value="Bajo">Bajo</option>
                 <option value="Medio">Medio</option>
                 <option value="Alto">Alto</option>
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="form-label">Multa / sanción económica (COP)</label>
-              <input
+              <Input
                 type="number"
                 min={0}
                 className="inp"
@@ -622,7 +623,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Plan de acción requerido</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={breachForm.planAccion}
@@ -633,7 +634,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
             <div>
               <label className="form-label">Responsable del seguimiento</label>
-              <input
+              <Input
                 className="inp"
                 value={breachForm.responsable}
                 onChange={(e) => setBreachForm({ ...breachForm, responsable: e.target.value })}
@@ -642,7 +643,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
             <div>
               <label className="form-label">Estado</label>
-              <select
+              <Select
                 className="inp"
                 value={breachForm.estado}
                 onChange={(e) => setBreachForm({ ...breachForm, estado: e.target.value })}
@@ -652,7 +653,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                 <option value="Sancionado">Sancionado</option>
                 <option value="Subsanado">Subsanado</option>
                 <option value="Cerrado">Cerrado</option>
-              </select>
+              </Select>
             </div>
           </FormGrid>
         </Modal>
@@ -677,7 +678,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
           <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Contrato *</label>
-              <select
+              <Select
                 className="inp"
                 value={planForm.contractId}
                 onChange={(e) => setPlanForm({ ...planForm, contractId: e.target.value })}
@@ -687,12 +688,12 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                     {c.numero} — {c.contratista}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Acción / Compromiso *</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={planForm.accion}
@@ -703,7 +704,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
             <div>
               <label className="form-label">Responsable *</label>
-              <input
+              <Input
                 className="inp"
                 value={planForm.responsable}
                 onChange={(e) => setPlanForm({ ...planForm, responsable: e.target.value })}
@@ -712,7 +713,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
             <div>
               <label className="form-label">% de Avance (0 a 100)</label>
-              <input
+              <Input
                 type="number"
                 min={0}
                 max={100}
@@ -724,7 +725,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
             <div>
               <label className="form-label">Fecha de inicio</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={planForm.fechaInicio}
@@ -734,7 +735,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
             <div>
               <label className="form-label">Fecha límite / compromiso</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={planForm.fechaFin}
@@ -744,7 +745,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Estado</label>
-              <select
+              <Select
                 className="inp"
                 value={planForm.estado}
                 onChange={(e) => setPlanForm({ ...planForm, estado: e.target.value })}
@@ -753,7 +754,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                 <option value="Cumplido">Cumplido</option>
                 <option value="Incumplido">Incumplido</option>
                 <option value="Cerrado">Cerrado</option>
-              </select>
+              </Select>
             </div>
           </FormGrid>
         </Modal>

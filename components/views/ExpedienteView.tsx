@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable } from '../ui/Workspace';
 import { useState, useRef, useEffect } from 'react';
@@ -434,7 +435,7 @@ export const ExpedienteView = ({
 
           {/* Selector desplegable de sección (muy útil en tablet y móvil) */}
           <div style={{ marginLeft: 4, display: 'flex', alignItems: 'center' }}>
-            <select
+            <Select
               value={activeTab}
               onChange={(e) => setActiveTab(e.target.value)}
               aria-label="Ir a sección del expediente"
@@ -453,7 +454,7 @@ export const ExpedienteView = ({
                   {idx + 1}. {t.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
 

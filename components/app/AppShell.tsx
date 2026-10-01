@@ -36,6 +36,7 @@ export const AppShell = () => {
   const [view, setView] = useState('dash');
   const [selectedId, setSelectedId] = useState('');
   const [selectedTab, setSelectedTab] = useState<string | undefined>();
+  const [listFilter, setListFilter] = useState('');
   const [, setUserTick] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -55,17 +56,18 @@ export const AppShell = () => {
     const main = document.querySelector<HTMLElement>('.main');
     const previous = document.activeElement as HTMLElement | null;
     if (main) main.inert = true;
-    sidebar?.querySelector<HTMLElement>('a,button')?.focus();
+    const focusTimer = window.setTimeout(() => sidebar?.querySelector<HTMLElement>('a[aria-current="page"],a[href]')?.focus(), 200);
     const trap = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMobileOpen(false);
       if (event.key !== 'Tab' || !sidebar) return;
       const items = Array.from(sidebar.querySelectorAll<HTMLElement>('a[href],button')).filter(el=>el.offsetParent !== null);
       const first = items[0], last = items[items.length-1];
+      if (!sidebar.contains(document.activeElement)) { event.preventDefault(); first?.focus(); return; }
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
       if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     };
     document.addEventListener('keydown', trap);
-    return () => { document.removeEventListener('keydown', trap); if(main) main.inert=false; previous?.focus(); };
+    return () => { window.clearTimeout(focusTimer); document.removeEventListener('keydown', trap); if(main) main.inert=false; previous?.focus(); };
   }, [mobileOpen]);
 
   useEffect(() => {
@@ -74,7 +76,8 @@ export const AppShell = () => {
 
     // Hash routing sync
     const handleHash = () => {
-      const hash = window.location.hash.replace('#', '');
+      const [hash, query] = window.location.hash.replace('#', '').split('?');
+      setListFilter(new URLSearchParams(query).get('f') || '');
       if (hash.startsWith('contrato/')) {
         const parts = hash.split('/');
         setView('contrato');
@@ -104,15 +107,19 @@ export const AppShell = () => {
         window.location.hash = tab ? `contrato/${id}/${tab}` : `contrato/${id}`;
       } else if (v === 'empresa') {
         window.location.hash = `empresa/${id}`;
+      } else {
+        setListFilter(id);
+        window.location.hash = `${v}?f=${encodeURIComponent(id)}`;
       }
     } else {
+      setListFilter('');
       window.location.hash = v;
     }
   };
 
   return (
     <div className="app">
-      <a className="skip-link" href="#workspace">Saltar al contenido</a>
+      <a className="skip-link" href="#workspace" onClick={event=>{event.preventDefault();document.getElementById('workspace')?.focus();}}>Saltar al contenido</a>
       <Sidebar current={view} onNavigate={(v, id) => navigate(v, id)} />
       {mobileOpen && (
         <div
@@ -153,7 +160,7 @@ export const AppShell = () => {
             <EmpresaView id={selectedId} onBack={() => navigate('empresas')} />
           )}
           {(view === 'contracts' || view === 'contratos') && (
-            <ContratosView onSelect={(id) => navigate('contrato', id)} />
+            <ContratosView key={listFilter} initialFilter={listFilter} onSelect={(id) => navigate('contrato', id)} />
           )}
           {view === 'contrato' && (
             <ExpedienteView

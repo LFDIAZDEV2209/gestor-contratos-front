@@ -1,4 +1,5 @@
 'use client';
+import { Select, Input } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -460,7 +461,7 @@ export const AseguradorasView = ({
           <FormGrid className="grid g-1" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Aseguradora</label>
-              <select
+              <Select
                 className="inp"
                 value={cupoForm.aseguradora}
                 onChange={(e) => setCupoForm({ ...cupoForm, aseguradora: e.target.value })}
@@ -470,11 +471,11 @@ export const AseguradorasView = ({
                     {a}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Número / Código de cupo</label>
-              <input
+              <Input
                 className="inp"
                 value={cupoForm.numero}
                 placeholder="Ej. CUP-SURA-2026"
@@ -483,7 +484,7 @@ export const AseguradorasView = ({
             </div>
             <div>
               <label className="lbl required">Valor total asignado</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={cupoForm.valor}
@@ -493,7 +494,7 @@ export const AseguradorasView = ({
             <FormGrid className="grid g-2" style={{ gap: '10px' }}>
               <div>
                 <label className="lbl required">Fecha inicio</label>
-                <input
+                <Input
                   type="date"
                   className="inp"
                   value={cupoForm.fechaInicio}
@@ -502,7 +503,7 @@ export const AseguradorasView = ({
               </div>
               <div>
                 <label className="lbl required">Fecha vencimiento</label>
-                <input
+                <Input
                   type="date"
                   className="inp"
                   value={cupoForm.fechaVenc}
@@ -512,7 +513,7 @@ export const AseguradorasView = ({
             </FormGrid>
             <div>
               <label className="lbl">Tomador / Beneficiario</label>
-              <input
+              <Input
                 className="inp"
                 value={cupoForm.tomador}
                 placeholder="Razón social contratante o consorcio"
@@ -521,7 +522,7 @@ export const AseguradorasView = ({
             </div>
             <div>
               <label className="lbl">Intermediario / Corredor</label>
-              <input
+              <Input
                 className="inp"
                 value={cupoForm.intermediario}
                 placeholder="Agencia o corredor de seguros"

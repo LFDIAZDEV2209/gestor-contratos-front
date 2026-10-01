@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -240,14 +241,14 @@ export const GarantiasView = ({
         <div className="filters mb" style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
-            <input
+            <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar por póliza, tomador o contrato..."
             />
           </div>
           <Field className="f">
-            <select
+            <Select
               className="inp sm"
               value={filterAseg}
               onChange={(e) => setFilterAseg(e.target.value)}
@@ -258,10 +259,10 @@ export const GarantiasView = ({
                   {a}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field className="f">
-            <select
+            <Select
               className="inp sm"
               value={filterTipo}
               onChange={(e) => setFilterTipo(e.target.value)}
@@ -272,7 +273,7 @@ export const GarantiasView = ({
                   {t}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
         </div>
 
@@ -394,7 +395,7 @@ export const GarantiasView = ({
           <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Contrato</label>
-              <select
+              <Select
                 className="inp"
                 value={form.contractId}
                 onChange={(e) => setForm({ ...form, contractId: e.target.value })}
@@ -405,11 +406,11 @@ export const GarantiasView = ({
                     {c.numero} · {c.contratista} · {moneyM(c.valorBase)}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Aseguradora</label>
-              <select
+              <Select
                 className="inp"
                 value={form.aseguradora}
                 onChange={(e) => setForm({ ...form, aseguradora: e.target.value, cupoId: '' })}
@@ -419,11 +420,11 @@ export const GarantiasView = ({
                     {a}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Tipo de garantía</label>
-              <select
+              <Select
                 className="inp"
                 value={form.tipo}
                 onChange={(e) => setForm({ ...form, tipo: e.target.value })}
@@ -433,11 +434,11 @@ export const GarantiasView = ({
                     {t}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Número de póliza</label>
-              <input
+              <Input
                 className="inp"
                 value={form.poliza}
                 placeholder="Ej. POL-984321"
@@ -446,14 +447,14 @@ export const GarantiasView = ({
             </div>
             <div>
               <label className="lbl required">Modalidad de expedición</label>
-              <select
+              <Select
                 className="inp"
                 value={form.modalidadPoliza}
                 onChange={(e) => setForm({ ...form, modalidadPoliza: e.target.value })}
               >
                 <option value="Póliza individual">Póliza individual</option>
                 <option value="Póliza por cupo">Póliza por cupo</option>
-              </select>
+              </Select>
             </div>
 
             {form.modalidadPoliza === 'Póliza por cupo' && (
@@ -461,7 +462,7 @@ export const GarantiasView = ({
                 <label className="lbl required">
                   Cupo de la aseguradora ({availableCupos.length} disponibles)
                 </label>
-                <select
+                <Select
                   className="inp"
                   value={form.cupoId}
                   onChange={(e) => setForm({ ...form, cupoId: e.target.value })}
@@ -475,7 +476,7 @@ export const GarantiasView = ({
                       </option>
                     );
                   })}
-                </select>
+                </Select>
                 {availableCupos.length === 0 && (
                   <div className="small text-danger mt-1" style={{ color: 'var(--crit)' }}>
                     No hay cupos vigentes registrados para {form.aseguradora}.
@@ -486,7 +487,7 @@ export const GarantiasView = ({
 
             <div>
               <label className="lbl required">Valor asegurado</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={form.valor}
@@ -495,7 +496,7 @@ export const GarantiasView = ({
             </div>
             <div>
               <label className="lbl">Prima</label>
-              <input
+              <Input
                 type="number"
                 className="inp"
                 value={form.prima}
@@ -504,7 +505,7 @@ export const GarantiasView = ({
             </div>
             <div>
               <label className="lbl required">Fecha inicio vigencia</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={form.fechaInicio}
@@ -513,7 +514,7 @@ export const GarantiasView = ({
             </div>
             <div>
               <label className="lbl required">Fecha fin vigencia</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={form.fechaVenc}
@@ -522,7 +523,7 @@ export const GarantiasView = ({
             </div>
             <div>
               <label className="lbl">Tomador</label>
-              <input
+              <Input
                 className="inp"
                 value={form.tomador}
                 placeholder="Razón social o contratista"
@@ -531,7 +532,7 @@ export const GarantiasView = ({
             </div>
             <div>
               <label className="lbl">Intermediario / Corredor</label>
-              <input
+              <Input
                 className="inp"
                 value={form.intermediario}
                 placeholder="Corredor de seguros"

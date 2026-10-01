@@ -1,4 +1,5 @@
 'use client';
+import { Input } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable, FormGrid, Field } from '../ui/Workspace';
@@ -223,7 +224,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
           <FormGrid className="form-grid">
             <Field className="f">
               <label className="req">Número de pago</label>
-              <input
+              <Input
                 value={newPay.numero}
                 onChange={(e) => setNewPay({ ...newPay, numero: e.target.value })}
                 placeholder="Ej. OP-044-01"
@@ -231,7 +232,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label>Factura de venta</label>
-              <input
+              <Input
                 value={newPay.factura}
                 onChange={(e) => setNewPay({ ...newPay, factura: e.target.value })}
                 placeholder="Ej. FE-8891"
@@ -239,7 +240,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label className="req">Fecha de radicación</label>
-              <input
+              <Input
                 type="date"
                 value={newPay.fecha}
                 onChange={(e) => setNewPay({ ...newPay, fecha: e.target.value })}
@@ -247,7 +248,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label>Periodo de ejecución (AAAA-MM)</label>
-              <input
+              <Input
                 type="month"
                 value={newPay.periodo}
                 onChange={(e) => setNewPay({ ...newPay, periodo: e.target.value })}
@@ -255,7 +256,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label className="req">Valor bruto</label>
-              <input
+              <Input
                 type="number"
                 value={newPay.bruto || ''}
                 onChange={(e) => {
@@ -266,7 +267,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label>IVA</label>
-              <input
+              <Input
                 type="number"
                 value={newPay.iva || ''}
                 onChange={(e) => setNewPay({ ...newPay, iva: Number(e.target.value) })}
@@ -274,7 +275,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label>Retenciones (ReteFuente / ReteICA)</label>
-              <input
+              <Input
                 type="number"
                 value={newPay.retenciones || ''}
                 onChange={(e) => setNewPay({ ...newPay, retenciones: Number(e.target.value) })}
@@ -282,7 +283,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label>Archivo soporte</label>
-              <input
+              <Input
                 value={newPay.soporte}
                 onChange={(e) => setNewPay({ ...newPay, soporte: e.target.value })}
                 placeholder="Factura_01.pdf"

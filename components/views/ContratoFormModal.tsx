@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { FormGrid, Field } from '../ui/Workspace';
@@ -68,26 +69,26 @@ export const ContratoFormModal = ({
           <FormGrid className="form-grid">
             <Field className="f">
               <label className="req">Número</label>
-              <input value={form.num || ''} onChange={e => setForm({...form, num: e.target.value})} />
+              <Input value={form.num || ''} onChange={e => setForm({...form, num: e.target.value})} />
             </Field>
             <Field className="f">
               <label>Tipo</label>
-              <select value={form.type || ''} onChange={e => setForm({...form, type: e.target.value})}>
+              <Select value={form.type || ''} onChange={e => setForm({...form, type: e.target.value})}>
                 <option value="Obra">Obra</option>
                 <option value="Servicios">Servicios</option>
                 <option value="Suministro">Suministro</option>
-              </select>
+              </Select>
             </Field>
             <Field className="f">
               <label className="req">Empresa</label>
-              <select value={form.company || ''} onChange={e => setForm({...form, company: e.target.value})}>
+              <Select value={form.company || ''} onChange={e => setForm({...form, company: e.target.value})}>
                 <option value="">Seleccione...</option>
                 {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              </Select>
             </Field>
             <Field className="f span3">
               <label className="req">Objeto</label>
-              <textarea value={form.obj || ''} onChange={e => setForm({...form, obj: e.target.value})} />
+              <Textarea value={form.obj || ''} onChange={e => setForm({...form, obj: e.target.value})} />
             </Field>
           </FormGrid>
         )}
@@ -96,19 +97,19 @@ export const ContratoFormModal = ({
           <FormGrid className="form-grid">
             <Field className="f">
               <label>Fecha Firma</label>
-              <input type="date" value={form.signDate || ''} onChange={e => setForm({...form, signDate: e.target.value})} />
+              <Input type="date" value={form.signDate || ''} onChange={e => setForm({...form, signDate: e.target.value})} />
             </Field>
             <Field className="f">
               <label>Fecha Inicio</label>
-              <input type="date" value={form.startDate || ''} onChange={e => setForm({...form, startDate: e.target.value})} />
+              <Input type="date" value={form.startDate || ''} onChange={e => setForm({...form, startDate: e.target.value})} />
             </Field>
             <Field className="f">
               <label>Fecha Fin</label>
-              <input type="date" value={form.endDate || ''} onChange={e => setForm({...form, endDate: e.target.value})} />
+              <Input type="date" value={form.endDate || ''} onChange={e => setForm({...form, endDate: e.target.value})} />
             </Field>
             <Field className="f span3">
               <label className="chk">
-                <input type="checkbox" /> Hasta agotar presupuesto
+                <Input type="checkbox" /> Hasta agotar presupuesto
               </label>
             </Field>
           </FormGrid>
@@ -118,14 +119,14 @@ export const ContratoFormModal = ({
           <FormGrid className="form-grid">
             <Field className="f">
               <label>Valor Base</label>
-              <input type="number" value={form.val || 0} onChange={e => setForm({...form, val: Number(e.target.value)})} />
+              <Input type="number" value={form.val || 0} onChange={e => setForm({...form, val: Number(e.target.value)})} />
             </Field>
             <Field className="f">
               <label>Moneda</label>
-              <select value={form.cur || 'COP'} onChange={e => setForm({...form, cur: e.target.value})}>
+              <Select value={form.cur || 'COP'} onChange={e => setForm({...form, cur: e.target.value})}>
                 <option value="COP">COP</option>
                 <option value="USD">USD</option>
-              </select>
+              </Select>
             </Field>
             <Field className="f span3">
               <div className="calc">
@@ -140,7 +141,7 @@ export const ContratoFormModal = ({
         {tab === 'Alcance' && (
           <Field className="f">
             <label>Descripción detallada</label>
-            <textarea rows={5} value={form.obj || ''} readOnly />
+            <Textarea rows={5} value={form.obj || ''} readOnly />
             <span className="hint">El alcance se mapea en base al objeto</span>
           </Field>
         )}

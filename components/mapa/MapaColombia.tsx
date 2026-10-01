@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { Surface, Field, MetricCard } from '../ui/Workspace';
 
@@ -196,7 +197,7 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
       <div className="filters" style={{ padding: '10px 16px', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', borderBottom: '1px solid var(--border)' }}>
         <Field className="f" style={{ width: 140 }}>
           <label className="small muted">Medir por</label>
-          <select
+          <Select
             className="inp"
             value={medida}
             onChange={(e) => setMedida(e.target.value as any)}
@@ -205,12 +206,12 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
             <option value="v">
               {metric === 'polizas' ? 'Valor asegurado' : 'Valor contratado'}
             </option>
-          </select>
+          </Select>
         </Field>
 
         <Field className="f" style={{ minWidth: 180 }}>
           <label className="small muted">Aseguradora</label>
-          <select
+          <Select
             className="inp"
             value={aseg}
             onChange={(e) => setAseg(e.target.value)}
@@ -221,12 +222,12 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
                 {a}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
 
         <Field className="f" style={{ width: 150 }}>
           <label className="small muted">Estado del contrato</label>
-          <select
+          <Select
             className="inp"
             value={estado}
             onChange={(e) => setEstado(e.target.value)}
@@ -237,12 +238,12 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
             <option value="En liquidación">En liquidación</option>
             <option value="Liquidado">Liquidado</option>
             <option value="Terminado">Terminado</option>
-          </select>
+          </Select>
         </Field>
 
         <Field className="f" style={{ minWidth: 180 }}>
           <label className="small muted">Empresa contratante</label>
-          <select
+          <Select
             className="inp"
             value={empresa}
             onChange={(e) => setEmpresa(e.target.value)}
@@ -253,7 +254,7 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
                 {c.razon || (c as any).name}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
 
         {(aseg || estado || empresa || sel) && (
@@ -303,6 +304,11 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
                 <path
                   key={k}
                   className={`dep ${isSelected ? 'sel' : ''}`}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${DEPTOS[k]?.[0] || k}: ${mapFmt(v)}`}
+                  aria-pressed={isSelected}
+                  onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSel(isSelected ? null : k); } }}
                   d={pathD}
                   fill={mapColor(v, maxVal)}
                   stroke={isSelected ? '#111' : '#fff'}

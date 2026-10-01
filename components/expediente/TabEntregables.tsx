@@ -1,4 +1,5 @@
 'use client';
+import { Input } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable, FormGrid, Field } from '../ui/Workspace';
@@ -55,13 +56,13 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
     ganttComponent = (
       <div className="gantt-wrap mb-4 overflow-x-auto">
         <div className="gantt" style={{ minWidth: 640 }}>
-          <div className="gh flex items-center border-b pb-2 mb-2 font-semibold text-xs text-muted">
+          <div className="gh flex items-center border-b pb-2 mb-2 font-semibold text-xs text-muted-foreground">
             <div className="gl" style={{ width: '32%', minWidth: 180 }}>Entregable</div>
             <div className="gt relative flex-1 h-6">
               {ticks.map((t, idx) => (
                 <span
                   key={idx}
-                  className="absolute text-xs transform -translate-x-1/2 text-muted"
+                  className="absolute text-xs transform -translate-x-1/2 text-muted-foreground"
                   style={{ left: `${getX(t)}%` }}
                 >
                   {monthLabel(monthKey(t))}
@@ -89,7 +90,7 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
                 <div key={d.id} className="gr flex items-center text-xs py-1 hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded">
                   <div className="gl pr-2 truncate" style={{ width: '32%', minWidth: 180 }} title={d.nombre}>
                     <b className="text-neutral-800 dark:text-neutral-200">{d.nombre}</b>{' '}
-                    <span className="text-muted">({e})</span>
+                    <span className="text-muted-foreground">({e})</span>
                   </div>
                   <div className="gt relative flex-1 h-6 bg-neutral-100 dark:bg-neutral-900 rounded overflow-hidden">
                     {/* Línea de Hoy */}
@@ -145,7 +146,7 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
           </div>
         </div>
 
-        <div className="legend mt-3 flex flex-wrap gap-4 text-xs text-muted items-center">
+        <div className="legend mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground items-center">
           <span className="flex items-center gap-1">
             <span className="sem" style={{ background: 'var(--brand)' }}></span> En curso
           </span>
@@ -293,7 +294,7 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
           <FormGrid className="form-grid">
             <Field className="f span2">
               <label className="req">Nombre del entregable</label>
-              <input
+              <Input
                 value={newDeliv.nombre}
                 onChange={(e) => setNewDeliv({ ...newDeliv, nombre: e.target.value })}
                 placeholder="Ej. Informe técnico de avance"
@@ -301,14 +302,14 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f span2">
               <label>Descripción / Criterio de aceptación</label>
-              <input
+              <Input
                 value={newDeliv.descripcion}
                 onChange={(e) => setNewDeliv({ ...newDeliv, descripcion: e.target.value })}
               />
             </Field>
             <Field className="f">
               <label className="req">Fecha de inicio</label>
-              <input
+              <Input
                 type="date"
                 value={newDeliv.fechaInicio}
                 onChange={(e) => setNewDeliv({ ...newDeliv, fechaInicio: e.target.value })}
@@ -316,7 +317,7 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f">
               <label className="req">Fecha programada</label>
-              <input
+              <Input
                 type="date"
                 value={newDeliv.fechaProg}
                 onChange={(e) => setNewDeliv({ ...newDeliv, fechaProg: e.target.value })}
@@ -324,7 +325,7 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
             </Field>
             <Field className="f span2">
               <label>Responsable</label>
-              <input
+              <Input
                 value={newDeliv.responsable}
                 onChange={(e) => setNewDeliv({ ...newDeliv, responsable: e.target.value })}
                 placeholder="Nombre del responsable"

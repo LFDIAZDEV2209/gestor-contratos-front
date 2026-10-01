@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable } from '../ui/Workspace';
 import { useState } from 'react';
@@ -90,7 +91,7 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
 
       {/* Filter Toolbar */}
       <div className="row-flex p-4" style={{ gap: '12px', flexWrap: 'wrap' }}>
-        <input
+        <Input
           className="inp sm"
           style={{ maxWidth: '240px' }}
           placeholder="Buscar en auditoría..."
@@ -98,7 +99,7 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
           onChange={(e) => setSearch(e.target.value)}
         />
         {users.length > 0 && (
-          <select
+          <Select
             className="inp sm"
             style={{ maxWidth: '180px' }}
             value={filterUser}
@@ -110,10 +111,10 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
                 {u}
               </option>
             ))}
-          </select>
+          </Select>
         )}
         {modules.length > 0 && (
-          <select
+          <Select
             className="inp sm"
             style={{ maxWidth: '180px' }}
             value={filterModule}
@@ -125,7 +126,7 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
                 {m}
               </option>
             ))}
-          </select>
+          </Select>
         )}
         {(filterUser || filterModule || search) && (
           <Button

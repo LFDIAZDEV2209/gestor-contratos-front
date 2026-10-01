@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select, Textarea } from '../ui/Controls';
 import { notify, requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -242,14 +243,14 @@ export const DocumentosView = ({
         <div className="filters mb" style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
-            <input
+            <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar por nombre, archivo o contrato..."
             />
           </div>
           <Field className="f">
-            <select
+            <Select
               className="inp sm"
               value={filterContract}
               onChange={(e) => setFilterContract(e.target.value)}
@@ -260,10 +261,10 @@ export const DocumentosView = ({
                   {c.numero} · {c.contratista}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field className="f">
-            <select
+            <Select
               className="inp sm"
               value={filterCat}
               onChange={(e) => setFilterCat(e.target.value)}
@@ -274,7 +275,7 @@ export const DocumentosView = ({
                   {cat}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
         </div>
 
@@ -414,7 +415,7 @@ export const DocumentosView = ({
           <FormGrid className="grid g-1" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Contrato</label>
-              <select
+              <Select
                 className="inp"
                 value={uploadForm.contractId}
                 onChange={(e) => setUploadForm({ ...uploadForm, contractId: e.target.value })}
@@ -425,11 +426,11 @@ export const DocumentosView = ({
                     {c.numero} · {c.contratista}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Nombre del documento</label>
-              <input
+              <Input
                 className="inp"
                 value={uploadForm.nombre}
                 placeholder="Ej. Minuta del contrato firmada"
@@ -438,7 +439,7 @@ export const DocumentosView = ({
             </div>
             <div>
               <label className="lbl required">Categoría</label>
-              <select
+              <Select
                 className="inp"
                 value={uploadForm.categoria}
                 onChange={(e) => setUploadForm({ ...uploadForm, categoria: e.target.value })}
@@ -448,11 +449,11 @@ export const DocumentosView = ({
                     {cat}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Archivo (nombre o ruta simulada)</label>
-              <input
+              <Input
                 className="inp"
                 value={uploadForm.archivo}
                 placeholder="Ej. contrato_firmado_final.pdf"
@@ -461,7 +462,7 @@ export const DocumentosView = ({
             </div>
             <div>
               <label className="lbl">Observaciones</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={uploadForm.obs}
@@ -547,7 +548,7 @@ export const DocumentosView = ({
           <FormGrid className="grid g-1" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Nuevo archivo</label>
-              <input
+              <Input
                 className="inp"
                 value={versionForm.archivo}
                 placeholder="Ej. contrato_firmado_v2.pdf"
@@ -556,7 +557,7 @@ export const DocumentosView = ({
             </div>
             <div>
               <label className="lbl required">Motivo de la nueva versión</label>
-              <input
+              <Input
                 className="inp"
                 value={versionForm.motivo}
                 placeholder="Ej. Ajuste de cláusula / adición de firmas"
@@ -565,7 +566,7 @@ export const DocumentosView = ({
             </div>
             <div>
               <label className="lbl">Descripción de cambios</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={versionForm.cambios}

@@ -1,4 +1,5 @@
 'use client';
+import { Select, Input, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -339,7 +340,7 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
           <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Tipo de modificación</label>
-              <select
+              <Select
                 className="inp"
                 value={tipo}
                 onChange={(e) => {
@@ -361,11 +362,11 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
                 <option value="Modificación de supervisor">Modificación de supervisor</option>
                 <option value="Terminación anticipada">Terminación anticipada</option>
                 <option value="Modificación de cláusula">Modificación de cláusula</option>
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Número / Referencia</label>
-              <input
+              <Input
                 className="inp"
                 value={numero}
                 placeholder="Ej. MOD-01 u OTROSI-01"
@@ -374,7 +375,7 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl required">Fecha</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={fecha}
@@ -386,13 +387,13 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
               <>
                 <div>
                   <label className="lbl">Valor actual del contrato</label>
-                  <input className="inp" value={money(m.valorActual)} disabled readOnly />
+                  <Input className="inp" value={money(m.valorActual)} disabled readOnly />
                 </div>
                 <div>
                   <label className="lbl required">
                     {tipo === 'Adición' ? 'Nuevo valor total (incluyendo adición)' : 'Nuevo valor total reducido'}
                   </label>
-                  <input
+                  <Input
                     type="number"
                     className="inp"
                     value={valorNuevo}
@@ -410,11 +411,11 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
               <>
                 <div>
                   <label className="lbl">Fecha de terminación actual</label>
-                  <input className="inp" value={fdate(c.fechaFin)} disabled readOnly />
+                  <Input className="inp" value={fdate(c.fechaFin)} disabled readOnly />
                 </div>
                 <div>
                   <label className="lbl required">Nueva fecha de terminación</label>
-                  <input
+                  <Input
                     type="date"
                     className="inp"
                     value={fechaNueva}
@@ -432,7 +433,7 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
             {tipo === 'Cesión' && (
               <div style={{ gridColumn: 'span 2' }}>
                 <label className="lbl required">Nuevo contratista (Razón social y NIT)</label>
-                <input
+                <Input
                   className="inp"
                   value={nuevoTexto}
                   placeholder="Ej. INGENIERÍA Y CONSTRUCCIONES SAS - NIT 900.123.456-7"
@@ -444,7 +445,7 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
             {tipo === 'Modificación de supervisor' && (
               <div style={{ gridColumn: 'span 2' }}>
                 <label className="lbl required">Nuevo supervisor</label>
-                <input
+                <Input
                   className="inp"
                   value={nuevoTexto}
                   placeholder="Nombre y cargo del nuevo supervisor"
@@ -455,7 +456,7 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
 
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Justificación</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={3}
                 value={justificacion}
@@ -466,7 +467,7 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
 
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl">Documento soporte (archivo)</label>
-              <input
+              <Input
                 className="inp"
                 value={soporte}
                 placeholder="Nombre del archivo adjunto (ej. otrosi_01_firmado.pdf)"

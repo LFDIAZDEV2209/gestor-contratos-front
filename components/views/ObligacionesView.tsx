@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable } from '../ui/Workspace';
 import { useState } from 'react';
@@ -213,14 +214,14 @@ export const ObligacionesView = ({
         <div className="filters mb" style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
-            <input
+            <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar por descripción u objeto..."
             />
           </div>
           <Field className="f">
-            <select
+            <Select
               className="inp sm"
               value={filterContract}
               onChange={(e) => setFilterContract(e.target.value)}
@@ -231,10 +232,10 @@ export const ObligacionesView = ({
                   {c.numero} · {c.contratista}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field className="f">
-            <select
+            <Select
               className="inp sm"
               value={filterTipo}
               onChange={(e) => setFilterTipo(e.target.value)}
@@ -247,7 +248,7 @@ export const ObligacionesView = ({
               <option value="Legal">Legal</option>
               <option value="Reporte / informe">Reporte / informe</option>
               <option value="Seguridad social">Seguridad social</option>
-            </select>
+            </Select>
           </Field>
         </div>
 
@@ -393,7 +394,7 @@ export const ObligacionesView = ({
                 <span className="small muted">Límite: {fdate(selectedObl.fechaLimite)}</span>
               </div>
               <p style={{ margin: 0, fontWeight: 500 }}>{selectedObl.descripcion}</p>
-              <div className="mt-2 text-xs text-muted">
+              <div className="mt-2 text-xs text-muted-foreground">
                 Responsable: <b>{selectedObl.responsable}</b> · Estado: <b>{selectedObl.estado}</b>
               </div>
             </div>
@@ -420,7 +421,7 @@ export const ObligacionesView = ({
                     cursor: 'pointer'
                   }}
                 >
-                  <input
+                  <Input
                     type="checkbox"
                     checked={chk.listo}
                     onChange={() => handleToggleChecklist(chk.id)}
@@ -447,7 +448,7 @@ export const ObligacionesView = ({
                     fontSize: '12px'
                   }}
                 >
-                  <div className="flex justify-between text-muted mb-1">
+                  <div className="flex justify-between text-muted-foreground mb-1">
                     <b>{com.usuario}</b>
                     <span>{fdate(com.fecha)}</span>
                   </div>
@@ -460,7 +461,7 @@ export const ObligacionesView = ({
             </div>
 
             <div className="row-flex" style={{ gap: '8px' }}>
-              <input
+              <Input
                 className="inp sm"
                 placeholder="Escribir comentario u observación..."
                 value={newComment}

@@ -1,4 +1,5 @@
 'use client';
+import { Select, Input, Textarea } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -241,7 +242,7 @@ export const TabActas = ({ cid }: { cid: string }) => {
           <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Tipo de acta</label>
-              <select
+              <Select
                 className="inp"
                 value={form.tipo}
                 onChange={(e) => setForm({ ...form, tipo: e.target.value })}
@@ -251,11 +252,11 @@ export const TabActas = ({ cid }: { cid: string }) => {
                     {t}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="lbl required">Número de acta</label>
-              <input
+              <Input
                 className="inp"
                 value={form.numero}
                 placeholder="Ej. ACT-001"
@@ -264,7 +265,7 @@ export const TabActas = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl required">Fecha</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={form.fecha}
@@ -273,7 +274,7 @@ export const TabActas = ({ cid }: { cid: string }) => {
             </div>
             <div>
               <label className="lbl">Estado</label>
-              <select
+              <Select
                 className="inp"
                 value={form.estado}
                 onChange={(e) => setForm({ ...form, estado: e.target.value })}
@@ -281,11 +282,11 @@ export const TabActas = ({ cid }: { cid: string }) => {
                 <option value="Borrador">Borrador</option>
                 <option value="En firmas">En firmas</option>
                 <option value="Firmada">Firmada</option>
-              </select>
+              </Select>
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl">Firmantes</label>
-              <input
+              <Input
                 className="inp"
                 value={form.firmantes}
                 placeholder="Nombres y cargos de quienes suscriben el acta"
@@ -294,7 +295,7 @@ export const TabActas = ({ cid }: { cid: string }) => {
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl">Descripción / Objeto del acta</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={3}
                 value={form.descripcion}
@@ -304,7 +305,7 @@ export const TabActas = ({ cid }: { cid: string }) => {
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl">Documento soporte (archivo)</label>
-              <input
+              <Input
                 className="inp"
                 value={form.archivo}
                 placeholder="Nombre del archivo adjunto (ej. acta_inicio_firmada.pdf)"

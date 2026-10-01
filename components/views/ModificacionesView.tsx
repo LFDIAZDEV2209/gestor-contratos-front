@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -241,14 +242,14 @@ export const ModificacionesView = ({
         <div className="filters mb" style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
-            <input
+            <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar por justificación, número o contrato..."
             />
           </div>
           <Field className="f">
-            <select
+            <Select
               className="inp sm"
               value={filterContract}
               onChange={(e) => setFilterContract(e.target.value)}
@@ -259,10 +260,10 @@ export const ModificacionesView = ({
                   {c.numero} · {c.contratista}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field className="f">
-            <select
+            <Select
               className="inp sm"
               value={filterTipo}
               onChange={(e) => setFilterTipo(e.target.value)}
@@ -276,7 +277,7 @@ export const ModificacionesView = ({
               <option value="Cesión">Cesión</option>
               <option value="Modificación de supervisor">Modificación de supervisor</option>
               <option value="Terminación anticipada">Terminación anticipada</option>
-            </select>
+            </Select>
           </Field>
         </div>
 
@@ -434,7 +435,7 @@ export const ModificacionesView = ({
           <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Contrato</label>
-              <select
+              <Select
                 className="inp"
                 value={form.contractId}
                 onChange={(e) => {
@@ -455,12 +456,12 @@ export const ModificacionesView = ({
                     {c.numero} · {c.contratista} · {moneyM(M(c).valorActual)}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="lbl required">Tipo de modificación</label>
-              <select
+              <Select
                 className="inp"
                 value={form.tipo}
                 onChange={(e) => setForm({ ...form, tipo: e.target.value })}
@@ -473,12 +474,12 @@ export const ModificacionesView = ({
                 <option value="Cesión">Cesión contractual</option>
                 <option value="Modificación de supervisor">Modificación de supervisor</option>
                 <option value="Terminación anticipada">Terminación anticipada</option>
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="lbl required">Número / Referencia</label>
-              <input
+              <Input
                 className="inp"
                 value={form.numero}
                 placeholder="Ej. MOD-01 u OTROSI-01"
@@ -488,7 +489,7 @@ export const ModificacionesView = ({
 
             <div>
               <label className="lbl required">Fecha</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={form.fecha}
@@ -500,7 +501,7 @@ export const ModificacionesView = ({
               <>
                 <div>
                   <label className="lbl">Valor actual</label>
-                  <input
+                  <Input
                     className="inp"
                     value={selectedMetrics ? money(selectedMetrics.valorActual) : '—'}
                     disabled
@@ -509,7 +510,7 @@ export const ModificacionesView = ({
                 </div>
                 <div>
                   <label className="lbl required">Nuevo valor total resultante</label>
-                  <input
+                  <Input
                     type="number"
                     className="inp"
                     value={form.valorNuevo}
@@ -523,7 +524,7 @@ export const ModificacionesView = ({
               <>
                 <div>
                   <label className="lbl">Fecha fin actual</label>
-                  <input
+                  <Input
                     className="inp"
                     value={selectedContract?.fechaFin ? fdate(selectedContract.fechaFin) : '—'}
                     disabled
@@ -532,7 +533,7 @@ export const ModificacionesView = ({
                 </div>
                 <div>
                   <label className="lbl required">Nueva fecha de terminación</label>
-                  <input
+                  <Input
                     type="date"
                     className="inp"
                     value={form.fechaNueva}
@@ -545,7 +546,7 @@ export const ModificacionesView = ({
             {form.tipo === 'Cesión' && (
               <div style={{ gridColumn: 'span 2' }}>
                 <label className="lbl required">Nuevo contratista (Razón social y NIT)</label>
-                <input
+                <Input
                   className="inp"
                   value={form.nuevoTexto}
                   placeholder="Ej. NUEVA EMPRESA SAS - NIT 901.000.000-1"
@@ -557,7 +558,7 @@ export const ModificacionesView = ({
             {form.tipo === 'Modificación de supervisor' && (
               <div style={{ gridColumn: 'span 2' }}>
                 <label className="lbl required">Nuevo supervisor</label>
-                <input
+                <Input
                   className="inp"
                   value={form.nuevoTexto}
                   placeholder="Nombre y cargo del nuevo supervisor"
@@ -568,7 +569,7 @@ export const ModificacionesView = ({
 
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Justificación</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={2}
                 value={form.justificacion}
@@ -579,7 +580,7 @@ export const ModificacionesView = ({
 
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl">Documento soporte (archivo)</label>
-              <input
+              <Input
                 className="inp"
                 value={form.soporte}
                 placeholder="Nombre del archivo adjunto (ej. otrosi_01.pdf)"

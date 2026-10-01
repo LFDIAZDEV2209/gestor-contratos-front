@@ -1,4 +1,5 @@
 'use client';
+import { Input, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
@@ -316,7 +317,7 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
           <FormGrid className="grid g-1" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Fecha de {actionType.toLowerCase()}</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={fecha}
@@ -328,7 +329,7 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
               <>
                 <div>
                   <label className="lbl">Días de suspensión a reponer en plazo</label>
-                  <input
+                  <Input
                     type="number"
                     className="inp"
                     value={diasProrroga}
@@ -341,7 +342,7 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
                 </div>
                 <div>
                   <label className="lbl required">Nueva fecha de terminación</label>
-                  <input
+                  <Input
                     type="date"
                     className="inp"
                     value={nuevaFechaFin}
@@ -356,7 +357,7 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
 
             <div>
               <label className="lbl required">Justificación</label>
-              <textarea
+              <Textarea
                 className="inp"
                 rows={3}
                 value={justificacion}
@@ -367,7 +368,7 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
 
             <div>
               <label className="lbl">Documento soporte (archivo)</label>
-              <input
+              <Input
                 className="inp"
                 value={soporte}
                 placeholder="Nombre del archivo adjunto (ej. acta_suspension.pdf)"

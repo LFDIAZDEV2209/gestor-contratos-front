@@ -1,4 +1,5 @@
 'use client';
+import { Select, Input, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, FormGrid } from '../ui/Workspace';
@@ -270,7 +271,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
               </Button>
             ))}
             <span className="sp" style={{ flex: 1 }} />
-            <select
+            <Select
               className="inp"
               style={{ margin: '6px', width: 'auto', padding: '4px 8px', fontSize: '12px' }}
               value={estadoFilter}
@@ -282,7 +283,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
               <option value="Delegada">Delegadas</option>
               <option value="Resuelta">Resueltas</option>
               <option value="todas">Todas</option>
-            </select>
+            </Select>
           </div>
 
           <div style={{ padding: '12px' }}>
@@ -417,7 +418,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
                     style={{ alignItems: 'flex-start', padding: '8px 10px', marginBottom: 6 }}
                   >
                     <label style={{ marginRight: 8, cursor: 'pointer', marginTop: 2 }}>
-                      <input
+                      <Input
                         type="checkbox"
                         checked={t.estado === 'Cerrada'}
                         onChange={() => toggleTask(t.id)}
@@ -469,7 +470,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
           </p>
           <div className="form-group" style={{ marginTop: 12 }}>
             <label className="form-label">Gestión realizada / soporte de resolución *</label>
-            <textarea
+            <Textarea
               className="inp"
               rows={3}
               placeholder="Ej.: se radicó la prórroga No. 2 / se aportó soporte de pago"
@@ -502,7 +503,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
           </p>
           <div className="form-group" style={{ marginTop: 12 }}>
             <label className="form-label">Delegar a usuario responsable *</label>
-            <select
+            <Select
               className="inp"
               value={delegateUser}
               onChange={(e) => setDelegateUser(e.target.value)}
@@ -512,7 +513,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
                   {u.nombre} ({u.rol})
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </Modal>
       )}
@@ -539,7 +540,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
           <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 12, marginTop: 12 }}>
             <div>
               <label className="form-label">Título de la tarea *</label>
-              <input
+              <Input
                 className="inp"
                 value={taskTitle}
                 onChange={(e) => setTaskTitle(e.target.value)}
@@ -548,7 +549,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
             </div>
             <div>
               <label className="form-label">Asignar a</label>
-              <select
+              <Select
                 className="inp"
                 value={taskAssignee}
                 onChange={(e) => setTaskAssignee(e.target.value)}
@@ -558,11 +559,11 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
                     {u.nombre} ({u.rol})
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="form-label">Fecha límite</label>
-              <input
+              <Input
                 type="date"
                 className="inp"
                 value={taskDueDate}

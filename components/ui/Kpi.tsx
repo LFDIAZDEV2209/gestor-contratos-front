@@ -60,7 +60,7 @@ export const Kpi: React.FC<KpiProps> = ({
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
     >
-      {semColor && <span className={`sem ${semColor}`} />}
+      {semColor && <span className={`sem ${semColor === 'brand' ? 'brand-dot' : semColor}`} />}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div className="l">
@@ -85,7 +85,7 @@ export const Kpi: React.FC<KpiProps> = ({
         {deltaNode}
       </div>
 
-      <div className="v">{value}</div>
+      <div className={`v ${typeof value === 'string' && value.length > 10 ? 'numeric-long' : ''}`}>{value}</div>
       {sub != null && sub !== '' && <div className="s">{sub}</div>}
     </div>
   );

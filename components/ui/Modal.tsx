@@ -17,6 +17,7 @@ export function Modal({ title, subtitle, size = 'md', onClose, footer, children 
     const focusable = () => Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]') || []).filter(el => el.getClientRects().length);
     const timer = requestAnimationFrame(() => (panel.current?.querySelector<HTMLElement>('input:not(:disabled),select:not(:disabled),textarea:not(:disabled)') || panel.current)?.focus());
     const keydown = (e: KeyboardEvent) => {
+      if (Array.from(document.querySelectorAll('[role="dialog"]')).at(-1) !== panel.current) return;
       if (e.key === 'Escape') { e.preventDefault(); close.current(); }
       if (e.key === 'Tab') {
         const list = focusable();

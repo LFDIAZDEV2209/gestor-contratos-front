@@ -1,4 +1,5 @@
 'use client';
+import { Input } from '../ui/Controls';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Store, AuthService } from '../../lib/store';
@@ -210,7 +211,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Buscador global con atajo Ctrl+K y chip visual */}
       <div className="gsearch">
         <Icon name="search" />
-        <input
+        <Input
           ref={searchInputRef}
           type="search"
           placeholder="Buscar contrato, NIT, contratista, póliza, factura, acta... (Ctrl+K)"

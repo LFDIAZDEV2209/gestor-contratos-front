@@ -1,4 +1,5 @@
 'use client';
+import { Select, Input } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, MetricCard, Field, TableViewport, DataTable } from '../ui/Workspace';
 
@@ -194,7 +195,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
         <div className="filters" style={{ padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', borderBottom: '1px solid var(--border)' }}>
           <Field className="f" style={{ minWidth: 140 }}>
             <label className="small muted">Usuario</label>
-            <select
+            <Select
               className="inp"
               value={filterUser}
               onChange={(e) => setFilterUser(e.target.value)}
@@ -205,12 +206,12 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
                   {u}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
 
           <Field className="f" style={{ minWidth: 180 }}>
             <label className="small muted">Contrato</label>
-            <select
+            <Select
               className="inp"
               value={filterContract}
               onChange={(e) => setFilterContract(e.target.value)}
@@ -221,12 +222,12 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
                   {c.numero}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
 
           <Field className="f" style={{ width: 130 }}>
             <label className="small muted">Desde</label>
-            <input
+            <Input
               type="date"
               className="inp"
               value={filterDesde}
@@ -236,7 +237,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
 
           <Field className="f" style={{ width: 130 }}>
             <label className="small muted">Hasta</label>
-            <input
+            <Input
               type="date"
               className="inp"
               value={filterHasta}
@@ -246,7 +247,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
 
           <Field className="f" style={{ width: 140 }}>
             <label className="small muted">Acción</label>
-            <select
+            <Select
               className="inp"
               value={filterAccion}
               onChange={(e) => setFilterAccion(e.target.value)}
@@ -257,12 +258,12 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
                   {a}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
 
           <Field className="f" style={{ width: 140 }}>
             <label className="small muted">Módulo</label>
-            <select
+            <Select
               className="inp"
               value={filterModulo}
               onChange={(e) => setFilterModulo(e.target.value)}
@@ -273,12 +274,12 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
                   {m}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
 
           <Field className="f" style={{ width: 150 }}>
             <label className="small muted">Campo</label>
-            <input
+            <Input
               className="inp"
               placeholder="Ej.: fecha, valor"
               value={filterCampo}

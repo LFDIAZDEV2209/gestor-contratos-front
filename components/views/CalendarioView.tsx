@@ -49,7 +49,7 @@ export const CalendarioView = ({
 }: {
   onSelectContract: (cid: string, tab?: string) => void;
 }) => {
-  const [mode, setMode] = useState<'mes' | 'semana' | 'dia'>('mes');
+  const [mode, setMode] = useState<'mes' | 'semana' | 'dia'>(()=>typeof window !== 'undefined' && window.matchMedia('(max-width:620px)').matches ? 'dia' : 'mes');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [offTypes, setOffTypes] = useState<Record<string, boolean>>({});
   const [selectedDayEvents, setSelectedDayEvents] = useState<{ date: string; events: CalEvt[] } | null>(null);

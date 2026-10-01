@@ -1,4 +1,5 @@
 'use client';
+import { Input, Select } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable } from '../ui/Workspace';
 
@@ -12,17 +13,19 @@ import { PBar } from '../ui/PBar';
 import { ContratoFormModal } from './ContratoFormModal';
 import { money as fmtMoney, daysTxt } from '../../lib/format';
 import { exportRows } from '../../lib/export';
+import { DEPTOS } from '../../lib/geo';
 
-export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) => {
+export const ContratosView = ({ onSelect, initialFilter = '' }: { onSelect: (id: string) => void; initialFilter?: string }) => {
   const [contracts, setContracts] = useState<Contract[]>(Store.all('contracts'));
   const [editing, setEditing] = useState<Partial<Contract> | null>(null);
 
   // Filtros
   const [q, setQ] = useState('');
-  const [filterEstado, setFilterEstado] = useState('');
+  const [filterEstado, setFilterEstado] = useState(['Suspendido','En liquidación'].includes(initialFilter) ? initialFilter : initialFilter === 'activos' ? 'Activo' : '');
   const [filterEmpresa, setFilterEmpresa] = useState('');
   const [filterSem, setFilterSem] = useState('');
-  const [quickFilter, setQuickFilter] = useState<string | null>(null);
+  const [quickFilter, setQuickFilter] = useState<string | null>(['vencidos','proximos','sobreejec','riesgo'].includes(initialFilter) ? initialFilter : null);
+  const [geoFilter, setGeoFilter] = useState(initialFilter.includes(':') ? initialFilter : '');
 
   // Paginación
   const [page, setPage] = useState(1);
@@ -36,6 +39,12 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
     const cont = c.contratista || '';
     const nit = c.nitContratista || '';
     const m = M(c.id);
+    if (geoFilter) {
+      const [kind, value] = geoFilter.split(':');
+      const deptos = c.deptos || [c.departamento || c.depto || ''];
+      if (kind === 'depto' && !deptos.includes(value)) return false;
+      if (kind === 'reg' && !deptos.some(d => DEPTOS[d]?.[1] === value)) return false;
+    }
 
     // Texto
     if (q) {
@@ -91,10 +100,11 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
     setFilterEmpresa('');
     setFilterSem('');
     setQuickFilter(null);
+    setGeoFilter('');
     setPage(1);
   };
 
-  const hasActiveFilters = Boolean(q || filterEstado || filterEmpresa || filterSem || quickFilter);
+  const hasActiveFilters = Boolean(q || filterEstado || filterEmpresa || filterSem || quickFilter || geoFilter);
 
   return (
     <div className="anim-fade-rise">
@@ -114,11 +124,12 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
       </PageHeader>
 
       {/* Barra de Filtros */}
+      {geoFilter && <div className="filter-bar mb"><span>Territorio: <strong>{geoFilter.split(':')[1]}</strong></span><Button size="sm" onClick={()=>setGeoFilter('')}>Quitar filtro territorial</Button></div>}
       <Surface className="panel mb">
         <div className="filters">
           <div className="gsearch" style={{ minWidth: 260 }}>
             <Icon name="search" />
-            <input
+            <Input
               value={q}
               onChange={(e) => { setQ(e.target.value); setPage(1); }}
               placeholder="Buscar por número, contratista, objeto, NIT..."
@@ -127,7 +138,7 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
 
           <Field className="f">
             <label>Estado</label>
-            <select
+            <Select
               value={filterEstado}
               onChange={(e) => { setFilterEstado(e.target.value); setPage(1); }}
             >
@@ -137,12 +148,12 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
               <option value="Suspendido">Suspendido</option>
               <option value="En liquidación">En liquidación</option>
               <option value="Liquidado">Liquidado</option>
-            </select>
+            </Select>
           </Field>
 
           <Field className="f">
             <label>Empresa</label>
-            <select
+            <Select
               value={filterEmpresa}
               onChange={(e) => { setFilterEmpresa(e.target.value); setPage(1); }}
             >
@@ -152,12 +163,12 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
                   {co.razon || (co as any).name}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
 
           <Field className="f">
             <label>Semáforo</label>
-            <select
+            <Select
               value={filterSem}
               onChange={(e) => { setFilterSem(e.target.value); setPage(1); }}
             >
@@ -166,7 +177,7 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
               <option value="warn">Atención (Amarillo)</option>
               <option value="risk">Riesgo (Naranja)</option>
               <option value="crit">Crítico (Rojo)</option>
-            </select>
+            </Select>
           </Field>
 
           {hasActiveFilters && (

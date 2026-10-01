@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Modal } from './Modal';
 import { Button } from './button';
 import { Field } from './Workspace';
@@ -21,5 +22,5 @@ export function FeedbackHost() {
     return () => { timers.forEach(clearTimeout);window.removeEventListener('nexo:notice', notice);window.removeEventListener('nexo:confirm', confirmation); };
   }, []);
   const finish = (value: string | boolean | null) => { request?.resolve(value);setRequest(null); };
-  return <><div className="feedback-stack" role="status" aria-live="polite" aria-atomic="false">{notices.map(item=><div className="feedback-notice" key={item.id}><span>{item.text}</span><Button className="icon-btn" aria-label="Cerrar aviso" onClick={()=>setNotices(items=>items.filter(n=>n.id!==item.id))}>×</Button></div>)}</div>{request && <Modal title={request.reason?'Registrar motivo':'Confirmar acción'} onClose={()=>finish(null)} footer={<><Button onClick={()=>finish(null)}>Cancelar</Button><Button variant="destructive" disabled={request.reason && !reason.trim()} onClick={()=>finish(request.reason?reason.trim():true)}>Confirmar</Button></>}><p className="mb">{request.message}</p>{request.reason && <Field><label>Motivo obligatorio</label><textarea value={reason} onChange={event=>setReason(event.target.value)} rows={4} required /></Field>}</Modal>}</>;
+  return createPortal(<><div className="feedback-stack" role="status" aria-live="polite" aria-atomic="false">{notices.map(item=><div className="feedback-notice" key={item.id}><span>{item.text}</span><Button className="icon-btn" aria-label="Cerrar aviso" onClick={()=>setNotices(items=>items.filter(n=>n.id!==item.id))}>×</Button></div>)}</div>{request && <Modal title={request.reason?'Registrar motivo':'Confirmar acción'} onClose={()=>finish(null)} footer={<><Button onClick={()=>finish(null)}>Cancelar</Button><Button variant="destructive" disabled={request.reason && !reason.trim()} onClick={()=>finish(request.reason?reason.trim():true)}>Confirmar</Button></>}><p className="mb">{request.message}</p>{request.reason && <Field><label>Motivo obligatorio</label><textarea value={reason} onChange={event=>setReason(event.target.value)} rows={4} required /></Field>}</Modal>}</>, document.body);
 }
