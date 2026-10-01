@@ -85,7 +85,7 @@ export function exportRows(
     });
     doc.setFontSize(14);
     doc.setTextColor(23, 38, 43);
-    doc.text('Gestor Integral de Contratos', 36, 36);
+    doc.text('Seven Save', 36, 36);
     doc.setFontSize(11);
     doc.text(title, 36, 54);
     doc.setFontSize(8.5);
@@ -121,7 +121,7 @@ export function exportRows(
   } else if (fmt === 'print') {
     if (typeof window === 'undefined') return;
     const w = window.open('', '_blank');
-    const html = `<html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;font-size:11px;color:#17262B;margin:24px}h1{font-size:16px;margin:0}p{color:#5E6E73}table{border-collapse:collapse;width:100%}th{background:#0B6E68;color:#fff;text-align:left}th,td{padding:5px 6px;border:1px solid #dde4e6}tr:nth-child(even) td{background:#F6F9F9}</style></head><body><h1>${esc(title)}</h1><p>Gestor Integral de Contratos · ${fdate(todayIso())} · ${esc(AuthService.currentUser().nombre)}</p><table><thead><tr>${head.map((h) => '<th>' + esc(h) + '</th>').join('')}</tr></thead><tbody>${body.map((r) => '<tr>' + r.map((v) => '<td>' + esc(typeof v === 'number' ? v.toLocaleString('es-CO') : v) + '</td>').join('') + '</tr>').join('')}</tbody></table></body></html>`;
+    const html = `<html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;font-size:11px;color:#17262B;margin:24px}h1{font-size:16px;margin:0}p{color:#5E6E73}table{border-collapse:collapse;width:100%}th{background:#0F8579;color:#fff;text-align:left}th,td{padding:5px 6px;border:1px solid #dde4e6}tr:nth-child(even) td{background:#F6F9F9}</style></head><body><h1>${esc(title)}</h1><p>Seven Save · ${fdate(todayIso())} · ${esc(AuthService.currentUser().nombre)}</p><table><thead><tr>${head.map((h) => '<th>' + esc(h) + '</th>').join('')}</tr></thead><tbody>${body.map((r) => '<tr>' + r.map((v) => '<td>' + esc(typeof v === 'number' ? v.toLocaleString('es-CO') : v) + '</td>').join('') + '</tr>').join('')}</tbody></table></body></html>`;
     if (w) {
       w.document.write(html);
       w.document.close();

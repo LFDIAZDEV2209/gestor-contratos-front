@@ -37,8 +37,23 @@ export const LocalStorageAdapter = {
 };
 
 export const AuthService = {
+  AUTH_KEY: 'ss_auth_v1',
   getToken(): string {
     return 'demo-token';
+  },
+  isAuthed(): boolean {
+    if (typeof window === 'undefined') return true; // SSR seguro: el guard decide en cliente
+    return window.localStorage.getItem(AuthService.AUTH_KEY) === '1' || window.sessionStorage.getItem(AuthService.AUTH_KEY) === '1';
+  },
+  signIn(id: string, remember = true): void {
+    if (typeof window === 'undefined') return;
+    (remember ? window.localStorage : window.sessionStorage).setItem(AuthService.AUTH_KEY, '1');
+    AuthService.setCurrentUser(id);
+  },
+  signOut(): void {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(AuthService.AUTH_KEY);
+    window.sessionStorage.removeItem(AuthService.AUTH_KEY);
   },
   currentUser(): User {
     const db = Store.getDB();

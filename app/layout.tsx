@@ -29,8 +29,8 @@ const ibmMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'Gestor Integral de Contratos · Nexo',
-  description: 'Plataforma de gestión, seguimiento, control, alertas y auditoría contractual de FYA TECH SAS.',
+  title: 'Seven Save · Gestión Integral de Contratos',
+  description: 'Seven Save — plataforma de gestión, seguimiento, control, alertas y auditoría contractual de FYA TECH SAS.',
 };
 
 export default function RootLayout({

@@ -1,14 +1,15 @@
 'use client';
 import { useState, useEffect, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { Store } from '../../lib/store';
+import { Store, AuthService } from '../../lib/store';
 import { WorkspaceSkeleton } from '../ui/Workspace';
 import { FeedbackHost } from '../ui/Feedback';
 import { SessionRevision } from './SessionContext';
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [userRevision, setUserRevision] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -48,6 +49,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     Store.init();
     setMounted(true);
   }, []);
+  // Guard de sesión: sin sesión activa → /login (Seven Save)
+  useEffect(() => {
+    if (mounted && !AuthService.isAuthed()) router.replace('/login');
+  }, [mounted, userRevision, router]);
   useEffect(() => {
     setMobileOpen(false);
     document.getElementById('workspace')?.scrollTo({ top: 0, behavior: 'instant' });

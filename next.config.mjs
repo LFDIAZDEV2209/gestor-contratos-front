@@ -3,6 +3,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  // Sin badge flotante del entorno dev: se superponía a botones/CTAs en móvil (QA ola 1)
+  devIndicators: false,
   images: {
     unoptimized: true,
   },

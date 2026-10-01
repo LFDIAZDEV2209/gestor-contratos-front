@@ -195,6 +195,13 @@ export const Header: React.FC<HeaderProps> = ({
     onUserChanged?.();
   };
 
+  const handleLogout = () => {
+    AuthService.signOut();
+    setShowUserDropdown(false);
+    onUserChanged?.();
+    router.push('/login');
+  };
+
   return (
     <header className="header" ref={headerRef}>
       {/* Botón de menú responsive */}
@@ -434,6 +441,31 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                 );
               })}
+            </div>
+
+            <div
+              className="dd-i"
+              role="button"
+              tabIndex={0}
+              aria-label="Cerrar sesión y volver al login"
+              onClick={handleLogout}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') handleLogout();
+              }}
+              style={{
+                display: 'flex',
+                gap: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '12.5px',
+                color: 'var(--crit-text)',
+                borderTop: '1px solid var(--line)',
+                marginTop: 4
+              }}
+            >
+              <Icon name="close" style={{ width: 13, height: 13 }} />
+              Cerrar sesión
             </div>
           </div>
         )}

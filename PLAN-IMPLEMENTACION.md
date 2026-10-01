@@ -21,7 +21,7 @@ SPA de gestión contractual para FYA TECH SAS, en `gestor-contratos-front` (Next
   - Iconos: Font Awesome se reemplaza por **lucide-react** con un mapa equivalente (definir `components/icons.tsx` con un helper `Icon({name})` que resuelva los nombres `fa-*` del NAV a componentes lucide; p.ej. `fa-chart-pie→PieChart`, `fa-briefcase→Briefcase`, `fa-file-contract→FileSignature`, `fa-shield-halved→ShieldHalf`, `fa-umbrella→Umbrella`, `fa-folder-tree→FolderTree`, `fa-file-signature→FileSignature`, `fa-code-compare→GitCompare`, `fa-gavel→Gavel`, `fa-fingerprint→Fingerprint`, `fa-hourglass-half→Hourglass`, `fa-money-check-dollar→Wallet`, `fa-sitemap→Network`, `fa-list-check→ListChecks`, `fa-chart-line→TrendingUp`, `fa-fire→Flame`, `fa-gear→Settings`, `fa-bell→Bell`, `fa-calendar-days→CalendarDays`, `fa-building→Building2`, `fa-file-export→FileOutput`).
   - `color-scheme` y `env(safe-area-inset)` se conservan.
 - Todo lo demás (tokens, layout, sidebar, tablas, kpis, paneles, modales, badges, barras, tooltips, dropdowns) debe verse **igual** al HTML. Abre el HTML en el navegador si necesitas comparar.
-- Conservar la marca lateral "Nexo" opcionalmente como `brand-s` secundaria; el nombre canónico del producto es **Gestor Integral de Contratos — FYA TECH SAS** (así va en `layout.tsx` con `lang="es"` y metadata correcta — corregir el mojibake actual del layout).
+- Usar la marca lateral **7S**; el nombre canónico del producto es **Seven Save — FYA TECH SAS** (así va en `layout.tsx` con `lang="es"` y metadata correcta — corregir el mojibake actual del layout).
 
 ### 1.2 Estructura de archivos
 

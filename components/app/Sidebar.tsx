@@ -91,18 +91,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="brand-mark"
           href="/dashboard"
           onClick={onLinkFollow}
-          title="Gestor Integral de Contratos"
+          title="Seven Save · Gestión Integral de Contratos"
           style={{ cursor: 'pointer' }}
         >
-          GC
+          7S
         </Link>
 
         {!isCollapsed && (
           <div className="brand-text">
-            <div className="brand-t">Gestor<br />Contratos</div>
+            <div className="brand-t">Seven<br />Save</div>
             <div className="brand-sub">
               <span className="brand-badge">v2.0</span>
-              <span className="brand-s">Nexo</span>
+              <span className="brand-s">Contratos</span>
             </div>
           </div>
         )}
@@ -200,7 +200,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {!isCollapsed && (
           <div className="side-brand-credit">
-            <span>Nexo Control v2.0</span>
+            <span>Seven Save v2.0</span>
             <span style={{ fontSize: '10px', color: 'var(--brand-3)', fontWeight: 600 }}>FYA TECH</span>
           </div>
         )}

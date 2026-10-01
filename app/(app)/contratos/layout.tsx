@@ -1,4 +1,4 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-export const metadata: Metadata = { title: 'Contratos · Gestor Integral' };
+export const metadata: Metadata = { title: 'Contratos · Seven Save' };
 export default function Layout({ children }: { children: ReactNode }) { return children; }
