@@ -1,4 +1,17 @@
 'use client';
-export const Table = ({ children }: { children: React.ReactNode }) => (
-  <div className="tbl-wrap"><table className="tbl">{children}</table></div>
+
+import React from 'react';
+
+export const Table = ({
+  children,
+  className = '',
+  style
+}: {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) => (
+  <div className={`tbl-wrap ${className}`} style={style}>
+    <table className="tbl">{children}</table>
+  </div>
 );

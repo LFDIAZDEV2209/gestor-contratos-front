@@ -5,22 +5,23 @@ import { Store, AuthService } from '../../lib/store';
 import { Alerts } from '../../lib/alerts';
 import { activeContracts, companyName } from '../../lib/metrics';
 import { fdate, todayIso, initials, money } from '../../lib/format';
-import { ALV } from '../../lib/catalog';
 import { Icon } from '../icons';
-import type { User, Contract, Guarantee, Payment, Acta, Obligation, Subcontract } from '../../lib/types';
+import type { User, Guarantee, Payment, Acta, Obligation, Subcontract } from '../../lib/types';
 
 interface HeaderProps {
   onSelectContract?: (cid: string, tab?: string) => void;
   onSelectCompany?: (cid: string) => void;
   onNavigate?: (v: string, filter?: string) => void;
   onUserChanged?: () => void;
+  onToggleMobileMenu?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onSelectContract,
   onSelectCompany,
   onNavigate,
-  onUserChanged
+  onUserChanged,
+  onToggleMobileMenu
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -196,13 +197,18 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="header" ref={headerRef} style={{ position: 'relative' }}>
-      <button className="menu-btn icon-btn" aria-label="Menú">
+    <header className="header" ref={headerRef}>
+      {/* Botón de menú responsive */}
+      <button
+        className="menu-btn icon-btn"
+        aria-label="Abrir menú de navegación"
+        onClick={onToggleMobileMenu}
+      >
         <Icon name="bars" />
       </button>
 
-      {/* Buscador global con atajo Ctrl+K */}
-      <div className="gsearch" style={{ position: 'relative', flex: 1, maxWidth: 520 }}>
+      {/* Buscador global con atajo Ctrl+K y chip visual */}
+      <div className="gsearch">
         <Icon name="search" />
         <input
           ref={searchInputRef}
@@ -225,67 +231,36 @@ export const Header: React.FC<HeaderProps> = ({
             }
           }}
         />
+        <kbd className="kbd-chip">Ctrl K</kbd>
 
         {/* Dropdown de resultados de búsqueda */}
         {showSearchResults && q.length >= 2 && (
-          <div
-            className="dropdown left"
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              width: '100%',
-              maxHeight: 380,
-              overflowY: 'auto',
-              backgroundColor: '#fff',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
-              zIndex: 100,
-              marginTop: 4
-            }}
-          >
+          <div className="dropdown left" style={{ maxHeight: 420 }}>
             {searchGroups.length === 0 ? (
-              <div className="empty" style={{ padding: '16px', textAlign: 'center', color: 'var(--muted)', fontSize: '12px' }}>
+              <div className="empty" style={{ padding: '20px 16px', fontSize: '13px' }}>
                 Sin resultados para «{searchQuery}». Prueba con número de contrato, NIT, póliza o factura.
               </div>
             ) : (
               searchGroups.map(([groupName, items]) => (
                 <div key={groupName}>
-                  <div
-                    className="dd-g"
-                    style={{
-                      padding: '6px 12px',
-                      backgroundColor: 'var(--bg-soft, #f4f6f7)',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: 'var(--muted)',
-                      textTransform: 'uppercase'
-                    }}
-                  >
+                  <div className="dd-g">
                     {groupName} ({items.length})
                   </div>
                   {items.slice(0, 5).map((r, idx) => (
                     <div
                       key={idx}
                       className="dd-i"
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        borderBottom: '1px solid var(--border)'
-                      }}
                       onClick={r.onClick}
                     >
-                      <div className="strong" style={{ fontSize: '12.5px' }}>
+                      <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--ink)' }}>
                         {r.t}
                       </div>
                       <div
-                        className="small muted clip"
+                        className="clip"
                         style={{
-                          fontSize: '11px',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
+                          fontSize: '11.5px',
+                          color: 'var(--muted)',
+                          marginTop: 2
                         }}
                       >
                         {r.s}
@@ -299,12 +274,12 @@ export const Header: React.FC<HeaderProps> = ({
         )}
       </div>
 
-      <div className="hsp" style={{ flex: 1 }} />
-      <div className="hdate" style={{ fontSize: '12px', color: 'var(--muted)', marginRight: 10 }}>
+      <div className="hsp" />
+      <div className="hdate" style={{ marginRight: 8 }}>
         {fdate(todayIso())}
       </div>
 
-      {/* Campana de Notificaciones */}
+      {/* Campana de Notificaciones con badge pop */}
       <div style={{ position: 'relative' }}>
         <button
           className="hbtn icon-btn"
@@ -313,73 +288,33 @@ export const Header: React.FC<HeaderProps> = ({
             setShowBellDropdown(!showBellDropdown);
             setShowUserDropdown(false);
           }}
-          style={{ position: 'relative', cursor: 'pointer' }}
         >
           <Icon name="bell" />
           {unreadAlerts.length > 0 && (
-            <span
-              className="dot"
-              style={{
-                position: 'absolute',
-                top: 2,
-                right: 2,
-                backgroundColor: 'var(--crit)',
-                color: '#fff',
-                fontSize: '9.5px',
-                fontWeight: 700,
-                borderRadius: '50%',
-                padding: '1px 5px',
-                lineHeight: 1
-              }}
-            >
+            <span className="dot">
               {unreadAlerts.length > 99 ? '99+' : unreadAlerts.length}
             </span>
           )}
         </button>
 
         {showBellDropdown && (
-          <div
-            className="dropdown"
-            style={{
-              position: 'absolute',
-              top: '100%',
-              right: 0,
-              width: 380,
-              backgroundColor: '#fff',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
-              zIndex: 100,
-              marginTop: 6
-            }}
-          >
-            <div
-              className="dd-h"
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '10px 14px',
-                borderBottom: '1px solid var(--border)',
-                fontWeight: 700,
-                fontSize: '13px'
-              }}
-            >
+          <div className="dropdown" style={{ width: 380, right: 0 }}>
+            <div className="dd-h">
               <span>Notificaciones</span>
               {unreadAlerts.length > 0 && (
                 <button
-                  className="btn xs"
+                  className="btn xs ghost"
                   onClick={markAllRead}
-                  style={{ fontSize: '11px' }}
+                  style={{ fontSize: '11.5px' }}
                 >
                   Marcar todas como leídas
                 </button>
               )}
             </div>
 
-            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+            <div style={{ maxHeight: 340, overflowY: 'auto' }}>
               {unreadAlerts.length === 0 ? (
-                <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: '12px' }}>
+                <div className="empty" style={{ padding: '28px 16px', fontSize: '12.5px' }}>
                   No tienes notificaciones pendientes.
                 </div>
               ) : (
@@ -387,14 +322,6 @@ export const Header: React.FC<HeaderProps> = ({
                   <div
                     key={a.key}
                     className={`dd-i alert-line lv-${a.nivel}`}
-                    style={{
-                      padding: '9px 12px',
-                      cursor: 'pointer',
-                      borderBottom: '1px solid var(--border)',
-                      display: 'flex',
-                      gap: 8,
-                      alignItems: 'flex-start'
-                    }}
                     onClick={() => {
                       setShowBellDropdown(false);
                       if (a.contractId) onSelectContract?.(a.contractId);
@@ -402,10 +329,10 @@ export const Header: React.FC<HeaderProps> = ({
                     }}
                   >
                     <div style={{ flex: 1 }}>
-                      <div className="t" style={{ fontSize: '12px', fontWeight: 600 }}>
+                      <div className="t" style={{ fontSize: '12.5px', fontWeight: 600 }}>
                         {a.tipo} · {a.numero}
                       </div>
-                      <div className="d" style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                      <div className="d" style={{ fontSize: '11.5px', color: 'var(--muted)', marginTop: 2 }}>
                         {a.descripcion}
                       </div>
                     </div>
@@ -417,92 +344,57 @@ export const Header: React.FC<HeaderProps> = ({
             <div
               className="dd-i"
               style={{
-                padding: '10px',
+                padding: '11px',
                 textAlign: 'center',
                 fontWeight: 600,
-                color: 'var(--brand-2)',
-                fontSize: '12px',
-                cursor: 'pointer',
-                borderTop: '1px solid var(--border)'
+                color: 'var(--brand)',
+                fontSize: '12.5px',
+                borderTop: '1px solid var(--line)'
               }}
               onClick={() => {
                 setShowBellDropdown(false);
                 onNavigate?.('alertas');
               }}
             >
-              Ir al centro de alertas
+              Ir al centro de alertas →
             </div>
           </div>
         )}
       </div>
 
-      {/* Selector de Usuario / Simulación de Login */}
+      {/* Selector de Usuario / Simulación de Login con indicador online */}
       <div style={{ position: 'relative' }}>
         <div
           className="user"
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, marginLeft: 12 }}
           onClick={() => {
             setShowUserDropdown(!showUserDropdown);
             setShowBellDropdown(false);
           }}
           title="Cambiar de usuario (simulación de login)"
+          aria-label="Perfil de usuario"
         >
-          <div
-            className="avatar"
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              backgroundColor: 'var(--brand-soft)',
-              color: 'var(--brand-2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '12px'
-            }}
-          >
+          <div className="avatar">
             {initials(currentUser?.nombre || 'AD')}
+            <span className="avatar-status-dot" title="En línea" />
           </div>
           <div>
-            <div className="user-n" style={{ fontSize: '12.5px', fontWeight: 600 }}>
+            <div className="user-n">
               {currentUser?.nombre || 'Usuario'}
             </div>
-            <div className="user-r" style={{ fontSize: '10.5px', color: 'var(--muted)' }}>
+            <div className="user-r">
               {currentUser?.rol || 'Rol'}
             </div>
           </div>
+          <Icon name="chevron-down" style={{ width: 12, height: 12, color: 'var(--muted)', marginLeft: 2 }} />
         </div>
 
         {/* Dropdown de cambio de usuario */}
         {showUserDropdown && (
-          <div
-            className="dropdown"
-            style={{
-              position: 'absolute',
-              top: '100%',
-              right: 0,
-              width: 290,
-              backgroundColor: '#fff',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
-              zIndex: 100,
-              marginTop: 6
-            }}
-          >
-            <div
-              className="dd-h"
-              style={{
-                padding: '10px 14px',
-                borderBottom: '1px solid var(--border)',
-                fontWeight: 700,
-                fontSize: '13px'
-              }}
-            >
-              Cambiar de usuario{' '}
-              <span className="muted small" style={{ fontWeight: 400, fontSize: '10.5px' }}>
-                simulación de login
+          <div className="dropdown" style={{ width: 300, right: 0 }}>
+            <div className="dd-h">
+              <span>Cambiar usuario</span>
+              <span className="badge b-info" style={{ fontSize: '9.5px' }}>
+                Simulación
               </span>
             </div>
 
@@ -512,43 +404,34 @@ export const Header: React.FC<HeaderProps> = ({
                 return (
                   <div
                     key={u.id}
-                    className="dd-i row-flex"
+                    className="dd-i"
                     style={{
-                      padding: '8px 12px',
-                      cursor: 'pointer',
-                      borderBottom: '1px solid var(--border)',
-                      gap: 8,
+                      display: 'flex',
+                      gap: 10,
                       alignItems: 'center',
-                      backgroundColor: isCurrent ? 'var(--bg-soft, #f3faf9)' : '#fff'
+                      backgroundColor: isCurrent ? 'var(--surface-hover)' : '#FFFFFF'
                     }}
                     onClick={() => handleSwitchUser(u.id)}
                   >
                     <div
                       className="avatar"
                       style={{
-                        width: 26,
-                        height: 26,
-                        fontSize: '10.5px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--brand-soft)',
-                        color: 'var(--brand-2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 700
+                        width: 28,
+                        height: 28,
+                        fontSize: '11px',
                       }}
                     >
                       {initials(u.nombre)}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div className="strong" style={{ fontSize: '12px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: isCurrent ? 700 : 500, fontSize: '12.5px', color: 'var(--ink)' }}>
                         {u.nombre}
                       </div>
-                      <div className="small muted" style={{ fontSize: '10.5px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
                         {u.rol}
                       </div>
                     </div>
-                    {isCurrent && <Icon name="check" />}
+                    {isCurrent && <Icon name="check" style={{ color: 'var(--brand)', width: 14, height: 14 }} />}
                   </div>
                 );
               })}

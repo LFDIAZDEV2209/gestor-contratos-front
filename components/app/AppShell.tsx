@@ -35,6 +35,17 @@ export const AppShell = () => {
   const [selectedId, setSelectedId] = useState('');
   const [selectedTab, setSelectedTab] = useState<string | undefined>();
   const [userTick, setUserTick] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (mobileOpen) {
+        document.body.classList.add('side-open');
+      } else {
+        document.body.classList.remove('side-open');
+      }
+    }
+  }, [mobileOpen]);
 
   useEffect(() => {
     Store.init(Seed.build());
@@ -65,6 +76,7 @@ export const AppShell = () => {
   const navigate = (v: string, id?: string, tab?: string) => {
     setView(v);
     setSelectedTab(tab);
+    setMobileOpen(false);
     if (id) {
       setSelectedId(id);
       if (v === 'contrato') {
@@ -80,14 +92,22 @@ export const AppShell = () => {
   return (
     <div className="app" key={`app-root-${userTick}`}>
       <Sidebar current={view} onNavigate={(v, id) => navigate(v, id)} />
+      {mobileOpen && (
+        <div
+          className="backdrop"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Cerrar menú lateral"
+        />
+      )}
       <main className="main">
         <Header
           onSelectContract={(cid, tab) => navigate('contrato', cid, tab)}
           onSelectCompany={(cid) => navigate('empresa', cid)}
           onNavigate={(v, filter) => navigate(v, filter)}
           onUserChanged={() => setUserTick((t) => t + 1)}
+          onToggleMobileMenu={() => setMobileOpen((prev) => !prev)}
         />
-        <div className="content">
+        <div className="content anim-fade-rise">
           {view === 'dash' && (
             <DashboardView
               onSelectContract={(cid, tab) => navigate('contrato', cid, tab)}

@@ -50,7 +50,17 @@ import {
   Calendar
 } from 'lucide-react';
 
-export const Icon = ({ name, className }: { name: string; className?: string }) => {
+export const Icon = ({
+  name,
+  className,
+  style,
+  size
+}: {
+  name: string;
+  className?: string;
+  style?: React.CSSProperties;
+  size?: number;
+}) => {
   const cleanName = (name || '').replace(/^fa-/, '').toLowerCase();
   const map: Record<string, any> = {
     'chart-pie': PieChart,
@@ -126,5 +136,5 @@ export const Icon = ({ name, className }: { name: string; className?: string }) 
   };
 
   const Component = map[cleanName] || Info;
-  return <Component className={`icon ${className || ''}`} size={16} />;
+  return <Component className={`icon ${className || ''}`} size={size || 16} style={style} />;
 };
