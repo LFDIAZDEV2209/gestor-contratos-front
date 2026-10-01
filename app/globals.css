@@ -1040,17 +1040,17 @@ h2 {
   opacity: .9;
 }
 
-/* Tile de icono con gradiente fuerte + sombra de color */
+/* Tile de icono premium: tint suave del tono + trazo de color (patrón Linear/Stripe) */
 .kpi-ic {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   display: inline-grid;
   place-items: center;
-  color: #fff;
-  background: var(--tone-a, var(--brand));
-  box-shadow: 0 4px 10px -3px var(--tone-shadow, var(--brand-glow));
+  color: var(--tone-ink, var(--brand-2));
+  background: var(--tone-bg, var(--brand-soft));
+  transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
 
 .kpi-bd { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -1069,9 +1069,9 @@ h2 {
 
 /* Compatibilidad: vistas que aún usan .l/.v/.s directamente */
 .kpi .l {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: .08em;
+  letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--muted);
   display: flex;
@@ -1080,13 +1080,26 @@ h2 {
   min-width: 0;
 }
 
-.kpi .v {
-  font-size: 24px;
+.kpi .kpi-v {
+  font-size: 23px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  font-family: var(--font-mono);
+  letter-spacing: -0.015em;
+  font-family: var(--font-fig, var(--font-sans));
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
   color: var(--ink);
-  line-height: 1.1;
+  line-height: 1.15;
+}
+
+.kpi .v {
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  font-family: var(--font-fig, var(--font-sans));
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  line-height: 1.15;
 }
 
 .kpi .s {
@@ -1101,15 +1114,14 @@ h2 {
   gap: 12px;
 }
 
-/* Tones semánticos de la tarjeta */
-.kpi.c-ok   { --tone-a: linear-gradient(135deg, #23A25A, #176B3A); --tone-shadow: rgba(30,142,78,.35); }
-.kpi.c-warn { --tone-a: linear-gradient(135deg, #DFA90C, #8A6800); --tone-shadow: rgba(201,154,6,.35); }
-.kpi.c-risk { --tone-a: linear-gradient(135deg, #E07A26, #A94F0C); --tone-shadow: rgba(208,105,26,.35); }
-.kpi.c-crit { --tone-a: linear-gradient(135deg, #D64541, #A93226); --tone-shadow: rgba(190,58,46,.38); }
-.kpi.c-na   { --tone-a: linear-gradient(135deg, #AAB6B9, #7E8C90); --tone-shadow: rgba(152,164,168,.35); }
-.kpi.c-info { --tone-a: linear-gradient(135deg, #3B82B8, #1F5478); --tone-shadow: rgba(47,111,163,.35); }
-.kpi.kpi-v2::before { background: var(--tone-a, var(--brand)); }
-.kpi.kpi-v2 .kpi-ic { background: var(--tone-a, linear-gradient(135deg, var(--brand-3), var(--brand-2))); }
+/* Tones semánticos de la tarjeta: acento sólido + tile tintado + tinta del tono (AA) */
+.kpi.c-ok   { --tone-solid: #1E8E4E; --tone-bg: linear-gradient(135deg, rgba(30,142,78,.13), rgba(30,142,78,.26)); --tone-ink: #176B3A; }
+.kpi.c-warn { --tone-solid: #C99A06; --tone-bg: linear-gradient(135deg, rgba(201,154,6,.14), rgba(138,104,0,.26)); --tone-ink: #8A6800; }
+.kpi.c-risk { --tone-solid: #D0691A; --tone-bg: linear-gradient(135deg, rgba(208,105,26,.13), rgba(169,79,12,.26)); --tone-ink: #A94F0C; }
+.kpi.c-crit { --tone-solid: #BE3A2E; --tone-bg: linear-gradient(135deg, rgba(190,58,46,.12), rgba(169,50,38,.26)); --tone-ink: #A93226; }
+.kpi.c-na   { --tone-solid: #98A4A8; --tone-bg: linear-gradient(135deg, rgba(152,164,168,.16), rgba(126,140,144,.28)); --tone-ink: #617573; }
+.kpi.c-info { --tone-solid: #2F6FA3; --tone-bg: linear-gradient(135deg, rgba(47,111,163,.13), rgba(31,84,120,.26)); --tone-ink: #1F5478; }
+.kpi.kpi-v2::before { background: var(--tone-solid, var(--brand)); }
 
 /* Variante destacada invertida: gradiente de marca completo */
 .kpi.inv {

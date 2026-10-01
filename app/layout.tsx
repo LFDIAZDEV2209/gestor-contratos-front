@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Source_Sans_3 } from 'next/font/google';
+import { Source_Sans_3, Geist } from 'next/font/google';
 import localFont from 'next/font/local';
 import './globals.css';
 
@@ -7,6 +7,13 @@ import './globals.css';
 const sourceSans = Source_Sans_3({
   subsets: ['latin'],
   variable: '--font-sans',
+  display: 'swap',
+});
+
+// Fuente para cifras de las stats cards: Geist (estética Vercel/Linear, dígitos tabulares)
+const geist = Geist({
+  subsets: ['latin'],
+  variable: '--font-fig',
   display: 'swap',
 });
 
@@ -35,7 +42,7 @@ export default function RootLayout({
     // suppressHydrationWarning: las extensiones de navegador (p. ej. Bitdefender)
     // inyectan atributos (bis_skin_checked, bis_register) antes de que React
     // hidrate y generan falsos mismatches de hidratación.
-    <html lang="es" className={`${sourceSans.variable} ${ibmMono.variable} ${sourceSans.className}`} suppressHydrationWarning>
+    <html lang="es" className={`${sourceSans.variable} ${geist.variable} ${ibmMono.variable} ${sourceSans.className}`} suppressHydrationWarning>
       <body suppressHydrationWarning>{children}</body>
     </html>
   );
