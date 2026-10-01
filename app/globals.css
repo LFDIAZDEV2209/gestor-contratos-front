@@ -1021,15 +1021,114 @@ h2 {
 .kpi {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--r);
+  border-radius: var(--r-lg, 16px);
   padding: 14px 16px;
   position: relative;
   cursor: default;
+  overflow: clip;
   transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
   box-shadow: var(--shadow-1);
 }
 
+/* Acento superior en gradiente del tono semántico */
+.kpi.kpi-v2::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--tone-a, var(--brand));
+  opacity: .9;
+}
+
+/* Tile de icono con gradiente fuerte + sombra de color */
+.kpi-ic {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  display: inline-grid;
+  place-items: center;
+  color: #fff;
+  background: var(--tone-a, var(--brand));
+  box-shadow: 0 4px 10px -3px var(--tone-shadow, var(--brand-glow));
+}
+
+.kpi-bd { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.kpi.kpi-v2 {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.kpi .sem {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+/* Compatibilidad: vistas que aún usan .l/.v/.s directamente */
+.kpi .l {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.kpi .v {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-family: var(--font-mono);
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.kpi .s {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+  gap: 12px;
+}
+
+/* Tones semánticos de la tarjeta */
+.kpi.c-ok   { --tone-a: linear-gradient(135deg, #23A25A, #176B3A); --tone-shadow: rgba(30,142,78,.35); }
+.kpi.c-warn { --tone-a: linear-gradient(135deg, #DFA90C, #8A6800); --tone-shadow: rgba(201,154,6,.35); }
+.kpi.c-risk { --tone-a: linear-gradient(135deg, #E07A26, #A94F0C); --tone-shadow: rgba(208,105,26,.35); }
+.kpi.c-crit { --tone-a: linear-gradient(135deg, #D64541, #A93226); --tone-shadow: rgba(190,58,46,.38); }
+.kpi.c-na   { --tone-a: linear-gradient(135deg, #AAB6B9, #7E8C90); --tone-shadow: rgba(152,164,168,.35); }
+.kpi.c-info { --tone-a: linear-gradient(135deg, #3B82B8, #1F5478); --tone-shadow: rgba(47,111,163,.35); }
+.kpi.kpi-v2::before { background: var(--tone-a, var(--brand)); }
+.kpi.kpi-v2 .kpi-ic { background: var(--tone-a, linear-gradient(135deg, var(--brand-3), var(--brand-2))); }
+
+/* Variante destacada invertida: gradiente de marca completo */
+.kpi.inv {
+  border: none;
+  color: #fff;
+  background:
+    radial-gradient(420px 140px at 92% -30%, rgba(255,255,255,.18), transparent 70%),
+    linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 62%, #063F3B 100%);
+  box-shadow: var(--shadow-brand);
+}
+.kpi.inv::before { background: rgba(255,255,255,.35); }
+.kpi.inv .kpi-ic { background: rgba(255,255,255,.16); box-shadow: none; backdrop-filter: blur(4px); }
+.kpi.inv .kpi-l { color: rgba(255,255,255,.78); }
+.kpi.inv .kpi-v { color: #fff; }
+.kpi.inv .kpi-s { color: rgba(255,255,255,.82); }
+.kpi.inv .sem { box-shadow: 0 0 0 2px rgba(0,0,0,.15); }
+
 .kpi:hover {
+  transform: translateY(-2px);
   box-shadow: var(--shadow-2);
 }
 
@@ -1038,41 +1137,11 @@ h2 {
 }
 
 .kpi.click:hover {
-  transform: translateY(-2px);
   box-shadow: var(--shadow-3);
   border-color: var(--brand);
 }
+.kpi.inv.click:hover { border-color: transparent; }
 
-.kpi .l {
-  font-size: 12px;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 500;
-}
-
-.kpi .v {
-  font-size: 22px;
-  font-weight: 700;
-  margin-top: 6px;
-  letter-spacing: -0.02em;
-  font-family: var(--font-mono);
-  color: var(--ink);
-  line-height: 1.15;
-}
-
-.kpi .s {
-  font-size: 11.5px;
-  color: var(--muted);
-  margin-top: 3px;
-}
-
-.kpi .sem {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-}
 
 /* KPI Group Banners */
 .kpi-group-title {

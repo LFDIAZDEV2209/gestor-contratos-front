@@ -20,7 +20,11 @@ export interface KpiProps {
   onClick?: () => void;
 }
 
-export const Kpi: React.FC<KpiProps> = ({
+// Tarjeta estadística canónica (idéntica en toda la plataforma).
+// - `color` semántico: ok | warn | risk | crit | na | info | brand
+// - `brand` renderiza la variante destacada invertida (gradiente de marca, texto blanco).
+//   Las demás: superficie blanca + acento superior + tile de icono con gradiente y sombra de color.
+const Kpi: React.FC<KpiProps> = ({
   label,
   title,
   value,
@@ -33,10 +37,10 @@ export const Kpi: React.FC<KpiProps> = ({
   style,
   onClick
 }) => {
-  const semColor = sem || color;
-  const textLabel = label || title || '';
+  const tone = color || sem || 'brand';
+  const isInverse = tone === 'brand';
 
-  // Parse delta if provided
+  // Delta (▲/▼) como chip compacto junto a la etiqueta
   let deltaNode: React.ReactNode = null;
   if (delta) {
     if (typeof delta === 'string') {
@@ -53,40 +57,29 @@ export const Kpi: React.FC<KpiProps> = ({
 
   return (
     <div
-      className={`kpi ${onClick ? 'click' : ''} ${className}`}
+      className={`kpi kpi-v2 ${isInverse ? 'inv' : `c-${tone}` || ''} ${onClick ? 'click' : ''} ${className}`.replace('  ', ' ')}
       style={style}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
     >
-      {semColor && <span className={`sem ${semColor === 'brand' ? 'brand-dot' : semColor}`} />}
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div className="l">
-          {icon && (
-            <span
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 6,
-                display: 'inline-grid',
-                placeItems: 'center',
-                background: 'var(--surface-2)',
-                color: 'var(--brand)',
-                marginRight: 4
-              }}
-            >
-              <Icon name={icon} style={{ width: 12, height: 12 }} />
-            </span>
-          )}
-          {textLabel}
+      {icon && (
+        <span className="kpi-ic" aria-hidden="true">
+          <Icon name={icon} style={{ width: 18, height: 18 }} />
+        </span>
+      )}
+      <div className="kpi-bd">
+        <div className="kpi-l">
+          <span className="kpi-lt">{label || title}</span>
+          {deltaNode}
         </div>
-        {deltaNode}
+        <div className={`kpi-v ${typeof value === 'string' && value.length > 10 ? 'numeric-long' : ''}`}>{value}</div>
+        {sub != null && sub !== '' && <div className="kpi-s">{sub}</div>}
       </div>
-
-      <div className={`v ${typeof value === 'string' && value.length > 10 ? 'numeric-long' : ''}`}>{value}</div>
-      {sub != null && sub !== '' && <div className="s">{sub}</div>}
+      {sem && <span className={`sem ${sem === 'brand' ? 'brand-dot' : sem}`} />}
     </div>
   );
 };
+
+export { Kpi as default, Kpi };
