@@ -1,31 +1,11 @@
 'use client';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
+import { Chart as ChartJS, registerables } from 'chart.js';
 import { Bar, Line, Doughnut, Pie } from 'react-chartjs-2';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+// Registro completo (equivalente al Chart.js del prototipo por CDN):
+// incluye Category, Linear, Logarithmic y Radial entre otros, para que
+// ninguna vista falle por escala o elemento no registrado.
+ChartJS.register(...registerables);
 
 interface ChartProps {
   type?: 'bar' | 'line' | 'doughnut' | 'pie';

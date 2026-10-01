@@ -9,8 +9,8 @@ const ibm = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Gestor de Contratos',
-  description: 'Sistema de gestión de contratos de Next',
+  title: 'Gestor Integral de Contratos · Nexo',
+  description: 'Plataforma de gestión, seguimiento, control, alertas y auditoría contractual de FYA TECH SAS.',
 };
 
 export default function RootLayout({
@@ -19,8 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={ibm.className}>
-      <body>{children}</body>
+    // suppressHydrationWarning: las extensiones de navegador (p. ej. Bitdefender)
+    // inyectan atributos (bis_skin_checked, bis_register) antes de que React
+    // hidrate y generan falsos mismatches de hidratación.
+    <html lang="es" className={ibm.className} suppressHydrationWarning>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }
