@@ -4,6 +4,9 @@ import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable } from '../ui/Workspace';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { contractHref } from '../app/routes';
+import { useQueryFilters } from '../app/useQueryFilters';
 import type { Contract } from '../../lib/types';
 import { Store } from '../../lib/store';
 import { M, companyName } from '../../lib/metrics';
@@ -15,17 +18,24 @@ import { money as fmtMoney, daysTxt } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { DEPTOS } from '../../lib/geo';
 
-export const ContratosView = ({ onSelect, initialFilter = '' }: { onSelect: (id: string) => void; initialFilter?: string }) => {
+export const ContratosView = () => {
   const [contracts, setContracts] = useState<Contract[]>(Store.all('contracts'));
   const [editing, setEditing] = useState<Partial<Contract> | null>(null);
 
   // Filtros
-  const [q, setQ] = useState('');
-  const [filterEstado, setFilterEstado] = useState(['Suspendido','En liquidación'].includes(initialFilter) ? initialFilter : initialFilter === 'activos' ? 'Activo' : '');
-  const [filterEmpresa, setFilterEmpresa] = useState('');
-  const [filterSem, setFilterSem] = useState('');
-  const [quickFilter, setQuickFilter] = useState<string | null>(['vencidos','proximos','sobreejec','riesgo'].includes(initialFilter) ? initialFilter : null);
-  const [geoFilter, setGeoFilter] = useState(initialFilter.includes(':') ? initialFilter : '');
+  const [query, updateQuery] = useQueryFilters();
+  const q = query.get('q') || '';
+  const filterEstado = query.get('estado') || '';
+  const filterEmpresa = query.get('empresa') || '';
+  const filterSem = query.get('nivel') || '';
+  const quickFilter = query.get('vista');
+  const geoFilter = query.has('depto') ? 'depto:' + query.get('depto') : query.has('region') ? 'reg:' + query.get('region') : '';
+  const setQ = (value: string) => updateQuery({ q: value });
+  const setFilterEstado = (value: string) => updateQuery({ estado: value });
+  const setFilterEmpresa = (value: string) => updateQuery({ empresa: value });
+  const setFilterSem = (value: string) => updateQuery({ nivel: value });
+  const setQuickFilter = (value: string | null) => updateQuery({ vista: value });
+  const setGeoFilter = (_value: string) => updateQuery({ depto: null, region: null });
 
   // Paginación
   const [page, setPage] = useState(1);
@@ -95,12 +105,7 @@ export const ContratosView = ({ onSelect, initialFilter = '' }: { onSelect: (id:
   };
 
   const clearAllFilters = () => {
-    setQ('');
-    setFilterEstado('');
-    setFilterEmpresa('');
-    setFilterSem('');
-    setQuickFilter(null);
-    setGeoFilter('');
+    updateQuery({ q: null, estado: null, empresa: null, nivel: null, vista: null, depto: null, region: null });
     setPage(1);
   };
 
@@ -254,14 +259,14 @@ export const ContratosView = ({ onSelect, initialFilter = '' }: { onSelect: (id:
                       <span className={`sem ${metrics.sem}`} title={`Semáforo: ${metrics.sem}`} />
                     </td>
                     <td>
-                      <a
+                      <Link
                         className="link mono"
-                        onClick={() => onSelect(c.id)}
+                        href={contractHref(c.id)}
                         title="Ver expediente digital"
                         style={{ fontWeight: 700 }}
                       >
                         {num}
-                      </a>
+                      </Link>
                     </td>
                     <td>
                       <span style={{ fontWeight: 500 }}>{co?.razon || (co as any).name || '—'}</span>

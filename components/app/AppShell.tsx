@@ -1,45 +1,20 @@
 'use client';
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { DashboardView } from '../views/DashboardView';
-import { EmpresasView } from '../views/EmpresasView';
-import { EmpresaView } from '../views/EmpresaView';
-import { ContratosView } from '../views/ContratosView';
-import { ExpedienteView } from '../views/ExpedienteView';
-import { GerenciaView } from '../views/GerenciaView';
-import { AgendaView } from '../views/AgendaView';
-import { CalendarioView } from '../views/CalendarioView';
-import { SubcontratosView } from '../views/SubcontratosView';
-import { ObligacionesView } from '../views/ObligacionesView';
-import { EjecucionView } from '../views/EjecucionView';
-import { PagosView } from '../views/PagosView';
-import { GarantiasView } from '../views/GarantiasView';
-import { AseguradorasView } from '../views/AseguradorasView';
-import { DocumentosView } from '../views/DocumentosView';
-import { ActasView } from '../views/ActasView';
-import { ModificacionesView } from '../views/ModificacionesView';
-import { AlertasView } from '../views/AlertasView';
-import { RiesgosView } from '../views/RiesgosView';
-import { IncumplimientosView } from '../views/IncumplimientosView';
-import { AuditoriaView } from '../views/AuditoriaView';
-import { ReportesView } from '../views/ReportesView';
-import { ConfiguracionView } from '../views/ConfiguracionView';
 import { Store } from '../../lib/store';
-import { Seed } from '../../lib/demo';
 import { WorkspaceSkeleton } from '../ui/Workspace';
 import { FeedbackHost } from '../ui/Feedback';
+import { SessionRevision } from './SessionContext';
+import { contractHref, companyHref, viewHref } from './routes';
 
-export const AppShell = () => {
+export const AppShell = ({ children }: { children: ReactNode }) => {
   const [mounted, setMounted] = useState(false);
-  const [view, setView] = useState('dash');
-  const [selectedId, setSelectedId] = useState('');
-  const [selectedTab, setSelectedTab] = useState<string | undefined>();
-  const [listFilter, setListFilter] = useState('');
-  const [, setUserTick] = useState(0);
+  const [userRevision, setUserRevision] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
-
+  const pathname = usePathname();
+  const router = useRouter();
   useEffect(() => {
     if (typeof document !== 'undefined') {
       if (mobileOpen) {
@@ -70,164 +45,37 @@ export const AppShell = () => {
     return () => { window.clearTimeout(focusTimer); document.removeEventListener('keydown', trap); if(main) main.inert=false; previous?.focus(); };
   }, [mobileOpen]);
 
+
   useEffect(() => {
-    Store.init(Seed.build());
+    Store.init();
     setMounted(true);
-
-    // Hash routing sync
-    const handleHash = () => {
-      const [hash, query] = window.location.hash.replace('#', '').split('?');
-      setListFilter(new URLSearchParams(query).get('f') || '');
-      if (hash.startsWith('contrato/')) {
-        const parts = hash.split('/');
-        setView('contrato');
-        setSelectedId(parts[1]);
-        setSelectedTab(parts[2] || 'resumen');
-      } else if (hash.startsWith('empresa/')) {
-        setView('empresa');
-        setSelectedId(hash.split('/')[1]);
-      } else if (hash) {
-        setView(hash);
-      }
-    };
-    window.addEventListener('hashchange', handleHash);
-    handleHash();
-    return () => window.removeEventListener('hashchange', handleHash);
   }, []);
-
-  if (!mounted) return <WorkspaceSkeleton />;
-
-  const navigate = (v: string, id?: string, tab?: string) => {
-    setView(v);
-    setSelectedTab(tab);
+  useEffect(() => {
     setMobileOpen(false);
-    if (id) {
-      setSelectedId(id);
-      if (v === 'contrato') {
-        window.location.hash = tab ? `contrato/${id}/${tab}` : `contrato/${id}`;
-      } else if (v === 'empresa') {
-        window.location.hash = `empresa/${id}`;
-      } else {
-        setListFilter(id);
-        window.location.hash = `${v}?f=${encodeURIComponent(id)}`;
-      }
-    } else {
-      setListFilter('');
-      window.location.hash = v;
-    }
-  };
+    document.getElementById('workspace')?.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pathname]);
+  useEffect(() => () => document.body.classList.remove('side-open'), []);
 
   return (
-    <div className="app">
-      <a className="skip-link" href="#workspace" onClick={event=>{event.preventDefault();document.getElementById('workspace')?.focus();}}>Saltar al contenido</a>
-      <Sidebar current={view} onNavigate={(v, id) => navigate(v, id)} />
-      {mobileOpen && (
-        <div
-          className="backdrop"
-          onClick={() => setMobileOpen(false)}
-          aria-label="Cerrar menú lateral"
-        />
-      )}
-      <main className="main">
-        <Header
-          onSelectContract={(cid, tab) => navigate('contrato', cid, tab)}
-          onSelectCompany={(cid) => navigate('empresa', cid)}
-          onNavigate={(v, filter) => navigate(v, filter)}
-          onUserChanged={() => setUserTick((t) => t + 1)}
-          onToggleMobileMenu={() => setMobileOpen((prev) => !prev)}
-        />
-        <div className="content anim-fade-rise" id="workspace" tabIndex={-1}>
-          {view === 'dash' && (
-            <DashboardView
-              onSelectContract={(cid, tab) => navigate('contrato', cid, tab)}
-              onNavigate={(v, filter) => navigate(v, filter)}
-            />
-          )}
-          {view === 'gerencia' && (
-            <GerenciaView onSelectContract={(cid) => navigate('contrato', cid)} />
-          )}
-          {view === 'agenda' && (
-            <AgendaView onSelectContract={(cid) => navigate('contrato', cid)} />
-          )}
-          {view === 'calendario' && (
-            <CalendarioView onSelectContract={(cid, tab) => navigate('contrato', cid, tab)} />
-          )}
-
-          {view === 'empresas' && (
-            <EmpresasView onSelect={(id) => navigate('empresa', id)} />
-          )}
-          {view === 'empresa' && (
-            <EmpresaView id={selectedId} onBack={() => navigate('empresas')} />
-          )}
-          {(view === 'contracts' || view === 'contratos') && (
-            <ContratosView key={listFilter} initialFilter={listFilter} onSelect={(id) => navigate('contrato', id)} />
-          )}
-          {view === 'contrato' && (
-            <ExpedienteView
-              key={`${selectedId}-${selectedTab || 'resumen'}`}
-              id={selectedId}
-              initialTab={selectedTab}
-              onBack={() => navigate('contratos')}
-              onOpenCompany={(cid) => navigate('empresa', cid)}
-            />
-          )}
-
-          {view === 'subcontratos' && (
-            <SubcontratosView onSelectContract={(cid) => navigate('contrato', cid)} />
-          )}
-          {view === 'obligaciones' && (
-            <ObligacionesView onSelectContract={(cid) => navigate('contrato', cid)} />
-          )}
-          {view === 'ejecucion' && (
-            <EjecucionView onSelectContract={(cid) => navigate('contrato', cid)} />
-          )}
-          {view === 'pagos' && (
-            <PagosView onSelectContract={(cid) => navigate('contrato', cid)} />
-          )}
-          {view === 'garantias' && (
-            <GarantiasView onSelectContract={(cid) => navigate('contrato', cid)} />
-          )}
-          {view === 'aseguradoras' && (
-            <AseguradorasView
-              onSelectContract={(cid) => navigate('contrato', cid)}
-              onNavigateToGarantias={() => navigate('garantias')}
-            />
-          )}
-          {view === 'documentos' && (
-            <DocumentosView onSelectContract={(cid) => navigate('contrato', cid)} />
-          )}
-          {view === 'actas' && (
-            <ActasView onSelectContract={(cid) => navigate('contrato', cid)} />
-          )}
-          {view === 'modificaciones' && (
-            <ModificacionesView onSelectContract={(cid) => navigate('contrato', cid)} />
-          )}
-
-          {view === 'alertas' && (
-            <AlertasView onSelectContract={(cid, tab) => navigate('contrato', cid, tab)} />
-          )}
-          {view === 'riesgos' && (
-            <RiesgosView onSelectContract={(cid, tab) => navigate('contrato', cid, tab)} />
-          )}
-          {view === 'incumplimientos' && (
-            <IncumplimientosView onSelectContract={(cid, tab) => navigate('contrato', cid, tab)} />
-          )}
-          {view === 'auditoria' && (
-            <AuditoriaView
-              onSelectContract={(cid, tab) => navigate('contrato', cid, tab)}
-              onOpenUserSwitcher={() => {}}
-            />
-          )}
-          {view === 'reportes' && <ReportesView />}
-          {(view === 'configuracion' || view === 'settings') && (
-            <ConfiguracionView
-              onNavigateToEmpresas={() => navigate('empresas')}
-              onOpenCompany={(cid) => navigate('empresa', cid)}
-            />
-          )}
-        </div>
-      </main>
-      <FeedbackHost />
-    </div>
+    <SessionRevision.Provider value={userRevision}>
+      <div className="app">
+        <button className="skip-link" onClick={() => document.getElementById('workspace')?.focus()}>Saltar al contenido</button>
+        {mounted ? <Sidebar current={pathname.split('/')[1]} onLinkFollow={() => setMobileOpen(false)} /> : <aside className="sidebar" aria-label="Cargando navegación"><div className="skeleton skeleton-title" /></aside>}
+        {mobileOpen && <div className="backdrop" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú lateral" />}
+        <main className="main">
+          {mounted ? <Header
+            onSelectContract={(cid, tab) => router.push(contractHref(cid, tab))}
+            onSelectCompany={(cid) => router.push(companyHref(cid))}
+            onNavigate={(view, filter) => router.push(viewHref(view, filter))}
+            onUserChanged={() => setUserRevision(v => v + 1)}
+            onToggleMobileMenu={() => setMobileOpen(v => !v)}
+          /> : <header className="header"><div className="skeleton skeleton-title" /></header>}
+          <div className="content" id="workspace" tabIndex={-1}>
+            {mounted ? children : <WorkspaceSkeleton />}
+          </div>
+        </main>
+        {mounted && <FeedbackHost />}
+      </div>
+    </SessionRevision.Provider>
   );
 };

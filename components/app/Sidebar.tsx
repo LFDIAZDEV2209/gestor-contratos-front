@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { viewHref } from './routes';
 import { Icon } from '../icons';
 import { AuthService } from '../../lib/store';
 import { Alerts } from '../../lib/alerts';
@@ -8,14 +10,14 @@ import { initials } from '../../lib/format';
 
 interface SidebarProps {
   current: string;
-  onNavigate: (v: string, id?: string) => void;
+  onLinkFollow?: () => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   current,
-  onNavigate,
+  onLinkFollow,
   collapsed: controlledCollapsed,
   onToggleCollapse
 }) => {
@@ -85,14 +87,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     >
       {/* Header del Sidebar */}
       <div className="brand" style={{ padding: isCollapsed ? '16px 12px' : '16px 18px', justifyContent: isCollapsed ? 'center' : 'flex-start' }}>
-        <div
+        <Link
           className="brand-mark"
-          onClick={() => onNavigate('dash')}
+          href="/dashboard"
+          onClick={onLinkFollow}
           title="Gestor Integral de Contratos"
           style={{ cursor: 'pointer' }}
         >
           GC
-        </div>
+        </Link>
 
         {!isCollapsed && (
           <div className="brand-text">
@@ -126,12 +129,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {section.items.map((item) => {
                 const isActive = item.match.includes(current);
                 return (
-                  <a
+                  <Link
                     key={item.key}
                     className={isActive ? 'on' : ''}
-                    href={`#${item.key}`}
+                    href={viewHref(item.key)}
                     aria-current={isActive ? 'page' : undefined}
-                    onClick={(event) => { event.preventDefault(); onNavigate(item.key); }}
+                    onClick={onLinkFollow}
                     title={isCollapsed ? item.label : undefined}
                     aria-label={item.label}
                     style={{
@@ -161,7 +164,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         {item.count > 99 ? '99+' : item.count}
                       </span>
                     )}
-                  </a>
+                  </Link>
                 );
               })}
             </div>
@@ -171,9 +174,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Footer del Sidebar con tarjeta de usuario y crédito sin recortes */}
       <div className="side-foot" style={{ padding: isCollapsed ? '10px 6px' : '12px 14px' }}>
-        <div
+        <Link
           className="side-user-card"
-          onClick={() => onNavigate('configuracion')}
+          href="/configuracion"
+          onClick={onLinkFollow}
           title={isCollapsed ? `${user?.nombre || 'Usuario'} · ${user?.rol || 'Rol'}` : 'Ver perfil / configuración'}
           style={isCollapsed ? { justifyContent: 'center', padding: '6px' } : {}}
         >
@@ -192,7 +196,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </>
           )}
-        </div>
+        </Link>
 
         {!isCollapsed && (
           <div className="side-brand-credit">

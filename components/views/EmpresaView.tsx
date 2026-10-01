@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { PageHeader, Surface } from '../ui/Workspace';
 import type { Company, Contract } from '../../lib/types';
 import { M } from '../../lib/metrics';
@@ -18,7 +19,7 @@ export const EmpresaView = ({ id, onBack }: { id: string, onBack: () => void }) 
 
   return (
     <div>
-      <div className="crumb"><a onClick={onBack}>Empresas</a> / Ficha</div>
+      <div className="crumb"><Link href="/empresas">Empresas</Link> / Ficha</div>
       <PageHeader className="ph">
         <div>
           <h1>{company.razon || company.name}</h1>

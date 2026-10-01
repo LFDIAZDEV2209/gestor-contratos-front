@@ -44,6 +44,9 @@ export function EmptyState({ children, title = 'Sin registros', description = 'L
 export function WorkspaceSkeleton() {
   return <div className="workspace-skeleton" role="status" aria-label="Cargando espacio de trabajo" aria-busy="true"><div className="skeleton skeleton-title" /><div className="kpis">{[0,1,2,3].map(n=><div key={n} className="skeleton skeleton-metric" />)}</div><div className="skeleton skeleton-table" /></div>;
 }
+export function ExpedienteSkeleton() {
+  return <div className="workspace-skeleton" role="status" aria-label="Cargando expediente" aria-busy="true"><div className="skeleton skeleton-contract-header" /><div className="skeleton skeleton-tabs" /><div className="kpis">{[0,1,2,3,4,5].map(n => <div key={n} className="skeleton skeleton-metric" />)}</div><div className="skeleton skeleton-table" /></div>;
+}
 export function ResourceCard({ title, description, icon, onOpen, actions }: { title: string; description: string; icon: string; onOpen: () => void; actions?: ReactNode }) {
   return <article className="resource-card"><span className="resource-icon"><Icon name={icon} /></span><div className="resource-copy"><h3>{title}</h3><p>{description}</p></div><div className="resource-actions"><Button onClick={onOpen}>Abrir reporte <Icon name="chevron-right" /></Button><details className="action-disclosure"><summary aria-label={`Exportar ${title}`}><Icon name="download" /></summary><div className="action-disclosure-content">{actions}</div></details></div></article>;
 }

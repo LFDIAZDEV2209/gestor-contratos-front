@@ -3,6 +3,9 @@ import { Select } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable } from '../ui/Workspace';
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { contractHref, companyHref } from '../app/routes';
 import type { Contract, VIssue, Document as DocType } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
@@ -60,17 +63,16 @@ const TABS: TabDef[] = [
 ];
 
 export const ExpedienteView = ({
-  id,
-  onBack,
-  onOpenCompany,
-  initialTab
+  id
 }: {
   id: string;
-  onBack: () => void;
-  onOpenCompany?: (cid: string) => void;
-  initialTab?: string;
 }) => {
-  const [activeTab, setActiveTab] = useState(initialTab || 'resumen');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get('tab') || 'resumen';
+  const activeTab = TABS.some(tab => tab.id === requestedTab) ? requestedTab : 'resumen';
+  const setActiveTab = (tab: string) => router.push(contractHref(id, tab), { scroll: false });
+  const onBack = () => router.push('/contratos');
   const tabsRef = useRef<HTMLDivElement>(null);
 
   const scrollTabs = (direction: 'left' | 'right') => {
@@ -194,9 +196,9 @@ export const ExpedienteView = ({
     <div>
       {/* Crumb */}
       <div className="crumb">
-        <a onClick={onBack}>Contratos</a> /{' '}
+        <Link href="/contratos">Contratos</Link> /{' '}
         {company ? (
-          <a onClick={() => onOpenCompany && onOpenCompany(company.id)}>{company.razon}</a>
+          <Link href={companyHref(company.id)}>{company.razon}</Link>
         ) : (
           '—'
         )}{' '}
@@ -254,7 +256,7 @@ export const ExpedienteView = ({
             <span>Empresa</span>
             <b
               className="link"
-              onClick={() => company && onOpenCompany && onOpenCompany(company.id)}
+              onClick={() => company && router.push(companyHref(company.id))}
               style={{ cursor: 'pointer' }}
             >
               {company ? company.razon : '—'}
@@ -401,10 +403,11 @@ export const ExpedienteView = ({
               const count = getTabCount(t);
               const isActive = activeTab === t.id;
               return (
-                <Button
+                <Link
                   key={t.id}
                   className={`tab ${isActive ? 'on' : ''}`}
-                  onClick={() => setActiveTab(t.id)}
+                  href={contractHref(id, t.id)}
+                  scroll={false}
                   style={{
                     whiteSpace: 'nowrap',
                     fontWeight: isActive ? 700 : 500
@@ -417,7 +420,7 @@ export const ExpedienteView = ({
                 >
                   {t.label}
                   {count != null && <span className="n">{count}</span>}
-                </Button>
+                </Link>
               );
             })}
           </div>

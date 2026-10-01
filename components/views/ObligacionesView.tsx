@@ -4,6 +4,10 @@ import { Input, Select } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable } from '../ui/Workspace';
 import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { obligationHref } from '../app/routes';
+import { DetailFrame } from '../ui/DetailFrame';
 import type { Obligation, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { effOblig } from '../../lib/metrics';
@@ -15,15 +19,19 @@ import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
 
 export const ObligacionesView = ({
-  onSelectContract
+  onSelectContract,
+  detailId
 }: {
   onSelectContract: (cid: string, tab?: string) => void;
+  detailId?: string;
 }) => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'todas' | 'pendientes' | 'vencidas' | 'cumplidas'>('todas');
   const [filterTipo, setFilterTipo] = useState('');
   const [filterContract, setFilterContract] = useState('');
   const [q, setQ] = useState('');
-  const [selectedObl, setSelectedObl] = useState<Obligation | null>(null);
+  const [selectedObl, setSelectedObl] = useState<Obligation | null>(() => detailId ? Store.get('obligations', detailId) : null);
+  const closeDetail = () => detailId ? router.push('/obligaciones') : setSelectedObl(null);
   const [newComment, setNewComment] = useState('');
 
   const allObligations = (Store.all('obligations') as Obligation[]).slice();
@@ -152,6 +160,7 @@ export const ObligacionesView = ({
 
   return (
     <div>
+      {!detailId && <>
       {/* Page Header */}
       <PageHeader className="ph">
         <div>
@@ -330,13 +339,13 @@ export const ObligacionesView = ({
                       {o.verificadoPor ? `${o.verificadoPor} (${fdate(o.verificadoFecha)})` : '—'}
                     </td>
                     <td className="nw">
-                      <Button
+                      <Link
                         className="btn sm"
-                        onClick={() => setSelectedObl(o)}
+                        href={obligationHref(o.id)}
                         title="Ver detalle y checklist"
                       >
                         Ficha
-                      </Button>
+                      </Link>
                     </td>
                   </tr>
                 );
@@ -354,10 +363,13 @@ export const ObligacionesView = ({
       </Surface>
 
       {/* Obligation Detail & Checklist Modal */}
+      </>}
+      {detailId && <div className="crumb"><Link href="/obligaciones">Obligaciones</Link> / Ficha</div>}
       {selectedObl && (
-        <Modal
+        <DetailFrame
+          inline={Boolean(detailId)}
           title={`Obligación ${selectedObl.id} · Detalle y Verificación`}
-          onClose={() => setSelectedObl(null)}
+          onClose={closeDetail}
           size="lg"
           footer={
             <>
@@ -367,7 +379,7 @@ export const ObligacionesView = ({
                 </Button>
               )}
               <span style={{ flex: 1 }}></span>
-              <Button className="btn" onClick={() => setSelectedObl(null)}>
+              <Button className="btn" onClick={closeDetail}>
                 Cerrar
               </Button>
             </>
@@ -461,7 +473,7 @@ export const ObligacionesView = ({
               </Button>
             </div>
           </div>
-        </Modal>
+        </DetailFrame>
       )}
     </div>
   );
