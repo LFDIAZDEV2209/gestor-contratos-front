@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Contract, VIssue, Document as DocType } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
@@ -68,6 +68,27 @@ export const ExpedienteView = ({
   initialTab?: string;
 }) => {
   const [activeTab, setActiveTab] = useState(initialTab || 'resumen');
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsRef.current) {
+      const scrollAmount = 260;
+      tabsRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (tabsRef.current) {
+      const activeEl = tabsRef.current.querySelector<HTMLElement>('.tab.on');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [activeTab]);
+
   const [showValidator, setShowValidator] = useState(false);
   const [showReconcile, setShowReconcile] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -283,12 +304,12 @@ export const ExpedienteView = ({
           )}
         </div>
 
-        {/* 3 Progress Bars */}
-        <div className="dual" style={{ marginTop: '14px', maxWidth: '760px' }}>
+        {/* 3 Progress Bars con clamp y badge de exceso */}
+        <div className="dual" style={{ marginTop: '16px', maxWidth: '780px' }}>
           <div className="row">
             <span>Tiempo transcurrido</span>
             <div className="bar lg">
-              <i style={{ width: `${clamp(m.pctTiempo, 0, 100)}%`, background: '#2F6FA3' }}></i>
+              <i style={{ width: `${clamp(m.pctTiempo, 0, 100)}%`, background: 'var(--info)' }}></i>
             </div>
             <b>{pct(m.pctTiempo, 0)}</b>
           </div>
@@ -302,35 +323,118 @@ export const ExpedienteView = ({
                 }}
               ></i>
             </div>
-            <b>{pct(m.pctFin, 0)}</b>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <b>{pct(m.pctFin, 0)}</b>
+              {m.pctFin > 100 && (
+                <span className="badge b-crit" style={{ fontSize: '10px', padding: '1px 6px' }}>
+                  Excede {Math.round(m.pctFin - 100)}%
+                </span>
+              )}
+            </div>
           </div>
           <div className="row">
             <span>Ejecución física</span>
             <div className="bar lg">
-              <i style={{ width: `${clamp(m.pctFis, 0, 100)}%`, background: '#4E9A8F' }}></i>
+              <i style={{ width: `${clamp(m.pctFis, 0, 100)}%`, background: 'var(--brand-3)' }}></i>
             </div>
             <b>{pct(m.pctFis, 0)}</b>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs con navegación horizontal y selector móvil para 17 pestañas */}
       <div className="panel" style={{ marginTop: '16px' }}>
-        <div className="tabs" style={{ padding: '0 8px', overflowX: 'auto', flexWrap: 'nowrap' }}>
-          {TABS.map((t) => {
-            const count = getTabCount(t);
-            return (
-              <button
-                key={t.id}
-                className={`tab ${activeTab === t.id ? 'on' : ''}`}
-                onClick={() => setActiveTab(t.id)}
-                style={{ whiteSpace: 'nowrap' }}
-              >
-                {t.label}
-                {count != null && <span className="n">{count}</span>}
-              </button>
-            );
-          })}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            borderBottom: '1px solid var(--line)',
+            background: 'var(--surface-2)',
+            padding: '4px 8px',
+            gap: 6
+          }}
+        >
+          {/* Botón flecha izquierda */}
+          <button
+            className="icon-btn"
+            onClick={() => scrollTabs('left')}
+            title="Desplazar pestañas hacia la izquierda"
+            aria-label="Pestañas anteriores"
+            style={{ width: 28, height: 28 }}
+          >
+            <Icon name="chevron-left" />
+          </button>
+
+          {/* Carrusel de pestañas */}
+          <div
+            ref={tabsRef}
+            className="tabs"
+            style={{
+              padding: '0 4px',
+              overflowX: 'auto',
+              flexWrap: 'nowrap',
+              borderBottom: 'none',
+              flex: 1,
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}
+          >
+            {TABS.map((t) => {
+              const count = getTabCount(t);
+              const isActive = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  className={`tab ${isActive ? 'on' : ''}`}
+                  onClick={() => setActiveTab(t.id)}
+                  style={{
+                    whiteSpace: 'nowrap',
+                    fontWeight: isActive ? 700 : 500
+                  }}
+                  aria-selected={isActive}
+                  role="tab"
+                >
+                  {t.label}
+                  {count != null && <span className="n">{count}</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Botón flecha derecha */}
+          <button
+            className="icon-btn"
+            onClick={() => scrollTabs('right')}
+            title="Desplazar pestañas hacia la derecha"
+            aria-label="Siguientes pestañas"
+            style={{ width: 28, height: 28 }}
+          >
+            <Icon name="chevron-right" />
+          </button>
+
+          {/* Selector desplegable de sección (muy útil en tablet y móvil) */}
+          <div style={{ marginLeft: 4, display: 'flex', alignItems: 'center' }}>
+            <select
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+              aria-label="Ir a sección del expediente"
+              style={{
+                height: 30,
+                fontSize: '11.5px',
+                borderRadius: 8,
+                padding: '0 8px',
+                border: '1px solid var(--border-control)',
+                background: '#FFFFFF',
+                color: 'var(--ink)'
+              }}
+            >
+              {TABS.map((t, idx) => (
+                <option key={t.id} value={t.id}>
+                  {idx + 1}. {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Tab Body */}

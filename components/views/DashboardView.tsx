@@ -25,6 +25,8 @@ import {
 import { LEVEL_COLOR, LEVEL_TXT, CLOSED_STATES } from '@/lib/catalog';
 import { Icon } from '../icons';
 import { Chart } from '../ui/Chart';
+import { Kpi } from '../ui/Kpi';
+import { Badge } from '../ui/Badge';
 import { MapaColombia } from '../mapa/MapaColombia';
 import type { Contract, Obligation, Risk, Payment, Exec } from '@/lib/types';
 
@@ -409,142 +411,130 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Franja de 14 KPIs */}
-      <div className="kpis mb">
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer' }}
-          onClick={() => onNavigate?.('contratos')}
-        >
-          <div className="kpi-t">Total contratos</div>
-          <div className="kpi-v">{P.n}</div>
-          <div className="kpi-s">{P.act} activos</div>
+      {/* 14 KPIs agrupados en Estado (6), Finanzas (5) y Control (3) */}
+      <div className="mb">
+        {/* Grupo 1: Estado Contractual (6) */}
+        <div className="kpi-group-title">
+          <Icon name="folder" /> Estado contractual (6)
+        </div>
+        <div className="kpis mb">
+          <Kpi
+            icon="folder"
+            label="Total contratos"
+            value={P.n}
+            sub={`${P.act} activos en portafolio`}
+            onClick={() => onNavigate?.('contratos')}
+          />
+          <Kpi
+            icon="check-circle"
+            label="Contratos activos"
+            value={P.act}
+            sub={`${pct(P.n ? (P.act / P.n) * 100 : 0)} del total`}
+            sem="ok"
+            onClick={() => onNavigate?.('contratos', 'activos')}
+          />
+          <Kpi
+            icon="clock"
+            label="Próximos a vencer"
+            value={P.prox}
+            sub="En ≤ 30 días"
+            sem={P.prox > 0 ? 'warn' : 'ok'}
+            onClick={() => onNavigate?.('agenda')}
+          />
+          <Kpi
+            icon="alert-circle"
+            label="Contratos vencidos"
+            value={P.venc}
+            sub="Sin liquidar / prorrogar"
+            sem={P.venc > 0 ? 'crit' : 'ok'}
+            onClick={() => onNavigate?.('contratos', 'vencidos')}
+          />
+          <Kpi
+            icon="pause"
+            label="Suspendidos"
+            value={P.susp}
+            sub="Con acta de suspensión"
+            sem={P.susp > 0 ? 'warn' : undefined}
+            onClick={() => onNavigate?.('contratos', 'Suspendido')}
+          />
+          <Kpi
+            icon="file-signature"
+            label="En liquidación"
+            value={P.liq}
+            sub="Pendientes de cierre"
+            onClick={() => onNavigate?.('contratos', 'En liquidación')}
+          />
         </div>
 
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer', borderLeft: '3px solid var(--ok)' }}
-          onClick={() => onNavigate?.('contratos', 'activos')}
-        >
-          <div className="kpi-t">Contratos activos</div>
-          <div className="kpi-v" style={{ color: 'var(--ok)' }}>
-            {P.act}
-          </div>
-          <div className="kpi-s">{pct(P.n ? (P.act / P.n) * 100 : 0)} del total</div>
+        {/* Grupo 2: Finanzas y Avance (5) */}
+        <div className="kpi-group-title">
+          <Icon name="dollar-sign" /> Finanzas y avance (5)
+        </div>
+        <div className="kpis mb">
+          <Kpi
+            icon="dollar-sign"
+            label="Valor contratado"
+            value={moneyM(P.valor)}
+            sub={money(P.valor)}
+          />
+          <Kpi
+            icon="wallet"
+            label="Valor ejecutado"
+            value={moneyM(P.ejec)}
+            sub={money(P.ejec)}
+          />
+          <Kpi
+            icon="chart-pie"
+            label="Saldo contractual"
+            value={moneyM(P.saldo)}
+            sub={money(P.saldo)}
+            sem={P.saldo < 0 ? 'crit' : 'ok'}
+          />
+          <Kpi
+            icon="trending-up"
+            label="% Ejecución financiera"
+            value={pct(P.pctFin)}
+            sub="Ejecutado ÷ valor"
+            sem={P.pctFin > 100 ? 'crit' : 'ok'}
+          />
+          <Kpi
+            icon="list-check"
+            label="% Ejecución contractual"
+            value={pct(P.pctCont)}
+            sub="Avance físico ponderado"
+            color="info"
+          />
         </div>
 
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer', borderLeft: P.prox ? '3px solid var(--warn)' : 'none' }}
-          onClick={() => onNavigate?.('agenda')}
-        >
-          <div className="kpi-t">Próximos a vencer</div>
-          <div className="kpi-v" style={{ color: P.prox ? 'var(--warn)' : 'var(--ok)' }}>
-            {P.prox}
-          </div>
-          <div className="kpi-s">En ≤ 30 días</div>
+        {/* Grupo 3: Control y Riesgos (3) */}
+        <div className="kpi-group-title">
+          <Icon name="shield-alert" /> Control y riesgos (3)
         </div>
-
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer', borderLeft: P.venc ? '3px solid var(--crit)' : 'none' }}
-          onClick={() => onNavigate?.('contratos', 'vencidos')}
-        >
-          <div className="kpi-t">Contratos vencidos</div>
-          <div className="kpi-v" style={{ color: P.venc ? 'var(--crit)' : 'var(--ok)' }}>
-            {P.venc}
-          </div>
-          <div className="kpi-s">Sin liquidar / prorrogar</div>
-        </div>
-
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer' }}
-          onClick={() => onNavigate?.('contratos', 'Suspendido')}
-        >
-          <div className="kpi-t">Suspendidos</div>
-          <div className="kpi-v">{P.susp}</div>
-          <div className="kpi-s">Con acta de suspensión</div>
-        </div>
-
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer' }}
-          onClick={() => onNavigate?.('contratos', 'En liquidación')}
-        >
-          <div className="kpi-t">En liquidación</div>
-          <div className="kpi-v">{P.liq}</div>
-          <div className="kpi-s">Pendientes de cierre</div>
-        </div>
-
-        <div className="kpi-card">
-          <div className="kpi-t">Valor total contratado</div>
-          <div className="kpi-v">{moneyM(P.valor)}</div>
-          <div className="kpi-s">{money(P.valor)}</div>
-        </div>
-
-        <div className="kpi-card">
-          <div className="kpi-t">Valor ejecutado</div>
-          <div className="kpi-v">{moneyM(P.ejec)}</div>
-          <div className="kpi-s">{money(P.ejec)}</div>
-        </div>
-
-        <div className="kpi-card">
-          <div className="kpi-t">Saldo contractual</div>
-          <div className="kpi-v" style={{ color: P.saldo < 0 ? 'var(--crit)' : 'inherit' }}>
-            {moneyM(P.saldo)}
-          </div>
-          <div className="kpi-s">{money(P.saldo)}</div>
-        </div>
-
-        <div className="kpi-card">
-          <div className="kpi-t">% ejecución financiera</div>
-          <div className="kpi-v" style={{ color: P.pctFin > 100 ? 'var(--crit)' : 'inherit' }}>
-            {pct(P.pctFin)}
-          </div>
-          <div className="kpi-s">Ejecutado ÷ valor</div>
-        </div>
-
-        <div className="kpi-card">
-          <div className="kpi-t">% ejecución contractual</div>
-          <div className="kpi-v">{pct(P.pctCont)}</div>
-          <div className="kpi-s">Avance físico ponderado</div>
-        </div>
-
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer', borderLeft: P.conAlerta ? '3px solid var(--risk)' : 'none' }}
-          onClick={() => onNavigate?.('alertas')}
-        >
-          <div className="kpi-t">Contratos con alertas</div>
-          <div className="kpi-v" style={{ color: P.conAlerta ? 'var(--risk)' : 'var(--ok)' }}>
-            {P.conAlerta}
-          </div>
-          <div className="kpi-s">Alertas activas</div>
-        </div>
-
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer', borderLeft: P.conInc ? '3px solid var(--risk)' : 'none' }}
-          onClick={() => onNavigate?.('incumplimientos')}
-        >
-          <div className="kpi-t">Con incumplimientos</div>
-          <div className="kpi-v" style={{ color: P.conInc ? 'var(--risk)' : 'var(--ok)' }}>
-            {P.conInc}
-          </div>
-          <div className="kpi-s">Incumplimientos abiertos</div>
-        </div>
-
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer', borderLeft: P.garProx ? '3px solid var(--warn)' : 'none' }}
-          onClick={() => onNavigate?.('garantias', 'proximas')}
-        >
-          <div className="kpi-t">Garantías por vencer</div>
-          <div className="kpi-v" style={{ color: P.garProx ? 'var(--warn)' : 'var(--ok)' }}>
-            {P.garProx}
-          </div>
-          <div className="kpi-s">En los próximos 30 días</div>
+        <div className="kpis mb">
+          <Kpi
+            icon="alert-triangle"
+            label="Con alertas activas"
+            value={P.conAlerta}
+            sub="Requieren gestión"
+            sem={P.conAlerta > 0 ? 'risk' : 'ok'}
+            onClick={() => onNavigate?.('alertas')}
+          />
+          <Kpi
+            icon="circle-exclamation"
+            label="Con incumplimientos"
+            value={P.conInc}
+            sub="Casos abiertos"
+            sem={P.conInc > 0 ? 'risk' : 'ok'}
+            onClick={() => onNavigate?.('incumplimientos')}
+          />
+          <Kpi
+            icon="shield"
+            label="Garantías por vencer"
+            value={P.garProx}
+            sub="En los próximos 30 días"
+            sem={P.garProx > 0 ? 'warn' : 'ok'}
+            onClick={() => onNavigate?.('garantias', 'proximas')}
+          />
         </div>
       </div>
 

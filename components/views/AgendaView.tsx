@@ -176,12 +176,12 @@ export const AgendaView = ({
                           <span
                             className={`badge ${
                               m.restantes != null && m.restantes <= 0
-                                ? 'crit'
+                                ? 'b-crit'
                                 : m.restantes != null && m.restantes <= 5
-                                ? 'crit'
+                                ? 'b-crit'
                                 : m.restantes != null && m.restantes <= 15
-                                ? 'risk'
-                                : 'warn'
+                                ? 'b-risk'
+                                : 'b-warn'
                             }`}
                           >
                             {daysTxt(m.restantes)}

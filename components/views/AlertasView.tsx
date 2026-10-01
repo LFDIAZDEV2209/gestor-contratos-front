@@ -8,6 +8,7 @@ import { exportRows } from '@/lib/export';
 import { ALV } from '@/lib/catalog';
 import { Icon } from '../icons';
 import { Badge } from '../ui/Badge';
+import { Kpi } from '../ui/Kpi';
 import { Modal } from '../ui/Modal';
 import type { Alert, Task, User } from '@/lib/types';
 
@@ -172,95 +173,76 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
   };
 
   return (
-    <div className="view-content">
+    <div className="anim-fade-rise">
       {/* Encabezado */}
-      <div className="page-h">
+      <div className="ph">
         <div>
-          <h2>Centro de alertas</h2>
-          <p className="sub">Alertas automáticas derivadas de plazos, garantías, obligaciones, pagos, ejecución y documentos.</p>
+          <h1>Centro de alertas</h1>
+          <p>Alertas automáticas derivadas de plazos, garantías, obligaciones, pagos, ejecución y documentos.</p>
         </div>
-        <div className="row-flex">
+        <div className="ph-actions">
           <button className="btn sm" onClick={markAllRead}>
-            <Icon name="mail" /> Marcar todas como leídas
+            <Icon name="check" /> Marcar todas como leídas
           </button>
-          <div className="row-flex">
-            <button className="btn sm xs" onClick={() => handleExport('xlsx')} title="Exportar Excel">
-              <Icon name="file-spreadsheet" /> Excel
-            </button>
-            <button className="btn sm xs" onClick={() => handleExport('pdf')} title="Exportar PDF">
-              <Icon name="file-text" /> PDF
-            </button>
-            <button className="btn sm xs" onClick={() => handleExport('csv')} title="Exportar CSV">
-              <Icon name="file-text" /> CSV
-            </button>
-            <button className="btn sm xs" onClick={() => handleExport('print')} title="Imprimir">
-              <Icon name="printer" /> Imprimir
-            </button>
-          </div>
+          <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar Excel">
+            <Icon name="file-excel" /> Excel
+          </button>
+          <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar PDF">
+            <Icon name="file-pdf" /> PDF
+          </button>
+          <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar CSV">
+            <Icon name="file-text" /> CSV
+          </button>
         </div>
       </div>
 
-      {/* Franja de KPIs */}
+      {/* Franja de 6 KPIs */}
       <div className="kpis mb">
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer', borderLeft: '4px solid var(--crit)' }}
+        <Kpi
+          icon="alert-circle"
+          label="Críticas"
+          value={openAlerts.filter((a) => a.nivel === 'critica').length}
+          sub="Atención inmediata"
+          sem="crit"
           onClick={() => setNivelFilter(nivelFilter === 'critica' ? '' : 'critica')}
-        >
-          <div className="kpi-t">🔴 Críticas</div>
-          <div className="kpi-v" style={{ color: 'var(--crit)' }}>
-            {openAlerts.filter((a) => a.nivel === 'critica').length}
-          </div>
-          <div className="kpi-s">Abiertas</div>
-        </div>
-
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer', borderLeft: '4px solid var(--risk)' }}
+        />
+        <Kpi
+          icon="shield-alert"
+          label="Riesgo"
+          value={openAlerts.filter((a) => a.nivel === 'riesgo').length}
+          sub="Impacto alto"
+          sem="risk"
           onClick={() => setNivelFilter(nivelFilter === 'riesgo' ? '' : 'riesgo')}
-        >
-          <div className="kpi-t">🟠 Riesgo</div>
-          <div className="kpi-v" style={{ color: 'var(--risk)' }}>
-            {openAlerts.filter((a) => a.nivel === 'riesgo').length}
-          </div>
-          <div className="kpi-s">Abiertas</div>
-        </div>
-
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer', borderLeft: '4px solid var(--warn)' }}
+        />
+        <Kpi
+          icon="clock"
+          label="Próximas"
+          value={openAlerts.filter((a) => a.nivel === 'proxima').length}
+          sub="Vencimientos cercanos"
+          sem="warn"
           onClick={() => setNivelFilter(nivelFilter === 'proxima' ? '' : 'proxima')}
-        >
-          <div className="kpi-t">🟡 Próximas</div>
-          <div className="kpi-v" style={{ color: 'var(--warn)' }}>
-            {openAlerts.filter((a) => a.nivel === 'proxima').length}
-          </div>
-          <div className="kpi-s">Abiertas</div>
-        </div>
-
-        <div
-          className="kpi-card"
-          style={{ cursor: 'pointer', borderLeft: '4px solid var(--ok)' }}
+        />
+        <Kpi
+          icon="info"
+          label="Informativas"
+          value={openAlerts.filter((a) => a.nivel === 'info').length}
+          sub="Para seguimiento"
+          sem="ok"
           onClick={() => setNivelFilter(nivelFilter === 'info' ? '' : 'info')}
-        >
-          <div className="kpi-t">🟢 Informativas</div>
-          <div className="kpi-v" style={{ color: 'var(--ok)' }}>
-            {openAlerts.filter((a) => a.nivel === 'info').length}
-          </div>
-          <div className="kpi-s">Abiertas</div>
-        </div>
-
-        <div className="kpi-card">
-          <div className="kpi-t">Resueltas</div>
-          <div className="kpi-v">{allAlerts.length - openAlerts.length}</div>
-          <div className="kpi-s">Histórico gestionado</div>
-        </div>
-
-        <div className="kpi-card">
-          <div className="kpi-t">Tareas abiertas</div>
-          <div className="kpi-v">{tasks.filter((t) => t.estado !== 'Cerrada').length}</div>
-          <div className="kpi-s">Creadas desde alertas</div>
-        </div>
+        />
+        <Kpi
+          icon="check-circle"
+          label="Resueltas"
+          value={allAlerts.length - openAlerts.length}
+          sub="Histórico gestionado"
+        />
+        <Kpi
+          icon="list-check"
+          label="Tareas abiertas"
+          value={tasks.filter((t) => t.estado !== 'Cerrada').length}
+          sub="Creadas desde alertas"
+          color="info"
+        />
       </div>
 
       {/* Grid de 2 columnas: Alertas (66%) y Tareas (33%) */}
