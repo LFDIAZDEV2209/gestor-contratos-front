@@ -1,71 +1,11 @@
 'use client';
-
-import React from 'react';
-import { clamp, pctFmt } from '@/lib/format';
-
-export interface PBarProps {
-  value: number;
-  max?: number;
-  color?: string;
-  showLabel?: boolean;
-  size?: 'sm' | 'md' | 'lg';
-  className?: string;
-  style?: React.CSSProperties;
+import type { CSSProperties } from 'react';
+export interface PBarProps { value: number; max?: number; scale?: 'percent' | 'fraction'; color?: string; showLabel?: boolean; size?: 'sm' | 'md' | 'lg'; className?: string; style?: CSSProperties; }
+// Escala explícita: 0,5 puntos porcentuales no equivale a 50%.
+export function PBar({ value, max = 100, scale = 'percent', color, showLabel = true, size = 'md', className = '', style }: PBarProps) {
+  const percent = scale === 'fraction' ? value * 100 : max > 0 ? value / max * 100 : NaN;
+  const valid = Number.isFinite(percent);
+  const bounded = valid ? Math.min(100, Math.max(0, percent)) : 0;
+  const label = valid ? percent.toLocaleString('es-CO', { maximumFractionDigits: 1 }) + '%' : 'Sin datos';
+  return <div className={`pbar ${className}`} style={style}><div className={`bar ${size}`} role="progressbar" aria-label="Avance" aria-valuemin={0} aria-valuemax={100} aria-valuenow={valid ? bounded : undefined} aria-valuetext={label} title={label}><i style={{ width: bounded + '%', background: percent > 100 ? 'var(--crit)' : color }} /></div>{showLabel && <span className="mono">{label}</span>}{percent > 100 && <span className="badge b-crit">Excede {(percent-100).toLocaleString('es-CO', { maximumFractionDigits: 1 })}%</span>}</div>;
 }
-
-export const PBar: React.FC<PBarProps> = ({
-  value,
-  max = 100,
-  color,
-  showLabel = false,
-  size = 'md',
-  className = '',
-  style = {}
-}) => {
-  // Si value vino en escala fraccionaria 0..1 (ej. pExecFin = 0.89) con max=100
-  let pct = max > 0 ? (value / max) * 100 : 0;
-  if (value > 0 && value <= 1.0 && max === 100) {
-    pct = value * 100;
-  }
-
-  const clamped = clamp(pct, 0, 100);
-  const exceeds = pct > 100;
-  const excessPct = Math.round(pct - 100);
-
-  const barColor = exceeds
-    ? 'var(--crit)'
-    : color || undefined;
-
-  return (
-    <div className={`pbar ${className}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, width: '100%', ...style }}>
-      <div
-        className={`bar ${size === 'lg' ? 'lg' : ''}`}
-        style={{ flex: 1 }}
-        title={`${pct.toLocaleString('es-CO', { maximumFractionDigits: 1 })}%`}
-      >
-        <i
-          style={{
-            width: `${clamped}%`,
-            background: barColor
-          }}
-        />
-      </div>
-
-      {showLabel && (
-        <span className="mono">
-          {pctFmt(pct)}
-        </span>
-      )}
-
-      {exceeds && (
-        <span
-          className="badge b-crit"
-          style={{ fontSize: '10px', padding: '1px 6px', fontWeight: 700 }}
-          title={`La ejecución supera el valor presupuestado en un ${excessPct}%`}
-        >
-          Excede {excessPct}%
-        </span>
-      )}
-    </div>
-  );
-};

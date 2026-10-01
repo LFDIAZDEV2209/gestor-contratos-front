@@ -50,7 +50,7 @@ export const Chart = ({ type, data, options, height, config }: ChartProps) => {
     }
   };
 
-  const mergedOptions = { ...defaultOptions, ...chartOptions };
+  const mergedOptions = { ...defaultOptions, ...chartOptions, animation: false };
 
   return (
     <div style={{ position: 'relative', width: '100%', height: height || '100%' }}>
