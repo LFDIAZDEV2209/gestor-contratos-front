@@ -87,6 +87,13 @@ export const clamp = (v: number, a: number, b: number): number => {
   return Math.max(a, Math.min(b, v));
 };
 
+export const daysTxt = (d?: number | null): string => {
+  if (d == null) return '—';
+  if (d === 0) return 'Vence hoy';
+  if (d < 0) return `Vencido (${Math.abs(d)} d)`;
+  return `${d} días`;
+};
+
 export const sum = <T>(arr: T[], fn?: (item: T) => number): number => {
   let t = 0;
   for (let i = 0; i < arr.length; i++) {
