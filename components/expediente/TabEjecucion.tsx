@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable, FormGrid, Field } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Exec } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -166,8 +169,8 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
 
   const handleCreate = () => {
     if (!AuthService.guard('crear')) return;
-    if (!newExec.periodo) return alert('Seleccione o ingrese el periodo (AAAA-MM)');
-    if (!newExec.valor) return alert('Ingrese el valor ejecutado');
+    if (!newExec.periodo) return notify('Seleccione o ingrese el periodo (AAAA-MM)');
+    if (!newExec.valor) return notify('Ingrese el valor ejecutado');
 
     const execObj: Exec = {
       id: uid('EX'),
@@ -197,9 +200,9 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
           <span className="sub">Valor ejecutado consolidado desde informes mensuales</span>
         </div>
         <div className="row-flex">
-          <button className="btn sm pri" onClick={() => setShowNewModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowNewModal(true)}>
             <Icon name="plus" /> Registrar ejecución
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -260,25 +263,25 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
 
       {/* 4 Gráficas */}
       <div className="grid g2 mb">
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Valor contratado vs. ejecutado</h3>
           </div>
           <div className="panel-b" style={{ height: 260 }}>
             <Chart type="bar" data={chartAData} options={moneyOptions} height={240} />
           </div>
-        </div>
+        </Surface>
 
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Ejecución mensual</h3>
           </div>
           <div className="panel-b" style={{ height: 260 }}>
             <Chart type="bar" data={chartBData} options={moneyOptions} height={240} />
           </div>
-        </div>
+        </Surface>
 
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Pagos mensuales</h3>
           </div>
@@ -293,26 +296,26 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
               height={240}
             />
           </div>
-        </div>
+        </Surface>
 
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Saldo y proyección de agotamiento</h3>
           </div>
           <div className="panel-b" style={{ height: 260 }}>
             <Chart type="line" data={chartDData} options={moneyOptions} height={240} />
           </div>
-        </div>
+        </Surface>
       </div>
 
       {/* Tabla de registros mensuales */}
-      <div className="panel">
+      <Surface className="panel">
         <div className="panel-h">
           <h3>Historial de ejecución mensual</h3>
           <span className="sub">{execs.length} registros</span>
         </div>
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th>Periodo</th>
@@ -340,9 +343,9 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Modal Registrar Ejecución */}
       {showNewModal && (
@@ -351,25 +354,25 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
           onClose={() => setShowNewModal(false)}
           footer={
             <div className="flex gap-2 justify-end w-full">
-              <button className="btn ghost" onClick={() => setShowNewModal(false)}>
+              <Button className="btn ghost" onClick={() => setShowNewModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 Guardar Registro
-              </button>
+              </Button>
             </div>
           }
         >
-          <div className="form-grid">
-            <div className="f">
+          <FormGrid className="form-grid">
+            <Field className="f">
               <label className="req">Periodo (AAAA-MM)</label>
               <input
                 type="month"
                 value={newExec.periodo}
                 onChange={(e) => setNewExec({ ...newExec, periodo: e.target.value })}
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label className="req">Valor ejecutado del periodo</label>
               <input
                 type="number"
@@ -377,8 +380,8 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
                 onChange={(e) => setNewExec({ ...newExec, valor: Number(e.target.value) })}
                 placeholder="Valor en pesos COP"
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label className="req">% Avance físico acumulado (0–100)</label>
               <input
                 type="number"
@@ -388,16 +391,16 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
                 onChange={(e) => setNewExec({ ...newExec, avanceFisico: Number(e.target.value) })}
                 placeholder="Porcentaje de avance"
               />
-            </div>
-            <div className="f span2">
+            </Field>
+            <Field className="f span2">
               <label>Observaciones</label>
               <input
                 value={newExec.obs}
                 onChange={(e) => setNewExec({ ...newExec, obs: e.target.value })}
                 placeholder="Informe o acta de soporte"
               />
-            </div>
-          </div>
+            </Field>
+          </FormGrid>
         </Modal>
       )}
     </div>

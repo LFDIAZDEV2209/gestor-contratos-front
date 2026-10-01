@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { PageHeader, Surface } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Contract, Guarantee, Breach, Obligation, Exec, Payment } from '../../lib/types';
 import { Store } from '../../lib/store';
@@ -143,25 +145,25 @@ export const GerenciaView = ({
   return (
     <div>
       {/* Page Header */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Control gerencial de contratos</h1>
           <p>Vista estratégica del portafolio contractual para la alta dirección</p>
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Big Strip of 8 Executive Metrics */}
       <div className="bigstrip mb">
@@ -214,7 +216,7 @@ export const GerenciaView = ({
 
       {/* Row 1: Evolution Line & Guarantees Doughnut */}
       <div className="grid g-21 mb">
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Evolución mensual</h3>
             <span className="sub">Ejecución y pagos acumulados (últimos 12 meses)</span>
@@ -224,9 +226,9 @@ export const GerenciaView = ({
               <Chart type="line" data={evoChartData} />
             </div>
           </div>
-        </div>
+        </Surface>
 
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Garantías</h3>
             <span className="sub">{allGuarantees.length} pólizas aprobadas</span>
@@ -240,12 +242,12 @@ export const GerenciaView = ({
               />
             </div>
           </div>
-        </div>
+        </Surface>
       </div>
 
       {/* Row 2: Value by Company & Decision Needed List */}
       <div className="grid g2 mb">
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Valor por empresa</h3>
             <span className="sub">Distribución del portafolio contratado</span>
@@ -264,9 +266,9 @@ export const GerenciaView = ({
               />
             </div>
           </div>
-        </div>
+        </Surface>
 
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <div>
               <h3>Contratos que requieren decisión</h3>
@@ -300,7 +302,7 @@ export const GerenciaView = ({
               <div className="empty p-4">Ningún contrato en nivel crítico o de riesgo.</div>
             )}
           </div>
-        </div>
+        </Surface>
       </div>
     </div>
   );

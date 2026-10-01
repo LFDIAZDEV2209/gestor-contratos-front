@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { PageHeader, Surface } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Contract, Guarantee, Obligation, Deliverable, Payment, Acta, AuditEntry } from '../../lib/types';
 import { Store } from '../../lib/store';
@@ -201,58 +203,58 @@ export const CalendarioView = ({
   return (
     <div>
       {/* Page Header */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Calendario contractual</h1>
           <p>Inicios, terminaciones, garantías, obligaciones, entregables, pagos, actas y auditorías</p>
         </div>
         <div className="ph-actions">
           <div className="row-flex" style={{ gap: '4px' }}>
-            <button
+            <Button
               className={`btn sm ${mode === 'mes' ? 'pri' : 'ghost'}`}
               onClick={() => setMode('mes')}
             >
               Mes
-            </button>
-            <button
+            </Button>
+            <Button
               className={`btn sm ${mode === 'semana' ? 'pri' : 'ghost'}`}
               onClick={() => setMode('semana')}
             >
               Semana
-            </button>
-            <button
+            </Button>
+            <Button
               className={`btn sm ${mode === 'dia' ? 'pri' : 'ghost'}`}
               onClick={() => setMode('dia')}
             >
               Día
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </PageHeader>
 
-      <div className="panel">
+      <Surface className="panel">
         {/* Calendar Toolbar */}
         <div className="panel-h" style={{ flexWrap: 'wrap', gap: '12px' }}>
           <div className="row-flex" style={{ gap: '6px' }}>
-            <button
+            <Button
               className="icon-btn"
               onClick={() => handleNav(-1)}
               aria-label="Anterior"
               title="Anterior"
             >
               <Icon name="chevron-left" />
-            </button>
-            <button className="btn sm" onClick={handleToday}>
+            </Button>
+            <Button className="btn sm" onClick={handleToday}>
               Hoy
-            </button>
-            <button
+            </Button>
+            <Button
               className="icon-btn"
               onClick={() => handleNav(1)}
               aria-label="Siguiente"
               title="Siguiente"
             >
               <Icon name="chevron-right" />
-            </button>
+            </Button>
             <h3 style={{ marginLeft: '10px' }}>{title}</h3>
           </div>
 
@@ -425,7 +427,7 @@ export const CalendarioView = ({
                               <b>{cfg.label}</b> {c ? `· Contrato ${c.numero}` : ''}
                               <div className="small muted">{e.txt}</div>
                             </div>
-                            <button className="btn sm">Ver en {e.tab}</button>
+                            <Button className="btn sm">Ver en {e.tab}</Button>
                           </div>
                         );
                       })}
@@ -438,7 +440,7 @@ export const CalendarioView = ({
             })()}
           </div>
         )}
-      </div>
+      </Surface>
 
       {/* Selected Day Events Modal */}
       {selectedDayEvents && (
@@ -447,9 +449,9 @@ export const CalendarioView = ({
           onClose={() => setSelectedDayEvents(null)}
           size="md"
           footer={
-            <button className="btn pri" onClick={() => setSelectedDayEvents(null)}>
+            <Button className="btn pri" onClick={() => setSelectedDayEvents(null)}>
               Cerrar
-            </button>
+            </Button>
           }
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

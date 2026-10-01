@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable } from '../ui/Workspace';
 import { useState } from 'react';
 import type { AuditEntry } from '../../lib/types';
 import { Store } from '../../lib/store';
@@ -48,7 +50,7 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="panel">
+    <Surface className="panel">
       <div className="panel-h" style={{ borderTop: 0 }}>
         <div>
           <h3>Auditoría del contrato</h3>
@@ -56,15 +58,15 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
         </div>
         <div className="row-flex">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -126,7 +128,7 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
           </select>
         )}
         {(filterUser || filterModule || search) && (
-          <button
+          <Button
             className="btn ghost sm"
             onClick={() => {
               setFilterUser('');
@@ -135,15 +137,15 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
             }}
           >
             Limpiar filtros
-          </button>
+          </Button>
         )}
         <span className="small muted" style={{ marginLeft: 'auto' }}>
           {filtered.length} registro(s)
         </span>
       </div>
 
-      <div className="tbl-wrap">
-        <table className="tbl">
+      <TableViewport className="tbl-wrap">
+        <DataTable className="tbl">
           <thead>
             <tr>
               <th className="nw">Fecha / Hora</th>
@@ -203,8 +205,8 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
-    </div>
+        </DataTable>
+      </TableViewport>
+    </Surface>
   );
 };

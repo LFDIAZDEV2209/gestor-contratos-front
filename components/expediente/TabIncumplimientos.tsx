@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Breach, Plan, Obligation } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -61,7 +64,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
 
   const handleCreateBreach = () => {
     if (!AuthService.guard('crear')) return;
-    if (!breachForm.descripcion.trim()) return alert('Ingrese la descripción del incumplimiento');
+    if (!breachForm.descripcion.trim()) return notify('Ingrese la descripción del incumplimiento');
 
     const newBreach: Breach = {
       id: uid('IN'),
@@ -104,8 +107,8 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
 
   const handleCreatePlan = () => {
     if (!AuthService.guard('crear')) return;
-    if (!planForm.hallazgo.trim()) return alert('Ingrese el hallazgo');
-    if (!planForm.accion.trim()) return alert('Ingrese la acción correctiva');
+    if (!planForm.hallazgo.trim()) return notify('Ingrese el hallazgo');
+    if (!planForm.accion.trim()) return notify('Ingrese la acción correctiva');
 
     const newPlan: Plan = {
       id: uid('PM'),
@@ -141,7 +144,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="panel">
+    <Surface className="panel">
       {/* Incumplimientos Section */}
       <div className="panel-h" style={{ borderTop: 0 }}>
         <div>
@@ -150,24 +153,24 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
         </div>
         <div className="row-flex">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExportBreaches('xlsx')}>
+            <Button className="btn sm" onClick={() => handleExportBreaches('xlsx')}>
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExportBreaches('pdf')}>
+            </Button>
+            <Button className="btn sm" onClick={() => handleExportBreaches('pdf')}>
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExportBreaches('csv')}>
+            </Button>
+            <Button className="btn sm" onClick={() => handleExportBreaches('csv')}>
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={() => setShowBreachModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowBreachModal(true)}>
             <Icon name="plus" /> Registrar incumplimiento
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="tbl-wrap">
-        <table className="tbl">
+      <TableViewport className="tbl-wrap">
+        <DataTable className="tbl">
           <thead>
             <tr>
               <th className="nw">Fecha</th>
@@ -239,8 +242,8 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </TableViewport>
 
       {/* Planes de Mejoramiento Section */}
       <div className="panel-h" style={{ borderTop: '1px solid var(--line)', marginTop: '20px' }}>
@@ -249,14 +252,14 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           <span className="sub">{plans.length} plan(es)</span>
         </div>
         <div className="row-flex">
-          <button className="btn sm pri" onClick={() => setShowPlanModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowPlanModal(true)}>
             <Icon name="plus" /> Nuevo plan
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="tbl-wrap">
-        <table className="tbl">
+      <TableViewport className="tbl-wrap">
+        <DataTable className="tbl">
           <thead>
             <tr>
               <th>Hallazgo</th>
@@ -314,8 +317,8 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </TableViewport>
 
       {/* Breach Modal */}
       {showBreachModal && (
@@ -325,16 +328,16 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           size="lg"
           footer={
             <>
-              <button className="btn" onClick={() => setShowBreachModal(false)}>
+              <Button className="btn" onClick={() => setShowBreachModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreateBreach}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreateBreach}>
                 <Icon name="save" /> Guardar incumplimiento
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-2" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Tipo de incumplimiento</label>
               <select
@@ -414,7 +417,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
                 onChange={(e) => setBreachForm({ ...breachForm, multa: Number(e.target.value) })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
 
@@ -426,16 +429,16 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           size="lg"
           footer={
             <>
-              <button className="btn" onClick={() => setShowPlanModal(false)}>
+              <Button className="btn" onClick={() => setShowPlanModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreatePlan}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreatePlan}>
                 <Icon name="save" /> Registrar plan
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-2" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Hallazgo / Hecho observado</label>
               <textarea
@@ -484,9 +487,9 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
                 onChange={(e) => setPlanForm({ ...planForm, responsable: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
-    </div>
+    </Surface>
   );
 };

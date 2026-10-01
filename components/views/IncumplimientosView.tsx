@@ -1,4 +1,7 @@
 'use client';
+import { notify, requestReason } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, MetricCard, Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 
 import React, { useState } from 'react';
 import { Store, AuthService, Audit } from '@/lib/store';
@@ -134,7 +137,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
   const handleSaveBreach = () => {
     if (!breachForm.descripcion.trim()) {
-      alert('Ingresa la descripción del incumplimiento.');
+      notify('Ingresa la descripción del incumplimiento.');
       return;
     }
     if (editingBreach) {
@@ -160,9 +163,9 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
     refresh();
   };
 
-  const handleAnularBreach = (b: Breach) => {
+  const handleAnularBreach = async (b: Breach) => {
     if (!AuthService.guard('anular')) return;
-    const motivo = prompt('Motivo del cierre / anulación del incumplimiento:');
+    const motivo = await requestReason('Motivo del cierre / anulación del incumplimiento:');
     if (motivo == null) return;
     Store.update('breaches', b.id, { estado: 'Subsanado' });
     Audit.log({
@@ -210,7 +213,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
   const handleSavePlan = () => {
     if (!planForm.accion.trim()) {
-      alert('Ingresa la acción o título del plan de mejoramiento.');
+      notify('Ingresa la acción o título del plan de mejoramiento.');
       return;
     }
     if (editingPlan) {
@@ -236,9 +239,9 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
     refresh();
   };
 
-  const handleAnularPlan = (p: Plan) => {
+  const handleAnularPlan = async (p: Plan) => {
     if (!AuthService.guard('anular')) return;
-    const motivo = prompt('Motivo del cierre del plan de mejoramiento:');
+    const motivo = await requestReason('Motivo del cierre del plan de mejoramiento:');
     if (motivo == null) return;
     Store.update('plans', p.id, { estado: 'Cerrado' });
     Audit.log({
@@ -256,76 +259,76 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
   return (
     <div className="view-content">
       {/* Header */}
-      <div className="page-h">
+      <PageHeader className="page-h">
         <div>
-          <h2>Incumplimientos</h2>
+          <h1>Incumplimientos</h1>
           <p className="sub">Registro, plan de acción, medidas y multas. Incluye planes de mejoramiento.</p>
         </div>
         <div className="row-flex">
-          <button className="btn sm" onClick={openNewPlanModal}>
+          <Button className="btn sm" onClick={openNewPlanModal}>
             <Icon name="plus" /> Plan de mejoramiento
-          </button>
-          <button className="btn pri sm" onClick={openNewBreachModal}>
+          </Button>
+          <Button className="btn pri sm" onClick={openNewBreachModal}>
             <Icon name="plus" /> Registrar incumplimiento
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* KPIs */}
       <div className="kpis mb">
-        <div className="kpi-card">
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Incumplimientos</div>
           <div className="kpi-v">{breaches.length}</div>
           <div className="kpi-s">Registrados en total</div>
-        </div>
-        <div className="kpi-card">
+        </MetricCard>
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Abiertos</div>
           <div className="kpi-v" style={{ color: openBreaches.length > 0 ? 'var(--crit)' : 'var(--ok)' }}>
             {openBreaches.length}
           </div>
           <div className="kpi-s">Sin subsanar</div>
-        </div>
-        <div className="kpi-card">
+        </MetricCard>
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Impacto alto</div>
           <div className="kpi-v" style={{ color: 'var(--risk)' }}>
             {openBreaches.filter((b) => b.impacto === 'Alto').length}
           </div>
           <div className="kpi-s">Abiertos</div>
-        </div>
-        <div className="kpi-card">
+        </MetricCard>
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Multas / sanciones</div>
           <div className="kpi-v">{moneyM(totalMultas)}</div>
           <div className="kpi-s">{money(totalMultas)}</div>
-        </div>
-        <div className="kpi-card">
+        </MetricCard>
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Planes de mejoramiento</div>
           <div className="kpi-v">{plans.length}</div>
           <div className="kpi-s">{activePlans.length} en curso</div>
-        </div>
+        </MetricCard>
       </div>
 
       {/* Panel 1: Incumplimientos */}
-      <div className="panel mb">
+      <Surface className="panel mb">
         <div className="panel-h">
           <h3>Incumplimientos ({breaches.length})</h3>
           <div className="row-flex">
-            <button className="btn sm xs" onClick={() => exportBreaches('xlsx')}>
+            <Button className="btn sm xs" onClick={() => exportBreaches('xlsx')}>
               <Icon name="file-spreadsheet" /> Excel
-            </button>
-            <button className="btn sm xs" onClick={() => exportBreaches('pdf')}>
+            </Button>
+            <Button className="btn sm xs" onClick={() => exportBreaches('pdf')}>
               <Icon name="file-text" /> PDF
-            </button>
-            <button className="btn sm xs" onClick={() => exportBreaches('csv')}>
+            </Button>
+            <Button className="btn sm xs" onClick={() => exportBreaches('csv')}>
               <Icon name="file-text" /> CSV
-            </button>
-            <button className="btn sm xs" onClick={() => exportBreaches('print')}>
+            </Button>
+            <Button className="btn sm xs" onClick={() => exportBreaches('print')}>
               <Icon name="printer" /> Imprimir
-            </button>
+            </Button>
           </div>
         </div>
 
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th>ID</th>
@@ -397,21 +400,21 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                         <Badge state={b.estado} />
                       </td>
                       <td className="acts">
-                        <button
+                        <Button
                           className="icon-btn"
                           title="Editar"
                           onClick={() => openEditBreachModal(b)}
                         >
                           <Icon name="edit" />
-                        </button>
+                        </Button>
                         {b.estado !== 'Subsanado' && b.estado !== 'Cerrado' && (
-                          <button
+                          <Button
                             className="icon-btn"
                             title="Marcar subsanado"
                             onClick={() => handleAnularBreach(b)}
                           >
                             <Icon name="check-circle" />
-                          </button>
+                          </Button>
                         )}
                       </td>
                     </tr>
@@ -419,32 +422,32 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                 })
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Panel 2: Planes de mejoramiento */}
-      <div className="panel">
+      <Surface className="panel">
         <div className="panel-h">
           <h3>Planes de mejoramiento ({plans.length})</h3>
           <div className="row-flex">
-            <button className="btn sm xs" onClick={() => exportPlans('xlsx')}>
+            <Button className="btn sm xs" onClick={() => exportPlans('xlsx')}>
               <Icon name="file-spreadsheet" /> Excel
-            </button>
-            <button className="btn sm xs" onClick={() => exportPlans('pdf')}>
+            </Button>
+            <Button className="btn sm xs" onClick={() => exportPlans('pdf')}>
               <Icon name="file-text" /> PDF
-            </button>
-            <button className="btn sm xs" onClick={() => exportPlans('csv')}>
+            </Button>
+            <Button className="btn sm xs" onClick={() => exportPlans('csv')}>
               <Icon name="file-text" /> CSV
-            </button>
-            <button className="btn sm xs" onClick={() => exportPlans('print')}>
+            </Button>
+            <Button className="btn sm xs" onClick={() => exportPlans('print')}>
               <Icon name="printer" /> Imprimir
-            </button>
+            </Button>
           </div>
         </div>
 
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th>ID</th>
@@ -498,21 +501,21 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                         <Badge state={p.estado} />
                       </td>
                       <td className="acts">
-                        <button
+                        <Button
                           className="icon-btn"
                           title="Editar plan"
                           onClick={() => openEditPlanModal(p)}
                         >
                           <Icon name="edit" />
-                        </button>
+                        </Button>
                         {p.estado !== 'Cerrado' && (
-                          <button
+                          <Button
                             className="icon-btn"
                             title="Cerrar plan"
                             onClick={() => handleAnularPlan(p)}
                           >
                             <Icon name="check-circle" />
-                          </button>
+                          </Button>
                         )}
                       </td>
                     </tr>
@@ -520,9 +523,9 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                 })
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Modal Incumplimiento */}
       {breachModalOpen && (
@@ -531,16 +534,16 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
           onClose={() => setBreachModalOpen(false)}
           footer={
             <>
-              <button className="btn" onClick={() => setBreachModalOpen(false)}>
+              <Button className="btn" onClick={() => setBreachModalOpen(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleSaveBreach}>
+              </Button>
+              <Button className="btn pri" onClick={handleSaveBreach}>
                 Guardar incumplimiento
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Contrato *</label>
               <select
@@ -651,7 +654,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                 <option value="Cerrado">Cerrado</option>
               </select>
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
 
@@ -662,16 +665,16 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
           onClose={() => setPlanModalOpen(false)}
           footer={
             <>
-              <button className="btn" onClick={() => setPlanModalOpen(false)}>
+              <Button className="btn" onClick={() => setPlanModalOpen(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleSavePlan}>
+              </Button>
+              <Button className="btn pri" onClick={handleSavePlan}>
                 Guardar plan
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Contrato *</label>
               <select
@@ -752,7 +755,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                 <option value="Cerrado">Cerrado</option>
               </select>
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
     </div>

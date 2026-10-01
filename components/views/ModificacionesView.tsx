@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Modification, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -65,9 +68,9 @@ export const ModificacionesView = ({
 
   const handleCreate = () => {
     if (!AuthService.guard('editar')) return;
-    if (!form.contractId) return alert('Seleccione un contrato');
-    if (!form.numero.trim()) return alert('Ingrese el número de la modificación');
-    if (!form.justificacion.trim()) return alert('Ingrese la justificación');
+    if (!form.contractId) return notify('Seleccione un contrato');
+    if (!form.numero.trim()) return notify('Ingrese el número de la modificación');
+    if (!form.justificacion.trim()) return notify('Ingrese la justificación');
 
     const c = Store.get('contracts', form.contractId);
     if (!c) return;
@@ -180,7 +183,7 @@ export const ModificacionesView = ({
   return (
     <div>
       {/* Page Header */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Modificaciones contractuales</h1>
           <p>
@@ -190,21 +193,21 @@ export const ModificacionesView = ({
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={() => setShowModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
             <Icon name="plus" /> Nueva modificación
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* KPI Cards */}
       <div className="kpis mb">
@@ -215,7 +218,7 @@ export const ModificacionesView = ({
       </div>
 
       {warningMsg && (
-        <div
+        <Surface
           className="panel mb p-3"
           style={{
             background: 'var(--warn-s)',
@@ -227,14 +230,14 @@ export const ModificacionesView = ({
         >
           <Icon name="triangle-exclamation" />
           <span>{warningMsg}</span>
-          <button className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={() => setWarningMsg(null)}>
+          <Button className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={() => setWarningMsg(null)}>
             Entendido
-          </button>
-        </div>
+          </Button>
+        </Surface>
       )}
 
       {/* Table Panel */}
-      <div className="panel">
+      <Surface className="panel">
         <div className="filters mb" style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
@@ -244,7 +247,7 @@ export const ModificacionesView = ({
               placeholder="Buscar por justificación, número o contrato..."
             />
           </div>
-          <div className="f">
+          <Field className="f">
             <select
               className="inp sm"
               value={filterContract}
@@ -257,8 +260,8 @@ export const ModificacionesView = ({
                 </option>
               ))}
             </select>
-          </div>
-          <div className="f">
+          </Field>
+          <Field className="f">
             <select
               className="inp sm"
               value={filterTipo}
@@ -274,11 +277,11 @@ export const ModificacionesView = ({
               <option value="Modificación de supervisor">Modificación de supervisor</option>
               <option value="Terminación anticipada">Terminación anticipada</option>
             </select>
-          </div>
+          </Field>
         </div>
 
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -388,12 +391,12 @@ export const ModificacionesView = ({
                     </td>
                     <td className="nw">
                       {c && (
-                        <button
+                        <Button
                           className="btn sm"
                           onClick={() => onSelectContract(c.id, 'modificaciones')}
                         >
                           Expediente
-                        </button>
+                        </Button>
                       )}
                     </td>
                   </tr>
@@ -407,9 +410,9 @@ export const ModificacionesView = ({
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Modal for New Modification */}
       {showModal && (
@@ -419,16 +422,16 @@ export const ModificacionesView = ({
           size="lg"
           footer={
             <>
-              <button className="btn" onClick={() => setShowModal(false)}>
+              <Button className="btn" onClick={() => setShowModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 <Icon name="save" /> Aplicar modificación
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-2" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Contrato</label>
               <select
@@ -583,7 +586,7 @@ export const ModificacionesView = ({
                 onChange={(e) => setForm({ ...form, soporte: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
     </div>

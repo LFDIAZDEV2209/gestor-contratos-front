@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, ResourceCard, EmptyState, TableViewport, DataTable } from '../ui/Workspace';
 
 import React, { useState } from 'react';
 import { Store, AuthService } from '@/lib/store';
@@ -9,6 +12,7 @@ import { DEPTOS } from '@/lib/geo';
 import { exportRows } from '@/lib/export';
 import { Icon } from '../icons';
 import { Modal } from '../ui/Modal';
+import { riskPresentation } from '../ui/presentation';
 import type { Contract, Guarantee, Payment, Breach, Risk, Subcontract, Cupo, AuditEntry } from '@/lib/types';
 
 interface ReportCol {
@@ -28,6 +32,7 @@ interface ReportDef {
 }
 
 export const ReportesView: React.FC = () => {
+  const [query, setQuery] = useState('');
   const [previewKey, setPreviewKey] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
@@ -328,7 +333,7 @@ export const ReportesView: React.FC = () => {
           { k: 'responsable', l: 'Responsable' },
           { k: 'estado', l: 'Estado' }
         ],
-        rows: Store.all('risks')
+        rows: Store.all('risks').map(riskPresentation)
       })
     },
     {
@@ -367,7 +372,7 @@ export const ReportesView: React.FC = () => {
       d: 'Bitácora completa de cambios (requiere permiso de auditoría).',
       b: () => {
         if (!AuthService.can('auditar')) {
-          alert('Tu rol no tiene permiso de auditoría.');
+          notify('Tu rol no tiene permiso de auditoría.');
           return null;
         }
         const db = Store.getDB();
@@ -539,83 +544,17 @@ export const ReportesView: React.FC = () => {
   return (
     <div className="view-content">
       {/* Header */}
-      <div className="page-h">
+      <PageHeader className="page-h">
         <div>
-          <h2>Reportes</h2>
+          <h1>Reportes</h1>
           <p className="sub">{reports.length} reportes exportables a Excel, PDF o impresión. Los datos se calculan al momento de generar.</p>
         </div>
-      </div>
+      </PageHeader>
 
-      {/* Grid de 19 reportes en 3 columnas */}
-      <div className="grid g3">
-        {reports.map((r) => (
-          <div key={r.k} className="panel">
-            <div className="panel-b" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div className="row-flex" style={{ flexWrap: 'nowrap', alignItems: 'flex-start', gap: 12 }}>
-                <div
-                  className="alert-ic"
-                  style={{
-                    backgroundColor: 'var(--brand-soft)',
-                    color: 'var(--brand-2)',
-                    width: 36,
-                    height: 36,
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}
-                >
-                  <Icon name={r.ic} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="strong" style={{ fontSize: '13.5px', marginBottom: 3 }}>
-                    {r.t}
-                  </div>
-                  <div className="small muted" style={{ fontSize: '11.5px', lineHeight: 1.35 }}>
-                    {r.d}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: 'auto', paddingTop: 14 }}>
-                <div className="row-flex" style={{ gap: 4 }}>
-                  <button
-                    className="btn xs"
-                    onClick={() => {
-                      setPreviewKey(r.k);
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <Icon name="eye" /> Vista previa
-                  </button>
-                  <span className="sp" style={{ flex: 1 }} />
-                  <button
-                    className="btn xs"
-                    onClick={() => handleExportDirect(r, 'xlsx')}
-                    title="Exportar Excel"
-                  >
-                    <Icon name="file-spreadsheet" /> Excel
-                  </button>
-                  <button
-                    className="btn xs"
-                    onClick={() => handleExportDirect(r, 'pdf')}
-                    title="Exportar PDF"
-                  >
-                    <Icon name="file-text" /> PDF
-                  </button>
-                  <button
-                    className="btn xs"
-                    onClick={() => handleExportDirect(r, 'print')}
-                    title="Imprimir"
-                  >
-                    <Icon name="printer" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="filter-bar mb"><label htmlFor="report-query" className="strong">Biblioteca de reportes</label><input id="report-query" className="inp" type="search" placeholder="Buscar por nombre o contenido…" value={query} onChange={e=>setQuery(e.target.value)} /><span className="muted small">{reports.filter(r=>(r.t+' '+r.d).toLocaleLowerCase().includes(query.toLocaleLowerCase())).length} disponibles</span></div>
+      <div className="resource-list">
+        {reports.filter(r=>(r.t+' '+r.d).toLocaleLowerCase().includes(query.toLocaleLowerCase())).map(r=><ResourceCard key={r.k} title={r.t} description={r.d} icon={r.ic} onOpen={()=>{setPreviewKey(r.k);setCurrentPage(1);}} actions={<>{(['xlsx','pdf','csv','print'] as const).map(format=><Button key={format} onClick={()=>handleExportDirect(r,format)}>{format==='print'?'Imprimir':format.toUpperCase()}</Button>)}</>} />)}
+        {!reports.some(r=>(r.t+' '+r.d).toLocaleLowerCase().includes(query.toLocaleLowerCase())) && <EmptyState title="Ningún reporte coincide" description="Prueba otro término o limpia la búsqueda." action={<Button onClick={()=>setQuery('')}>Limpiar búsqueda</Button>} />}
       </div>
 
       {/* Modal Vista Previa */}
@@ -626,34 +565,34 @@ export const ReportesView: React.FC = () => {
           onClose={() => setPreviewKey(null)}
           footer={
             <>
-              <button
+              <Button
                 className="btn sm"
                 onClick={() => handleExportDirect(previewReport, 'xlsx')}
               >
                 <Icon name="file-spreadsheet" /> Excel
-              </button>
-              <button
+              </Button>
+              <Button
                 className="btn sm"
                 onClick={() => handleExportDirect(previewReport, 'pdf')}
               >
                 <Icon name="file-text" /> PDF
-              </button>
-              <button
+              </Button>
+              <Button
                 className="btn sm"
                 onClick={() => handleExportDirect(previewReport, 'csv')}
               >
                 <Icon name="file-text" /> CSV
-              </button>
-              <button
+              </Button>
+              <Button
                 className="btn sm"
                 onClick={() => handleExportDirect(previewReport, 'print')}
               >
                 <Icon name="printer" /> Imprimir
-              </button>
+              </Button>
               <span className="sp" style={{ flex: 1 }} />
-              <button className="btn pri sm" onClick={() => setPreviewKey(null)}>
+              <Button className="btn pri sm" onClick={() => setPreviewKey(null)}>
                 Cerrar
-              </button>
+              </Button>
             </>
           }
         >
@@ -664,8 +603,8 @@ export const ReportesView: React.FC = () => {
             </span>
           </div>
 
-          <div className="tbl-wrap" style={{ maxHeight: '55vh', overflow: 'auto' }}>
-            <table className="tbl">
+          <TableViewport className="tbl-wrap" style={{ maxHeight: '55vh', overflow: 'auto' }}>
+            <DataTable className="tbl">
               <thead>
                 <tr>
                   {previewData.cols.map((col, idx) => (
@@ -704,31 +643,31 @@ export const ReportesView: React.FC = () => {
                   ))
                 )}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
+          </TableViewport>
 
           {totalPages > 1 && (
             <div
               className="row-flex"
               style={{ justifyContent: 'center', marginTop: 14, gap: 10 }}
             >
-              <button
+              <Button
                 className="btn sm xs"
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage((p) => p - 1)}
               >
                 Anterior
-              </button>
+              </Button>
               <span className="small muted">
                 Página {currentPage} de {totalPages}
               </span>
-              <button
+              <Button
                 className="btn sm xs"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage((p) => p + 1)}
               >
                 Siguiente
-              </button>
+              </Button>
             </div>
           )}
         </Modal>

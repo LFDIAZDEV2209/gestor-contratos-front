@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, TableViewport, DataTable } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Contract } from '../../lib/types';
 import { Store } from '../../lib/store';
@@ -74,7 +76,7 @@ export const AgendaView = ({
   return (
     <div>
       {/* Page Header */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Agenda contractual</h1>
           <p>
@@ -84,18 +86,18 @@ export const AgendaView = ({
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </PageHeader>
 
       {/* KPI Cards */}
       <div className="kpis mb">
@@ -119,7 +121,7 @@ export const AgendaView = ({
           .sort((a, x) => (M(a).restantes ?? 999) - (M(x).restantes ?? 999));
 
         return (
-          <div key={b.title} className="panel mb">
+          <Surface key={b.title} className="panel mb">
             <div className="panel-h">
               <div>
                 <span className={`sem ${b.sem}`} style={{ display: 'inline-block', marginRight: '8px' }}></span>
@@ -130,8 +132,8 @@ export const AgendaView = ({
               </div>
             </div>
 
-            <div className="tbl-wrap">
-              <table className="tbl">
+            <TableViewport className="tbl-wrap">
+              <DataTable className="tbl">
                 <thead>
                   <tr>
                     <th className="nw">Número</th>
@@ -195,13 +197,13 @@ export const AgendaView = ({
                         </td>
                         <td>{c.responsable || '—'}</td>
                         <td className="nw">
-                          <button
+                          <Button
                             className="btn sm"
                             onClick={() => onSelectContract(c.id)}
                             title="Ver expediente del contrato"
                           >
                             Ver expediente
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -214,9 +216,9 @@ export const AgendaView = ({
                     </tr>
                   )}
                 </tbody>
-              </table>
-            </div>
-          </div>
+              </DataTable>
+            </TableViewport>
+          </Surface>
         );
       })}
     </div>

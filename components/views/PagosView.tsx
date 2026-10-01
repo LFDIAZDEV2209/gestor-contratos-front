@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Payment, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -75,9 +78,9 @@ export const PagosView = ({
 
   const handleCreate = () => {
     if (!AuthService.guard('crear')) return;
-    if (!form.contractId) return alert('Seleccione un contrato');
-    if (!form.numero.trim()) return alert('Ingrese el número del pago o cuenta');
-    if (!form.bruto) return alert('Ingrese el valor bruto');
+    if (!form.contractId) return notify('Seleccione un contrato');
+    if (!form.numero.trim()) return notify('Ingrese el número del pago o cuenta');
+    if (!form.bruto) return notify('Ingrese el valor bruto');
 
     const neto = Number(form.bruto) + Number(form.iva) - Number(form.retenciones);
     const payObj: Payment = {
@@ -147,28 +150,28 @@ export const PagosView = ({
   return (
     <div>
       {/* Page Header */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Pagos contractuales</h1>
           <p>Gestión de cuentas, facturas, retenciones tributarias y desembolsos</p>
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={() => setShowModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
             <Icon name="plus" /> Registrar pago
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* KPI Cards */}
       <div className="kpis mb">
@@ -178,39 +181,39 @@ export const PagosView = ({
         <Kpi label="Pagos en Trámite" value={pendientes.length} color={pendientes.length > 0 ? 'warn' : 'ok'} />
       </div>
 
-      <div className="panel">
+      <Surface className="panel">
         {/* Quick Views */}
         <div className="tabs" style={{ padding: '0 12px' }}>
-          <button
+          <Button
             className={`tab ${activeTab === 'todos' ? 'on' : ''}`}
             onClick={() => setActiveTab('todos')}
           >
             Todos ({allPayments.length})
-          </button>
-          <button
+          </Button>
+          <Button
             className={`tab ${activeTab === 'pendiente' ? 'on' : ''}`}
             onClick={() => setActiveTab('pendiente')}
           >
             Pendientes ({allPayments.filter((p) => p.estado === 'Pendiente').length})
-          </button>
-          <button
+          </Button>
+          <Button
             className={`tab ${activeTab === 'en revisión' ? 'on' : ''}`}
             onClick={() => setActiveTab('en revisión')}
           >
             En revisión ({allPayments.filter((p) => p.estado === 'En revisión').length})
-          </button>
-          <button
+          </Button>
+          <Button
             className={`tab ${activeTab === 'aprobado' ? 'on' : ''}`}
             onClick={() => setActiveTab('aprobado')}
           >
             Aprobados ({allPayments.filter((p) => p.estado === 'Aprobado').length})
-          </button>
-          <button
+          </Button>
+          <Button
             className={`tab ${activeTab === 'pagado' ? 'on' : ''}`}
             onClick={() => setActiveTab('pagado')}
           >
             Pagados ({allPayments.filter((p) => p.estado === 'Pagado').length})
-          </button>
+          </Button>
         </div>
 
         {/* Filters */}
@@ -223,7 +226,7 @@ export const PagosView = ({
               placeholder="Buscar por número, factura o contrato..."
             />
           </div>
-          <div className="f">
+          <Field className="f">
             <select
               className="inp sm"
               value={filterContract}
@@ -236,12 +239,12 @@ export const PagosView = ({
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
         </div>
 
         {/* Table */}
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -316,32 +319,32 @@ export const PagosView = ({
                     <td className="nw">
                       <div className="row-flex" style={{ gap: '4px' }}>
                         {pay.estado === 'Pendiente' && (
-                          <button
+                          <Button
                             className="btn sm"
                             onClick={() => handleUpdateStatus(pay, 'En revisión')}
                             title="Poner en revisión"
                           >
                             Revisar
-                          </button>
+                          </Button>
                         )}
                         {pay.estado === 'En revisión' && (
-                          <button
+                          <Button
                             className="btn sm pri"
                             onClick={() => handleUpdateStatus(pay, 'Aprobado')}
                             title="Aprobar pago"
                           >
                             Aprobar
-                          </button>
+                          </Button>
                         )}
                         {pay.estado === 'Aprobado' && (
-                          <button
+                          <Button
                             className="btn sm"
                             style={{ background: '#2E7D32', color: '#fff' }}
                             onClick={() => handleUpdateStatus(pay, 'Pagado')}
                             title="Confirmar desembolso"
                           >
                             Pagar
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </td>
@@ -356,9 +359,9 @@ export const PagosView = ({
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Modal for New Payment */}
       {showModal && (
@@ -368,16 +371,16 @@ export const PagosView = ({
           size="lg"
           footer={
             <>
-              <button className="btn" onClick={() => setShowModal(false)}>
+              <Button className="btn" onClick={() => setShowModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 <Icon name="save" /> Registrar pago
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-2" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Contrato</label>
               <select
@@ -475,7 +478,7 @@ export const PagosView = ({
                 onChange={(e) => setForm({ ...form, soporte: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
     </div>

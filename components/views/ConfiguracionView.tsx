@@ -1,4 +1,7 @@
 'use client';
+import { notify, confirmAction } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, FormGrid, TableViewport, DataTable } from '../ui/Workspace';
 
 import React, { useState } from 'react';
 import { Store, AuthService, Audit } from '@/lib/store';
@@ -73,7 +76,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
   // Guard Helper
   const checkAdmin = () => {
     if (isAdmin) return true;
-    alert('Solo el rol ADMINISTRADOR puede modificar la configuración.');
+    notify('Solo el rol ADMINISTRADOR puede modificar la configuración.');
     return false;
   };
 
@@ -82,12 +85,12 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
     if (!checkAdmin()) return;
     const val = parseInt(newAlertDay, 10);
     if (isNaN(val) || val <= 0 || val > 365) {
-      alert('Ingresa un número de días válido entre 1 y 365.');
+      notify('Ingresa un número de días válido entre 1 y 365.');
       return;
     }
     const cur = S.alertDays || [30, 15, 10, 5, 3, 1];
     if (cur.includes(val)) {
-      alert('Ese umbral ya existe.');
+      notify('Ese umbral ya existe.');
       return;
     }
     const updated = [...cur, val].sort((a, b) => b - a);
@@ -146,7 +149,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
       nuevo: `Crítica: ${S.criticalDays}d, Presupuesto: ${S.budgetPct}%, Brecha: ${S.gapPct}%`
     });
     Store.persist();
-    alert('Parámetros guardados correctamente.');
+    notify('Parámetros guardados correctamente.');
     refresh();
   };
 
@@ -158,7 +161,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
     if (!S.catalogs) S.catalogs = defaultCatalogs();
     const list = S.catalogs[catKey] || [];
     if (list.includes(val)) {
-      alert('Ese elemento ya existe en el catálogo.');
+      notify('Ese elemento ya existe en el catálogo.');
       return;
     }
     list.push(val);
@@ -220,7 +223,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
   const toggleUserStatus = (u: User) => {
     if (!checkAdmin()) return;
     if (u.id === S.currentUser) {
-      alert('No puedes inactivar el usuario con la sesión activa.');
+      notify('No puedes inactivar el usuario con la sesión activa.');
       return;
     }
     const newEst = u.estado === 'Activo' ? 'Inactivo' : 'Activo';
@@ -237,7 +240,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
 
   const saveUser = () => {
     if (!userForm.nombre.trim() || !userForm.email.trim()) {
-      alert('Por favor ingresa nombre y correo del usuario.');
+      notify('Por favor ingresa nombre y correo del usuario.');
       return;
     }
     if (editingUser) {
@@ -293,7 +296,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
       nuevo: 'Restablecidos por defecto'
     });
     Store.persist();
-    alert('Permisos restablecidos a los valores por defecto.');
+    notify('Permisos restablecidos a los valores por defecto.');
     refresh();
   };
 
@@ -306,14 +309,14 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
     dlAnchor.click();
   };
 
-  const resetDemo = () => {
+  const resetDemo = async () => {
     if (!checkAdmin()) return;
-    const ok = window.confirm(
+    const ok = await confirmAction(
       '¿Estás seguro de restablecer todos los datos a la demostración inicial? Se borrarán todos los cambios locales.'
     );
     if (!ok) return;
     Store.reset();
-    alert('Datos demo restablecidos.');
+    notify('Datos demo restablecidos.');
     window.location.reload();
   };
 
@@ -330,9 +333,9 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
   return (
     <div className="view-content">
       {/* Header */}
-      <div className="page-h">
+      <PageHeader className="page-h">
         <div>
-          <h2>Configuración</h2>
+          <h1>Configuración</h1>
           <p className="sub">
             Parámetros del sistema, catálogos, usuarios, roles y permisos.{' '}
             {!isAdmin && (
@@ -342,10 +345,10 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
             )}
           </p>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Tabs */}
-      <div className="panel">
+      <Surface className="panel">
         <div className="tabs" style={{ padding: '0 8px' }}>
           {[
             { id: 'alertas', label: 'Parámetros de alertas' },
@@ -355,13 +358,13 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
             { id: 'empresas', label: 'Empresas' },
             { id: 'datos', label: 'Datos y respaldo' }
           ].map((t) => (
-            <button
+            <Button
               key={t.id}
               className={`tab ${activeTab === t.id ? 'on' : ''}`}
               onClick={() => setActiveTab(t.id as any)}
             >
               {t.label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -385,7 +388,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                       <span key={d} className="chip">
                         {d} días
                         {isAdmin && (
-                          <button
+                          <Button
                             onClick={() => deleteAlertDay(d)}
                             aria-label={`Quitar ${d} días`}
                             style={{
@@ -397,7 +400,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                             }}
                           >
                             ×
-                          </button>
+                          </Button>
                         )}
                       </span>
                     ))}
@@ -414,17 +417,17 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                       value={newAlertDay}
                       onChange={(e) => setNewAlertDay(e.target.value)}
                     />
-                    <button className="btn sm" onClick={addAlertDay}>
+                    <Button className="btn sm" onClick={addAlertDay}>
                       <Icon name="plus" /> Agregar umbral
-                    </button>
-                    <button className="btn sm ghost" onClick={resetAlertDays}>
+                    </Button>
+                    <Button className="btn sm ghost" onClick={resetAlertDays}>
                       Restablecer por defecto
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
 
-              <div className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 12 }}>
+              <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 12 }}>
                 <div>
                   <label className="form-label">Alerta crítica a (días)</label>
                   <input
@@ -460,12 +463,12 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 </div>
                 {isAdmin && (
                   <div style={{ marginTop: 8 }}>
-                    <button className="btn pri" onClick={saveParams}>
+                    <Button className="btn pri" onClick={saveParams}>
                       <Icon name="save" /> Guardar parámetros
-                    </button>
+                    </Button>
                   </div>
                 )}
-              </div>
+              </FormGrid>
             </div>
           )}
 
@@ -475,7 +478,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
               {catalogKeys.map((catKey) => {
                 const list: string[] = (S.catalogs && S.catalogs[catKey]) || [];
                 return (
-                  <div key={catKey} className="panel">
+                  <Surface key={catKey} className="panel">
                     <div className="panel-h">
                       <h3>{CAT_LABEL[catKey] || catKey}</h3>
                       <span className="sub">{list.length}</span>
@@ -486,7 +489,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                           <span key={idx} className="chip">
                             {item}
                             {isAdmin && (
-                              <button
+                              <Button
                                 onClick={() => deleteCatItem(catKey, idx)}
                                 aria-label={`Quitar ${item}`}
                                 style={{
@@ -498,7 +501,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                                 }}
                               >
                                 ×
-                              </button>
+                              </Button>
                             )}
                           </span>
                         ))}
@@ -517,13 +520,13 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                               if (e.key === 'Enter') addCatItem(catKey);
                             }}
                           />
-                          <button className="btn sm" onClick={() => addCatItem(catKey)}>
+                          <Button className="btn sm" onClick={() => addCatItem(catKey)}>
                             <Icon name="plus" /> Agregar
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
-                  </div>
+                  </Surface>
                 );
               })}
             </div>
@@ -539,14 +542,14 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 </span>
                 <span className="sp" style={{ flex: 1 }} />
                 {isAdmin && (
-                  <button className="btn pri sm" onClick={openNewUserModal}>
+                  <Button className="btn pri sm" onClick={openNewUserModal}>
                     <Icon name="plus" /> Nuevo usuario
-                  </button>
+                  </Button>
                 )}
               </div>
 
-              <div className="tbl-wrap">
-                <table className="tbl">
+              <TableViewport className="tbl-wrap">
+                <DataTable className="tbl">
                   <thead>
                     <tr>
                       <th>ID</th>
@@ -599,21 +602,21 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                           </td>
                           {isAdmin && (
                             <td className="acts">
-                              <button
+                              <Button
                                 className="icon-btn"
                                 title="Editar"
                                 onClick={() => openEditUserModal(u)}
                               >
                                 <Icon name="edit" />
-                              </button>
+                              </Button>
                               {!isCurrent && (
-                                <button
+                                <Button
                                   className="icon-btn"
                                   title={u.estado === 'Activo' ? 'Inactivar' : 'Activar'}
                                   onClick={() => toggleUserStatus(u)}
                                 >
                                   <Icon name={u.estado === 'Activo' ? 'x' : 'check'} />
-                                </button>
+                                </Button>
                               )}
                             </td>
                           )}
@@ -621,8 +624,8 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                       );
                     })}
                   </tbody>
-                </table>
-              </div>
+                </DataTable>
+              </TableViewport>
             </div>
           )}
 
@@ -634,8 +637,8 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 y queda en auditoría. El rol ADMINISTRADOR conserva todos los permisos.
               </p>
 
-              <div className="tbl-wrap">
-                <table className="tbl perm">
+              <TableViewport className="tbl-wrap">
+                <DataTable className="tbl perm">
                   <thead>
                     <tr>
                       <th>Rol</th>
@@ -675,14 +678,14 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                       );
                     })}
                   </tbody>
-                </table>
-              </div>
+                </DataTable>
+              </TableViewport>
 
               {isAdmin && (
                 <div className="row-flex" style={{ marginTop: 12 }}>
-                  <button className="btn sm" onClick={resetPerms}>
+                  <Button className="btn sm" onClick={resetPerms}>
                     Restablecer permisos por defecto
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -695,8 +698,8 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 Las empresas se administran en su módulo dedicado. Resumen de empresas registradas:
               </p>
 
-              <div className="tbl-wrap">
-                <table className="tbl">
+              <TableViewport className="tbl-wrap">
+                <DataTable className="tbl">
                   <thead>
                     <tr>
                       <th>Razón social</th>
@@ -723,14 +726,14 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                       </tr>
                     ))}
                   </tbody>
-                </table>
-              </div>
+                </DataTable>
+              </TableViewport>
 
               {onNavigateToEmpresas && (
                 <div style={{ marginTop: 12 }}>
-                  <button className="btn pri sm" onClick={onNavigateToEmpresas}>
+                  <Button className="btn pri sm" onClick={onNavigateToEmpresas}>
                     <Icon name="building" /> Ir al módulo de empresas
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -739,7 +742,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
           {/* TAB 6: DATOS Y RESPALDO */}
           {activeTab === 'datos' && (
             <div className="grid g3">
-              <div className="panel">
+              <Surface className="panel">
                 <div className="panel-b">
                   <div className="strong" style={{ fontSize: '13.5px', marginBottom: 4 }}>
                     Almacenamiento local
@@ -750,9 +753,9 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     Para producción cambie el adaptador por API REST (API_BASE).
                   </p>
                 </div>
-              </div>
+              </Surface>
 
-              <div className="panel">
+              <Surface className="panel">
                 <div className="panel-b">
                   <div className="strong" style={{ fontSize: '13.5px', marginBottom: 4 }}>
                     Respaldo JSON
@@ -760,13 +763,13 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                   <p className="small muted">
                     Descarga toda la información (incluida la auditoría inmutable) para respaldo o migración.
                   </p>
-                  <button className="btn sm" onClick={downloadBackup}>
+                  <Button className="btn sm" onClick={downloadBackup}>
                     <Icon name="download" /> Descargar respaldo
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Surface>
 
-              <div className="panel">
+              <Surface className="panel">
                 <div className="panel-b">
                   <div className="strong" style={{ fontSize: '13.5px', marginBottom: 4, color: 'var(--crit)' }}>
                     Restablecer datos de demostración
@@ -774,15 +777,15 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                   <p className="small muted">
                     Borra los datos locales y recarga el seed inicial de demostración (5 empresas, 10 contratos).
                   </p>
-                  <button className="btn sm dan" onClick={resetDemo} disabled={!isAdmin}>
+                  <Button className="btn sm dan" onClick={resetDemo} disabled={!isAdmin}>
                     <Icon name="rotate-ccw" /> Restablecer demo
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Surface>
             </div>
           )}
         </div>
-      </div>
+      </Surface>
 
       {/* Modal Usuario */}
       {userModalOpen && (
@@ -791,16 +794,16 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
           onClose={() => setUserModalOpen(false)}
           footer={
             <>
-              <button className="btn" onClick={() => setUserModalOpen(false)}>
+              <Button className="btn" onClick={() => setUserModalOpen(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={saveUser}>
+              </Button>
+              <Button className="btn pri" onClick={saveUser}>
                 Guardar usuario
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 12 }}>
+          <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 12 }}>
             <div>
               <label className="form-label">Nombre completo *</label>
               <input
@@ -848,7 +851,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 <option value="Inactivo">Inactivo</option>
               </select>
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
     </div>

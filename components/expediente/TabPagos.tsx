@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable, FormGrid, Field } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Payment } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -56,8 +59,8 @@ export const TabPagos = ({ cid }: { cid: string }) => {
 
   const handleCreate = () => {
     if (!AuthService.guard('crear')) return;
-    if (!newPay.numero) return alert('Ingrese el número del pago o cuenta');
-    if (!newPay.bruto) return alert('Ingrese el valor bruto');
+    if (!newPay.numero) return notify('Ingrese el número del pago o cuenta');
+    if (!newPay.bruto) return notify('Ingrese el valor bruto');
 
     const neto = Number(newPay.bruto) + Number(newPay.iva) - Number(newPay.retenciones);
     const payObj: Payment = {
@@ -96,9 +99,9 @@ export const TabPagos = ({ cid }: { cid: string }) => {
           <span className="sub">{payments.length} pagos registrados</span>
         </div>
         <div className="row-flex">
-          <button className="btn sm pri" onClick={() => setShowNewModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowNewModal(true)}>
             <Icon name="plus" /> Registrar pago
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -114,9 +117,9 @@ export const TabPagos = ({ cid }: { cid: string }) => {
         <Kpi label="% Pagado vs. ejecutado" value={pct(pctPagVsEjec)} />
       </div>
 
-      <div className="panel">
-        <div className="tbl-wrap">
-          <table className="tbl">
+      <Surface className="panel">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th>Pago / Factura</th>
@@ -159,32 +162,32 @@ export const TabPagos = ({ cid }: { cid: string }) => {
                   <td>
                     <div className="acts">
                       {p.estado === 'Pendiente' && (
-                        <button
+                        <Button
                           className="btn xs"
                           onClick={() => handleUpdateStatus(p, 'En revisión')}
                           title="Pasar a revisión"
                         >
                           Revisar
-                        </button>
+                        </Button>
                       )}
                       {(p.estado === 'Pendiente' || p.estado === 'En revisión') && (
-                        <button
+                        <Button
                           className="btn xs pri"
                           onClick={() => handleUpdateStatus(p, 'Aprobado')}
                           title="Aprobar pago"
                         >
                           Aprobar
-                        </button>
+                        </Button>
                       )}
                       {p.estado === 'Aprobado' && (
-                        <button
+                        <Button
                           className="btn xs ok"
                           style={{ background: 'var(--ok)', color: '#fff' }}
                           onClick={() => handleUpdateStatus(p, 'Pagado')}
                           title="Marcar como pagado"
                         >
                           Pagar
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </td>
@@ -198,9 +201,9 @@ export const TabPagos = ({ cid }: { cid: string }) => {
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {showNewModal && (
         <Modal
@@ -208,49 +211,49 @@ export const TabPagos = ({ cid }: { cid: string }) => {
           onClose={() => setShowNewModal(false)}
           footer={
             <div className="flex gap-2 justify-end w-full">
-              <button className="btn ghost" onClick={() => setShowNewModal(false)}>
+              <Button className="btn ghost" onClick={() => setShowNewModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 Guardar Pago
-              </button>
+              </Button>
             </div>
           }
         >
-          <div className="form-grid">
-            <div className="f">
+          <FormGrid className="form-grid">
+            <Field className="f">
               <label className="req">Número de pago</label>
               <input
                 value={newPay.numero}
                 onChange={(e) => setNewPay({ ...newPay, numero: e.target.value })}
                 placeholder="Ej. OP-044-01"
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label>Factura de venta</label>
               <input
                 value={newPay.factura}
                 onChange={(e) => setNewPay({ ...newPay, factura: e.target.value })}
                 placeholder="Ej. FE-8891"
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label className="req">Fecha de radicación</label>
               <input
                 type="date"
                 value={newPay.fecha}
                 onChange={(e) => setNewPay({ ...newPay, fecha: e.target.value })}
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label>Periodo de ejecución (AAAA-MM)</label>
               <input
                 type="month"
                 value={newPay.periodo}
                 onChange={(e) => setNewPay({ ...newPay, periodo: e.target.value })}
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label className="req">Valor bruto</label>
               <input
                 type="number"
@@ -260,40 +263,40 @@ export const TabPagos = ({ cid }: { cid: string }) => {
                   setNewPay({ ...newPay, bruto: b, iva: Math.round(b * 0.19) });
                 }}
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label>IVA</label>
               <input
                 type="number"
                 value={newPay.iva || ''}
                 onChange={(e) => setNewPay({ ...newPay, iva: Number(e.target.value) })}
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label>Retenciones (ReteFuente / ReteICA)</label>
               <input
                 type="number"
                 value={newPay.retenciones || ''}
                 onChange={(e) => setNewPay({ ...newPay, retenciones: Number(e.target.value) })}
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label>Archivo soporte</label>
               <input
                 value={newPay.soporte}
                 onChange={(e) => setNewPay({ ...newPay, soporte: e.target.value })}
                 placeholder="Factura_01.pdf"
               />
-            </div>
-            <div className="f span2">
+            </Field>
+            <Field className="f span2">
               <div className="calc p-3 bg-neutral-50 dark:bg-neutral-900 border rounded flex justify-between items-center text-sm">
                 <span>
                   Neto a pagar: <b>{money(calcNeto)}</b>
                 </span>
                 <span className="small muted">Fórmula: Bruto + IVA − Retenciones</span>
               </div>
-            </div>
-          </div>
+            </Field>
+          </FormGrid>
         </Modal>
       )}
     </div>

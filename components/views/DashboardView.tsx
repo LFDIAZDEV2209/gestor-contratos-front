@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { PageHeader, Surface } from '../ui/Workspace';
 
 import React from 'react';
 import { Store } from '@/lib/store';
@@ -299,9 +301,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="view-content">
       {/* Header */}
-      <div className="page-h">
+      <PageHeader className="page-h">
         <div>
-          <h2>Dashboard</h2>
+          <h1>Dashboard</h1>
           <p className="sub">Estado del portafolio contractual al {fdate(todayIso())}.</p>
         </div>
         <div
@@ -331,12 +333,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </span>
           ))}
         </div>
-      </div>
+      </PageHeader>
 
       {/* Grid: Qué debo hacer hoy (66%) + Semáforo contractual (33%) */}
       <div className="grid g-21 mb">
         {/* Qué debo hacer hoy */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Qué debo hacer hoy</h3>
             <span className="sub">
@@ -395,10 +397,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               })
             )}
           </div>
-        </div>
+        </Surface>
 
         {/* Semáforo contractual */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Semáforo contractual</h3>
             <span className="sub">{P.n} contratos</span>
@@ -408,7 +410,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Chart config={semDoughnut} />
             </div>
           </div>
-        </div>
+        </Surface>
       </div>
 
       {/* 14 KPIs agrupados en Estado (6), Finanzas (5) y Control (3) */}
@@ -546,7 +548,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Tarjetas: Contratos próximos a vencer */}
       {soon.length > 0 && (
-        <div className="panel mb">
+        <Surface className="panel mb">
           <div className="panel-h">
             <h3>Contratos próximos a vencer</h3>
             <span className="sub">Alerta crítica a los {S.criticalDays} días</span>
@@ -612,42 +614,42 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     className="row-flex"
                     style={{ marginTop: 'auto', paddingTop: 6, gap: 4, flexWrap: 'wrap' }}
                   >
-                    <button
+                    <Button
                       className="btn xs"
                       onClick={() => onSelectContract?.(c.id, 'resumen')}
                     >
                       <Icon name="eye" /> Ver contrato
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       className="btn xs"
                       onClick={() => onSelectContract?.(c.id, 'prorrogas')}
                     >
                       <Icon name="calendar" /> Crear prórroga
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       className="btn xs"
                       onClick={() => onSelectContract?.(c.id, 'modificaciones')}
                     >
                       <Icon name="edit" /> Terminación
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       className="btn xs"
                       onClick={() => onSelectContract?.(c.id, 'obligaciones')}
                     >
                       <Icon name="list-check" /> Obligaciones
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </Surface>
       )}
 
       {/* Fila de 3 gráficas */}
       <div className="grid g3 mb">
         {/* Contratos por estado */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Contratos por estado</h3>
           </div>
@@ -656,10 +658,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Chart config={chEstadoConfig} />
             </div>
           </div>
-        </div>
+        </Surface>
 
         {/* Contratos por empresa */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Contratos por empresa</h3>
           </div>
@@ -668,10 +670,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Chart config={chEmpConfig} />
             </div>
           </div>
-        </div>
+        </Surface>
 
         {/* Vencimientos próximos */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Vencimientos próximos</h3>
           </div>
@@ -680,13 +682,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Chart config={chVencConfig} />
             </div>
           </div>
-        </div>
+        </Surface>
       </div>
 
       {/* Fila de 2 gráficas grandes */}
       <div className="grid g2 mb">
         {/* Valor contratado vs ejecutado */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Valor contratado vs. ejecutado</h3>
             <span className="sub">Top contratos (escala logarítmica)</span>
@@ -696,10 +698,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Chart config={chCvEConfig} />
             </div>
           </div>
-        </div>
+        </Surface>
 
         {/* Ejecución mensual */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Ejecución mensual</h3>
             <span className="sub">Últimos 12 meses</span>
@@ -709,13 +711,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Chart config={chMesConfig} />
             </div>
           </div>
-        </div>
+        </Surface>
       </div>
 
       {/* Fila de 2 gráficas finales */}
       <div className="grid g2">
         {/* Riesgos por nivel */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Riesgos por nivel</h3>
           </div>
@@ -724,10 +726,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Chart config={chRiesgoConfig} />
             </div>
           </div>
-        </div>
+        </Surface>
 
         {/* Cumplimiento de obligaciones */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Cumplimiento de obligaciones</h3>
           </div>
@@ -736,7 +738,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Chart config={chOblConfig} />
             </div>
           </div>
-        </div>
+        </Surface>
       </div>
     </div>
   );

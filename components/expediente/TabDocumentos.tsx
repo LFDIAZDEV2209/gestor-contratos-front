@@ -1,4 +1,7 @@
 'use client';
+import { notify, requestReason } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Field, Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Document } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -35,7 +38,7 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
 
   const handleUpload = () => {
     if (!AuthService.guard('crear')) return;
-    if (!newDoc.nombre) return alert('Ingrese el nombre del documento');
+    if (!newDoc.nombre) return notify('Ingrese el nombre del documento');
 
     const u = AuthService.currentUser();
     const docObj: Document = {
@@ -67,9 +70,9 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
     setNewDoc({ nombre: '', categoria: 'Informes', archivo: '' });
   };
 
-  const handleAnular = (docId: string, docName: string) => {
+  const handleAnular = async (docId: string, docName: string) => {
     if (!AuthService.guard('anular')) return;
-    const mot = window.prompt(`Motivo de anulación para «${docName}»:`);
+    const mot = await requestReason(`Motivo de anulación para «${docName}»:`);
     if (mot) {
       Store.anular('documents', docId, mot);
     }
@@ -83,14 +86,14 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
           <span className="sub">{docs.length} documentos registrados</span>
         </div>
         <div className="row-flex">
-          <button className="btn sm pri" onClick={() => setShowNewModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowNewModal(true)}>
             <Icon name="upload" /> Cargar documento
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="filters mb">
-        <div className="f">
+        <Field className="f">
           <label>Categoría</label>
           <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
             <option value="">Todas las categorías</option>
@@ -100,12 +103,12 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
               </option>
             ))}
           </select>
-        </div>
+        </Field>
       </div>
 
-      <div className="panel">
-        <div className="tbl-wrap">
-          <table className="tbl">
+      <Surface className="panel">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th>Categoría</th>
@@ -143,21 +146,21 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                     </td>
                     <td>
                       <div className="acts">
-                        <button
+                        <Button
                           className="btn xs ghost"
                           onClick={() => setSelectedDoc(d)}
                           title="Ver historial de versiones"
                         >
                           <Icon name="clock" /> Historial
-                        </button>
+                        </Button>
                         {d.estado !== 'Anulado' && (
-                          <button
+                          <Button
                             className="icon-btn"
                             onClick={() => handleAnular(d.id, d.nombre)}
                             title="Anular documento"
                           >
                             <Icon name="trash" />
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </td>
@@ -172,9 +175,9 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Modal Historial de Versiones */}
       {selectedDoc && (
@@ -183,16 +186,16 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
           size="lg"
           onClose={() => setSelectedDoc(null)}
           footer={
-            <button className="btn pri" onClick={() => setSelectedDoc(null)}>
+            <Button className="btn pri" onClick={() => setSelectedDoc(null)}>
               Cerrar
-            </button>
+            </Button>
           }
         >
           <div className="readonly-note mb-3">
             <Icon name="lock" /> Las versiones de los documentos son inmutables y nunca se eliminan del repositorio.
           </div>
-          <div className="tbl-wrap">
-            <table className="tbl">
+          <TableViewport className="tbl-wrap">
+            <DataTable className="tbl">
               <thead>
                 <tr>
                   <th>Versión</th>
@@ -222,8 +225,8 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
+          </TableViewport>
         </Modal>
       )}
 
@@ -234,25 +237,25 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
           onClose={() => setShowNewModal(false)}
           footer={
             <div className="flex gap-2 justify-end w-full">
-              <button className="btn ghost" onClick={() => setShowNewModal(false)}>
+              <Button className="btn ghost" onClick={() => setShowNewModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleUpload}>
+              </Button>
+              <Button className="btn pri" onClick={handleUpload}>
                 Guardar Documento
-              </button>
+              </Button>
             </div>
           }
         >
-          <div className="form-grid">
-            <div className="f span2">
+          <FormGrid className="form-grid">
+            <Field className="f span2">
               <label className="req">Nombre del documento</label>
               <input
                 value={newDoc.nombre}
                 onChange={(e) => setNewDoc({ ...newDoc, nombre: e.target.value })}
                 placeholder="Ej. Acta de entrega fase 1"
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label>Categoría</label>
               <select
                 value={newDoc.categoria}
@@ -264,8 +267,8 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                   </option>
                 ))}
               </select>
-            </div>
-            <div className="f span2">
+            </Field>
+            <Field className="f span2">
               <label>Archivo adjunto (PDF / Word / Excel)</label>
               <input
                 type="text"
@@ -273,8 +276,8 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                 value={newDoc.archivo}
                 onChange={(e) => setNewDoc({ ...newDoc, archivo: e.target.value })}
               />
-            </div>
-          </div>
+            </Field>
+          </FormGrid>
         </Modal>
       )}
     </div>

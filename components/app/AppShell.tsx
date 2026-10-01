@@ -28,13 +28,15 @@ import { ReportesView } from '../views/ReportesView';
 import { ConfiguracionView } from '../views/ConfiguracionView';
 import { Store } from '../../lib/store';
 import { Seed } from '../../lib/demo';
+import { WorkspaceSkeleton } from '../ui/Workspace';
+import { FeedbackHost } from '../ui/Feedback';
 
 export const AppShell = () => {
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState('dash');
   const [selectedId, setSelectedId] = useState('');
   const [selectedTab, setSelectedTab] = useState<string | undefined>();
-  const [userTick, setUserTick] = useState(0);
+  const [, setUserTick] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -48,6 +50,25 @@ export const AppShell = () => {
   }, [mobileOpen]);
 
   useEffect(() => {
+    if (!mobileOpen) return;
+    const sidebar = document.querySelector<HTMLElement>('.sidebar');
+    const main = document.querySelector<HTMLElement>('.main');
+    const previous = document.activeElement as HTMLElement | null;
+    if (main) main.inert = true;
+    sidebar?.querySelector<HTMLElement>('a,button')?.focus();
+    const trap = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileOpen(false);
+      if (event.key !== 'Tab' || !sidebar) return;
+      const items = Array.from(sidebar.querySelectorAll<HTMLElement>('a[href],button')).filter(el=>el.offsetParent !== null);
+      const first = items[0], last = items[items.length-1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener('keydown', trap);
+    return () => { document.removeEventListener('keydown', trap); if(main) main.inert=false; previous?.focus(); };
+  }, [mobileOpen]);
+
+  useEffect(() => {
     Store.init(Seed.build());
     setMounted(true);
 
@@ -58,7 +79,7 @@ export const AppShell = () => {
         const parts = hash.split('/');
         setView('contrato');
         setSelectedId(parts[1]);
-        if (parts[2]) setSelectedTab(parts[2]);
+        setSelectedTab(parts[2] || 'resumen');
       } else if (hash.startsWith('empresa/')) {
         setView('empresa');
         setSelectedId(hash.split('/')[1]);
@@ -71,7 +92,7 @@ export const AppShell = () => {
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  if (!mounted) return null;
+  if (!mounted) return <WorkspaceSkeleton />;
 
   const navigate = (v: string, id?: string, tab?: string) => {
     setView(v);
@@ -90,7 +111,8 @@ export const AppShell = () => {
   };
 
   return (
-    <div className="app" key={`app-root-${userTick}`}>
+    <div className="app">
+      <a className="skip-link" href="#workspace">Saltar al contenido</a>
       <Sidebar current={view} onNavigate={(v, id) => navigate(v, id)} />
       {mobileOpen && (
         <div
@@ -107,7 +129,7 @@ export const AppShell = () => {
           onUserChanged={() => setUserTick((t) => t + 1)}
           onToggleMobileMenu={() => setMobileOpen((prev) => !prev)}
         />
-        <div className="content anim-fade-rise">
+        <div className="content anim-fade-rise" id="workspace" tabIndex={-1}>
           {view === 'dash' && (
             <DashboardView
               onSelectContract={(cid, tab) => navigate('contrato', cid, tab)}
@@ -198,6 +220,7 @@ export const AppShell = () => {
           )}
         </div>
       </main>
+      <FeedbackHost />
     </div>
   );
 };

@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { Surface } from '../ui/Workspace';
 import { Store } from '../../lib/store';
 import { M } from '../../lib/metrics';
 import { deptoNames } from '../../lib/geo';
@@ -15,13 +17,13 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
 
   return (
     <div className="tab-info-container">
-      <div className="panel mb">
+      <Surface className="panel mb">
         <div className="panel-h">
           <h3>Información General y Contratante</h3>
           {onEdit && (
-            <button className="btn sm ghost" onClick={onEdit}>
+            <Button className="btn sm ghost" onClick={onEdit}>
               <Icon name="edit" /> Editar Contrato
-            </button>
+            </Button>
           )}
         </div>
         <div className="panel-b np">
@@ -86,10 +88,10 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
             </div>
           </div>
         </div>
-      </div>
+      </Surface>
 
       <div className="grid g2 mb">
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Condiciones Económicas</h3>
           </div>
@@ -131,9 +133,9 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
               </div>
             </div>
           </div>
-        </div>
+        </Surface>
 
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Plazos y Vigencias</h3>
           </div>
@@ -175,10 +177,10 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
               </div>
             </div>
           </div>
-        </div>
+        </Surface>
       </div>
 
-      <div className="panel mb">
+      <Surface className="panel mb">
         <div className="panel-h">
           <h3>Objeto y Alcance Contractual</h3>
         </div>
@@ -226,7 +228,7 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
             </div>
           )}
         </div>
-      </div>
+      </Surface>
     </div>
   );
 };

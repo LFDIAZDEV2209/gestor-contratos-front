@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { Surface } from '../ui/Workspace';
 import { M } from '../../lib/metrics';
 import { Store } from '../../lib/store';
 import { money, moneyM, pct, fdate, clamp } from '../../lib/format';
@@ -170,7 +172,7 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
 
       {/* 4. GRÁFICAS Y NIVEL DE CONTROL */}
       <div className="grid g-21 mb">
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Ejecución del contrato</h3>
             <span className="sub">Mensual y acumulado vs. valor actualizado</span>
@@ -178,9 +180,9 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
           <div className="panel-b" style={{ minHeight: 280 }}>
             <Chart type="bar" data={chartData} options={chartOptions} height={260} />
           </div>
-        </div>
+        </Surface>
 
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Nivel de control documental</h3>
             <span className="sub" title="Indicador interno de completitud del expediente. No califica al contratista.">
@@ -220,12 +222,12 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
               })}
             </div>
           </div>
-        </div>
+        </Surface>
       </div>
 
       {/* 5. FACTORES DEL SEMÁFORO Y DETALLES */}
       <div className="grid g2 mb">
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Factores del semáforo</h3>
             <span className="sub">{LEVEL_TXT[m.nivel]}</span>
@@ -238,14 +240,14 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
               </div>
             ))}
           </div>
-        </div>
+        </Surface>
 
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Documentos faltantes del expediente</h3>
-            <button className="btn xs" onClick={() => onTabChange?.('documentos')}>
+            <Button className="btn xs" onClick={() => onTabChange?.('documentos')}>
               Ver documentos
-            </button>
+            </Button>
           </div>
           <div className="panel-b">
             {m.docsFaltantes.length > 0 ? (
@@ -264,7 +266,7 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
               <div className="empty">El expediente cuenta con todos los documentos requeridos.</div>
             )}
           </div>
-        </div>
+        </Surface>
       </div>
     </div>
   );

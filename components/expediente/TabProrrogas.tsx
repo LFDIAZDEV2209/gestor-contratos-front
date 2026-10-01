@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Modification, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -39,8 +42,8 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
 
   const handleCreate = () => {
     if (!AuthService.guard('editar')) return;
-    if (!nuevaFecha) return alert('Seleccione la nueva fecha de terminación');
-    if (!justificacion.trim()) return alert('Ingrese la justificación');
+    if (!nuevaFecha) return notify('Seleccione la nueva fecha de terminación');
+    if (!justificacion.trim()) return notify('Ingrese la justificación');
 
     const before = JSON.parse(JSON.stringify(c));
     const newMod: Modification = {
@@ -67,7 +70,7 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
 
     const hasGuarantees = Store.byContract('guarantees', cid).length > 0;
     if (hasGuarantees) {
-      alert('Atención: La prórroga puede exigir ampliar la vigencia de las pólizas de garantía.');
+      notify('Atención: La prórroga puede exigir ampliar la vigencia de las pólizas de garantía.');
     }
 
     setShowModal(false);
@@ -86,7 +89,7 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="panel">
+    <Surface className="panel">
       <div className="panel-h" style={{ borderTop: 0 }}>
         <div>
           <h3>Prórrogas</h3>
@@ -98,24 +101,24 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
         </div>
         <div className="row-flex">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={handleOpen}>
+          <Button className="btn sm pri" onClick={handleOpen}>
             <Icon name="calendar-plus" /> Crear prórroga
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="tbl-wrap">
-        <table className="tbl">
+      <TableViewport className="tbl-wrap">
+        <DataTable className="tbl">
           <thead>
             <tr>
               <th className="nw">Número</th>
@@ -166,8 +169,8 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </TableViewport>
 
       {showModal && (
         <Modal
@@ -176,16 +179,16 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
           size="md"
           footer={
             <>
-              <button className="btn" onClick={() => setShowModal(false)}>
+              <Button className="btn" onClick={() => setShowModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 <Icon name="calendar-plus" /> Registrar prórroga
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-1" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-1" style={{ gap: '14px' }}>
             <div>
               <label className="lbl">Fecha de terminación actual</label>
               <input className="inp" value={fdate(c.fechaFin)} disabled readOnly />
@@ -250,9 +253,9 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
                 onChange={(e) => setSoporte(e.target.value)}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
-    </div>
+    </Surface>
   );
 };

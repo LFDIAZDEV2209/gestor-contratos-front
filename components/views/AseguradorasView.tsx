@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Guarantee, Contract, Cupo } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -85,8 +88,8 @@ export const AseguradorasView = ({
 
   const handleCreateCupo = () => {
     if (!AuthService.guard('crear')) return;
-    if (!cupoForm.numero.trim()) return alert('Ingrese el número del cupo');
-    if (!cupoForm.valor) return alert('Ingrese el valor asignado al cupo');
+    if (!cupoForm.numero.trim()) return notify('Ingrese el número del cupo');
+    if (!cupoForm.valor) return notify('Ingrese el valor asignado al cupo');
 
     const newCp: Cupo = {
       id: uid('CP'),
@@ -133,7 +136,7 @@ export const AseguradorasView = ({
   return (
     <div>
       {/* Page Header */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Aseguradoras y cupos</h1>
           <p>
@@ -143,21 +146,21 @@ export const AseguradorasView = ({
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={() => setShowCupoModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowCupoModal(true)}>
             <Icon name="plus" /> Nuevo cupo
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* KPI Cards */}
       <div className="kpis mb">
@@ -194,7 +197,7 @@ export const AseguradorasView = ({
       {/* Insurer Cards Grid */}
       <div className="grid g3 mb" style={{ gap: '16px' }}>
         {insurerStatsList.map((x) => (
-          <div key={x.a} className="panel">
+          <Surface key={x.a} className="panel">
             <div className="panel-b">
               <div className="row-flex" style={{ flexWrap: 'nowrap', alignItems: 'flex-start', gap: '10px' }}>
                 <div
@@ -279,20 +282,20 @@ export const AseguradorasView = ({
                 </div>
               )}
             </div>
-          </div>
+          </Surface>
         ))}
       </div>
 
       {/* Contracts x Insurers Matrix */}
-      <div className="panel mb">
+      <Surface className="panel mb">
         <div className="panel-h">
           <div>
             <h3>Matriz de cobertura: Contratos × Aseguradoras</h3>
             <span className="sub">Pólizas vigentes de los contratos activos en las principales aseguradoras</span>
           </div>
         </div>
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -348,23 +351,23 @@ export const AseguradorasView = ({
                 );
               })}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* CRUD Table for Quotas */}
-      <div className="panel">
+      <Surface className="panel">
         <div className="panel-h">
           <div>
             <h3>Cupos de crédito / afianzamiento</h3>
             <span className="sub">Líneas globales de seguro rotativo por aseguradora</span>
           </div>
-          <button className="btn sm pri" onClick={() => setShowCupoModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowCupoModal(true)}>
             <Icon name="plus" /> Nuevo cupo
-          </button>
+          </Button>
         </div>
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th className="nw">Número de Cupo</th>
@@ -433,9 +436,9 @@ export const AseguradorasView = ({
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Modal for New Quota */}
       {showCupoModal && (
@@ -445,16 +448,16 @@ export const AseguradorasView = ({
           size="md"
           footer={
             <>
-              <button className="btn" onClick={() => setShowCupoModal(false)}>
+              <Button className="btn" onClick={() => setShowCupoModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreateCupo}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreateCupo}>
                 <Icon name="save" /> Registrar cupo
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-1" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-1" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Aseguradora</label>
               <select
@@ -487,7 +490,7 @@ export const AseguradorasView = ({
                 onChange={(e) => setCupoForm({ ...cupoForm, valor: Number(e.target.value) })}
               />
             </div>
-            <div className="grid g-2" style={{ gap: '10px' }}>
+            <FormGrid className="grid g-2" style={{ gap: '10px' }}>
               <div>
                 <label className="lbl required">Fecha inicio</label>
                 <input
@@ -506,7 +509,7 @@ export const AseguradorasView = ({
                   onChange={(e) => setCupoForm({ ...cupoForm, fechaVenc: e.target.value })}
                 />
               </div>
-            </div>
+            </FormGrid>
             <div>
               <label className="lbl">Tomador / Beneficiario</label>
               <input
@@ -525,7 +528,7 @@ export const AseguradorasView = ({
                 onChange={(e) => setCupoForm({ ...cupoForm, intermediario: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
     </div>

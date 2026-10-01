@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable } from '../ui/Workspace';
 import { useState, useRef, useEffect } from 'react';
 import type { Contract, VIssue, Document as DocType } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -98,12 +100,12 @@ export const ExpedienteView = ({
   const c = Store.get('contracts', id) as Contract | undefined;
   if (!c) {
     return (
-      <div className="panel p-4">
+      <Surface className="panel p-4">
         <p>El contrato no existe.</p>
-        <button className="btn pri" onClick={onBack}>
+        <Button className="btn pri" onClick={onBack}>
           Volver a Contratos
-        </button>
-      </div>
+        </Button>
+      </Surface>
     );
   }
 
@@ -230,19 +232,21 @@ export const ExpedienteView = ({
 
           <div className="ph-actions">
             {!c.anulado && (
-              <button className="btn" onClick={() => setShowEditModal(true)}>
+              <Button className="btn" onClick={() => setShowEditModal(true)}>
                 <Icon name="pen" /> Editar
-              </button>
+              </Button>
             )}
-            <button className="btn" onClick={handleOpenReconcile}>
+            <Button className="btn" onClick={handleOpenReconcile}>
               <Icon name="scale-balanced" /> Conciliación
-            </button>
-            <button className="btn pri" onClick={handleOpenValidator}>
+            </Button>
+            <Button className="btn pri" onClick={handleOpenValidator}>
               <Icon name="clipboard-check" /> VALIDAR CONTRATO
-            </button>
+            </Button>
           </div>
         </div>
 
+        <details className="context-disclosure">
+          <summary>Contexto contractual y métricas de ejecución</summary>
         {/* Metadata */}
         <div className="exp-meta">
           <div>
@@ -340,11 +344,13 @@ export const ExpedienteView = ({
             <b>{pct(m.pctFis, 0)}</b>
           </div>
         </div>
+        </details>
       </div>
 
       {/* Tabs con navegación horizontal y selector móvil para 17 pestañas */}
-      <div className="panel" style={{ marginTop: '16px' }}>
+      <Surface className="panel" style={{ marginTop: '16px' }}>
         <div
+          className="section-tabs-toolbar"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -355,7 +361,7 @@ export const ExpedienteView = ({
           }}
         >
           {/* Botón flecha izquierda */}
-          <button
+          <Button
             className="icon-btn"
             onClick={() => scrollTabs('left')}
             title="Desplazar pestañas hacia la izquierda"
@@ -363,12 +369,23 @@ export const ExpedienteView = ({
             style={{ width: 28, height: 28 }}
           >
             <Icon name="chevron-left" />
-          </button>
+          </Button>
 
           {/* Carrusel de pestañas */}
           <div
             ref={tabsRef}
             className="tabs"
+            role="tablist"
+            aria-label="Secciones del expediente"
+            onKeyDown={(event) => {
+              const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+              if (!keys.includes(event.key)) return;
+              event.preventDefault();
+              const index = TABS.findIndex(t => t.id === activeTab);
+              const next = event.key === 'Home' ? 0 : event.key === 'End' ? TABS.length-1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + TABS.length) % TABS.length;
+              setActiveTab(TABS[next].id);
+              requestAnimationFrame(()=>tabsRef.current?.querySelector<HTMLElement>(`#tab-${TABS[next].id}`)?.focus());
+            }}
             style={{
               padding: '0 4px',
               overflowX: 'auto',
@@ -383,7 +400,7 @@ export const ExpedienteView = ({
               const count = getTabCount(t);
               const isActive = activeTab === t.id;
               return (
-                <button
+                <Button
                   key={t.id}
                   className={`tab ${isActive ? 'on' : ''}`}
                   onClick={() => setActiveTab(t.id)}
@@ -392,17 +409,20 @@ export const ExpedienteView = ({
                     fontWeight: isActive ? 700 : 500
                   }}
                   aria-selected={isActive}
+                  id={`tab-${t.id}`}
+                  aria-controls="expediente-panel"
+                  tabIndex={isActive ? 0 : -1}
                   role="tab"
                 >
                   {t.label}
                   {count != null && <span className="n">{count}</span>}
-                </button>
+                </Button>
               );
             })}
           </div>
 
           {/* Botón flecha derecha */}
-          <button
+          <Button
             className="icon-btn"
             onClick={() => scrollTabs('right')}
             title="Desplazar pestañas hacia la derecha"
@@ -410,7 +430,7 @@ export const ExpedienteView = ({
             style={{ width: 28, height: 28 }}
           >
             <Icon name="chevron-right" />
-          </button>
+          </Button>
 
           {/* Selector desplegable de sección (muy útil en tablet y móvil) */}
           <div style={{ marginLeft: 4, display: 'flex', alignItems: 'center' }}>
@@ -438,7 +458,7 @@ export const ExpedienteView = ({
         </div>
 
         {/* Tab Body */}
-        <div className="tab-content">
+        <div className="tab-content" id="expediente-panel" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
           {activeTab === 'resumen' && <TabResumen cid={id} onTabChange={handleTabChangeByName} />}
           {activeTab === 'info' && <TabInformacion cid={id} />}
           {activeTab === 'documentos' && <TabDocumentos cid={id} />}
@@ -459,7 +479,7 @@ export const ExpedienteView = ({
             <TabTimeline cid={id} onTabChange={handleTabChangeByName} />
           )}
         </div>
-      </div>
+      </Surface>
 
       {/* Validator Modal */}
       {showValidator && valResult && (
@@ -469,16 +489,16 @@ export const ExpedienteView = ({
           size="lg"
           footer={
             <>
-              <button className="btn" onClick={() => handleExportValidation('xlsx')}>
+              <Button className="btn" onClick={() => handleExportValidation('xlsx')}>
                 <Icon name="file-excel" /> Excel
-              </button>
-              <button className="btn" onClick={() => handleExportValidation('pdf')}>
+              </Button>
+              <Button className="btn" onClick={() => handleExportValidation('pdf')}>
                 <Icon name="file-pdf" /> PDF
-              </button>
+              </Button>
               <span className="sp" style={{ flex: 1 }}></span>
-              <button className="btn pri" onClick={() => setShowValidator(false)}>
+              <Button className="btn pri" onClick={() => setShowValidator(false)}>
                 Cerrar
-              </button>
+              </Button>
             </>
           }
         >
@@ -629,7 +649,7 @@ export const ExpedienteView = ({
           footer={
             <>
               {recResult ? (
-                <button
+                <Button
                   className="btn"
                   onClick={() => {
                     setShowReconcile(false);
@@ -637,9 +657,9 @@ export const ExpedienteView = ({
                   }}
                 >
                   <Icon name="pen-to-square" /> Editar datos extraídos
-                </button>
+                </Button>
               ) : (
-                <button
+                <Button
                   className="btn"
                   onClick={() => {
                     setShowReconcile(false);
@@ -647,10 +667,10 @@ export const ExpedienteView = ({
                   }}
                 >
                   <Icon name="upload" /> Cargar contrato en Documentos
-                </button>
+                </Button>
               )}
               {!c.anulado && (
-                <button
+                <Button
                   className="btn"
                   onClick={() => {
                     setShowReconcile(false);
@@ -658,12 +678,12 @@ export const ExpedienteView = ({
                   }}
                 >
                   <Icon name="pen" /> Editar contrato
-                </button>
+                </Button>
               )}
               <span className="sp" style={{ flex: 1 }}></span>
-              <button className="btn pri" onClick={() => setShowReconcile(false)}>
+              <Button className="btn pri" onClick={() => setShowReconcile(false)}>
                 Cerrar
-              </button>
+              </Button>
             </>
           }
         >
@@ -726,8 +746,8 @@ export const ExpedienteView = ({
                   {recResult.doc.versions?.length || 1})
                 </p>
 
-                <div className="tbl-wrap">
-                  <table className="tbl conc">
+                <TableViewport className="tbl-wrap">
+                  <DataTable className="tbl conc">
                     <thead>
                       <tr>
                         <th>Campo</th>
@@ -760,8 +780,8 @@ export const ExpedienteView = ({
                         );
                       })}
                     </tbody>
-                  </table>
-                </div>
+                  </DataTable>
+                </TableViewport>
 
                 <p className="small muted mt-3">
                   <Icon name="circle-info" /> Los datos del documento provienen de la extracción

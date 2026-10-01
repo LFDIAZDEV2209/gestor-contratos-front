@@ -1,4 +1,7 @@
 'use client';
+import { notify, requestReason } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, MetricCard, Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 
 import React, { useState } from 'react';
 import { Store, AuthService, Audit } from '@/lib/store';
@@ -9,6 +12,8 @@ import { Icon } from '../icons';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { Chart } from '../ui/Chart';
+import { RiskMatrix } from '../ui/RiskMatrix';
+import { riskPresentation, riskScore } from '../ui/presentation';
 import type { Risk, Contract } from '@/lib/types';
 
 interface RiesgosViewProps {
@@ -38,7 +43,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
   const refresh = () => setTick((t) => t + 1);
 
   const contracts: Contract[] = activeContracts();
-  const allRisks: Risk[] = Store.all('risks').filter((r) => {
+  const allRisks: Risk[] = Store.all('risks').map(riskPresentation).filter((r) => {
     const c = Store.get('contracts', r.contractId);
     return c && !c.anulado;
   });
@@ -118,7 +123,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
 
   const handleSave = () => {
     if (!formData.descripcion.trim()) {
-      alert('Por favor ingresa la descripción del riesgo.');
+      notify('Por favor ingresa la descripción del riesgo.');
       return;
     }
     const nivelCalc = Number(formData.probabilidad) * Number(formData.impacto);
@@ -151,9 +156,9 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
     refresh();
   };
 
-  const handleAnular = (r: Risk) => {
+  const handleAnular = async (r: Risk) => {
     if (!AuthService.guard('anular')) return;
-    const motivo = prompt('Motivo de la anulación / cierre del riesgo:');
+    const motivo = await requestReason('Motivo de la anulación / cierre del riesgo:');
     if (motivo == null) return;
     Store.update('risks', r.id, { estado: 'Cerrado' });
     Audit.log({
@@ -206,149 +211,93 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
   return (
     <div className="view-content">
       {/* Header */}
-      <div className="page-h">
+      <PageHeader className="page-h">
         <div>
-          <h2>Riesgos</h2>
+          <h1>Riesgos</h1>
           <p className="sub">Matriz de riesgos contractuales: probabilidad × impacto.</p>
         </div>
         <div className="row-flex">
-          <button className="btn sm xs" onClick={() => handleExport('xlsx')}>
+          <Button className="btn sm xs" onClick={() => handleExport('xlsx')}>
             <Icon name="file-spreadsheet" /> Excel
-          </button>
-          <button className="btn sm xs" onClick={() => handleExport('pdf')}>
+          </Button>
+          <Button className="btn sm xs" onClick={() => handleExport('pdf')}>
             <Icon name="file-text" /> PDF
-          </button>
-          <button className="btn sm xs" onClick={() => handleExport('csv')}>
+          </Button>
+          <Button className="btn sm xs" onClick={() => handleExport('csv')}>
             <Icon name="file-text" /> CSV
-          </button>
-          <button className="btn sm xs" onClick={() => handleExport('print')}>
+          </Button>
+          <Button className="btn sm xs" onClick={() => handleExport('print')}>
             <Icon name="printer" /> Imprimir
-          </button>
-          <button className="btn pri sm" onClick={openNewModal}>
+          </Button>
+          <Button className="btn pri sm" onClick={openNewModal}>
             <Icon name="plus" /> Nuevo riesgo
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* KPIs */}
       <div className="kpis mb">
-        <div className="kpi-card">
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Riesgos identificados</div>
           <div className="kpi-v">{totalR}</div>
           <div className="kpi-s">En contratos activos</div>
-        </div>
-        <div className="kpi-card">
+        </MetricCard>
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Abiertos</div>
           <div className="kpi-v" style={{ color: 'var(--risk)' }}>
             {abiertosR}
           </div>
           <div className="kpi-s">Requieren control</div>
-        </div>
-        <div className="kpi-card">
+        </MetricCard>
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Extremos</div>
           <div className="kpi-v" style={{ color: 'var(--crit)' }}>
             {extremosR}
           </div>
           <div className="kpi-s">Prioridad crítica</div>
-        </div>
-        <div className="kpi-card">
+        </MetricCard>
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Altos</div>
           <div className="kpi-v" style={{ color: 'var(--risk)' }}>
             {altosR}
           </div>
           <div className="kpi-s">Seguimiento continuo</div>
-        </div>
-        <div className="kpi-card">
+        </MetricCard>
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Sin mitigación</div>
           <div className="kpi-v" style={{ color: sinMitigacionR > 0 ? 'var(--warn)' : 'var(--ok)' }}>
             {sinMitigacionR}
           </div>
           <div className="kpi-s">Sin plan de acción</div>
-        </div>
+        </MetricCard>
       </div>
 
       {/* Grid: Heatmap + Categorías */}
       <div className="grid g-12 mb">
         {/* Heatmap */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Mapa de calor</h3>
             <span className="sub">
               Riesgos no cerrados · Haz clic en una celda para filtrar la tabla
               {heatmapCell && (
-                <button
+                <Button
                   className="btn xs"
                   style={{ marginLeft: 8 }}
                   onClick={() => setHeatmapCell(null)}
                 >
                   Limpiar celda (P:{heatmapCell.p} × I:{heatmapCell.i})
-                </button>
+                </Button>
               )}
             </span>
           </div>
           <div className="panel-b" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <table className="heatmap-tbl" style={{ borderCollapse: 'collapse', textAlign: 'center' }}>
-              <thead>
-                <tr>
-                  <th style={{ fontSize: '11px', padding: '4px' }}>P \ I</th>
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <th key={i} style={{ width: 44, fontSize: '11px', padding: '4px' }}>
-                      I{i}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[5, 4, 3, 2, 1].map((p) => (
-                  <tr key={p}>
-                    <td style={{ fontWeight: 600, fontSize: '11px', padding: '4px' }}>P{p}</td>
-                    {[1, 2, 3, 4, 5].map((i) => {
-                      const count = openRisks.filter(
-                        (r) => Number(r.probabilidad) === p && Number(r.impacto) === i
-                      ).length;
-                      const score = p * i;
-                      const bg =
-                        score <= 5
-                          ? '#7FBF93'
-                          : score <= 10
-                          ? '#D9C255'
-                          : score <= 16
-                          ? '#E49A52'
-                          : '#D0543F';
-                      const isSelected = heatmapCell?.p === p && heatmapCell?.i === i;
-                      return (
-                        <td
-                          key={i}
-                          onClick={() => {
-                            if (isSelected) setHeatmapCell(null);
-                            else setHeatmapCell({ p, i });
-                          }}
-                          style={{
-                            width: 44,
-                            height: 38,
-                            backgroundColor: bg,
-                            color: '#fff',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            borderRadius: 4,
-                            border: isSelected ? '3px solid #111' : '1px solid #fff',
-                            boxShadow: isSelected ? '0 0 6px rgba(0,0,0,0.4)' : 'none'
-                          }}
-                          title={`Probabilidad ${p} × Impacto ${i} (${count} riesgos)`}
-                        >
-                          {count || ''}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <RiskMatrix risks={openRisks} selected={heatmapCell} onSelect={setHeatmapCell} />
           </div>
-        </div>
+        </Surface>
 
         {/* Gráfica por categoría */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Riesgos por categoría</h3>
             <span className="sub">Distribución por severidad</span>
@@ -358,11 +307,11 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
               <Chart config={chartConfig} />
             </div>
           </div>
-        </div>
+        </Surface>
       </div>
 
       {/* Tabla completa de riesgos */}
-      <div className="panel">
+      <Surface className="panel">
         <div className="panel-h">
           <h3>Matriz de riesgos ({filteredRisks.length})</h3>
           <div className="row-flex">
@@ -393,8 +342,8 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
           </div>
         </div>
 
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th>ID</th>
@@ -460,7 +409,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                             fontWeight: 600
                           }}
                         >
-                          {level} ({Number(r.probabilidad) * Number(r.impacto)})
+                          {level} ({riskScore(r) ?? 'Sin evaluar'})
                         </span>
                       </td>
                       <td style={{ maxWidth: 200 }} className="clip">
@@ -471,21 +420,21 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                         <Badge state={r.estado} />
                       </td>
                       <td className="acts">
-                        <button
+                        <Button
                           className="icon-btn"
                           title="Editar riesgo"
                           onClick={() => openEditModal(r)}
                         >
                           <Icon name="edit" />
-                        </button>
+                        </Button>
                         {r.estado !== 'Cerrado' && (
-                          <button
+                          <Button
                             className="icon-btn"
                             title="Cerrar / Anular riesgo"
                             onClick={() => handleAnular(r)}
                           >
                             <Icon name="x" />
-                          </button>
+                          </Button>
                         )}
                       </td>
                     </tr>
@@ -493,9 +442,9 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                 })
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Modal Nuevo / Editar Riesgo */}
       {modalOpen && (
@@ -504,16 +453,16 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
           onClose={() => setModalOpen(false)}
           footer={
             <>
-              <button className="btn" onClick={() => setModalOpen(false)}>
+              <Button className="btn" onClick={() => setModalOpen(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleSave}>
+              </Button>
+              <Button className="btn pri" onClick={handleSave}>
                 Guardar riesgo
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Contrato *</label>
               <select
@@ -612,7 +561,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                 placeholder="Nombre del responsable"
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
     </div>

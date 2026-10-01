@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable, FormGrid, Field } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Deliverable } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -165,7 +168,7 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
 
   const handleCreate = () => {
     if (!AuthService.guard('crear')) return;
-    if (!newDeliv.nombre) return alert('Ingrese el nombre del entregable');
+    if (!newDeliv.nombre) return notify('Ingrese el nombre del entregable');
 
     const u = AuthService.currentUser();
     const dObj: Deliverable = {
@@ -199,24 +202,24 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
           <span className="sub">{deliverables.length} entregables registrados</span>
         </div>
         <div className="row-flex">
-          <button className="btn sm pri" onClick={() => setShowNewModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowNewModal(true)}>
             <Icon name="plus" /> Nuevo entregable
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="panel mb-4">
+      <Surface className="panel mb-4">
         <div className="panel-h">
           <h3>Cronograma de Ejecución (Gantt)</h3>
         </div>
         <div className="panel-b">
           {ganttComponent || <div className="empty">No hay entregables para diagramar en el Gantt.</div>}
         </div>
-      </div>
+      </Surface>
 
-      <div className="panel">
-        <div className="tbl-wrap">
-          <table className="tbl">
+      <Surface className="panel">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th>Entregable</th>
@@ -268,9 +271,9 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {showNewModal && (
         <Modal
@@ -278,56 +281,56 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
           onClose={() => setShowNewModal(false)}
           footer={
             <div className="flex gap-2 justify-end w-full">
-              <button className="btn ghost" onClick={() => setShowNewModal(false)}>
+              <Button className="btn ghost" onClick={() => setShowNewModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 Guardar Entregable
-              </button>
+              </Button>
             </div>
           }
         >
-          <div className="form-grid">
-            <div className="f span2">
+          <FormGrid className="form-grid">
+            <Field className="f span2">
               <label className="req">Nombre del entregable</label>
               <input
                 value={newDeliv.nombre}
                 onChange={(e) => setNewDeliv({ ...newDeliv, nombre: e.target.value })}
                 placeholder="Ej. Informe técnico de avance"
               />
-            </div>
-            <div className="f span2">
+            </Field>
+            <Field className="f span2">
               <label>Descripción / Criterio de aceptación</label>
               <input
                 value={newDeliv.descripcion}
                 onChange={(e) => setNewDeliv({ ...newDeliv, descripcion: e.target.value })}
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label className="req">Fecha de inicio</label>
               <input
                 type="date"
                 value={newDeliv.fechaInicio}
                 onChange={(e) => setNewDeliv({ ...newDeliv, fechaInicio: e.target.value })}
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label className="req">Fecha programada</label>
               <input
                 type="date"
                 value={newDeliv.fechaProg}
                 onChange={(e) => setNewDeliv({ ...newDeliv, fechaProg: e.target.value })}
               />
-            </div>
-            <div className="f span2">
+            </Field>
+            <Field className="f span2">
               <label>Responsable</label>
               <input
                 value={newDeliv.responsable}
                 onChange={(e) => setNewDeliv({ ...newDeliv, responsable: e.target.value })}
                 placeholder="Nombre del responsable"
               />
-            </div>
-          </div>
+            </Field>
+          </FormGrid>
         </Modal>
       )}
     </div>

@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable, FormGrid, Field } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Guarantee, Cupo } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -55,8 +58,8 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
 
   const handleCreate = () => {
     if (!AuthService.guard('crear')) return;
-    if (!newGar.poliza) return alert('Ingrese el número de la póliza');
-    if (!newGar.valor) return alert('Ingrese el valor asegurado');
+    if (!newGar.poliza) return notify('Ingrese el número de la póliza');
+    if (!newGar.valor) return notify('Ingrese el valor asegurado');
 
     const garObj: Guarantee = {
       id: uid('GR'),
@@ -99,9 +102,9 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
           </span>
         </div>
         <div className="row-flex">
-          <button className="btn sm pri" onClick={() => setShowNewModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowNewModal(true)}>
             <Icon name="plus" /> Nueva póliza
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -160,9 +163,9 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
       )}
 
       {/* Tabla de pólizas */}
-      <div className="panel">
-        <div className="tbl-wrap">
-          <table className="tbl">
+      <Surface className="panel">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th>Póliza</th>
@@ -218,13 +221,13 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                     <td>
                       <div className="acts">
                         {g.estado === 'Pendiente' && (
-                          <button
+                          <Button
                             className="btn xs pri"
                             onClick={() => handleApprove(g)}
                             title="Aprobar póliza"
                           >
                             Aprobar
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </td>
@@ -239,9 +242,9 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {showNewModal && (
         <Modal
@@ -249,25 +252,25 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
           onClose={() => setShowNewModal(false)}
           footer={
             <div className="flex gap-2 justify-end w-full">
-              <button className="btn ghost" onClick={() => setShowNewModal(false)}>
+              <Button className="btn ghost" onClick={() => setShowNewModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 Guardar Póliza
-              </button>
+              </Button>
             </div>
           }
         >
-          <div className="form-grid">
-            <div className="f">
+          <FormGrid className="form-grid">
+            <Field className="f">
               <label className="req">Número de póliza</label>
               <input
                 value={newGar.poliza}
                 onChange={(e) => setNewGar({ ...newGar, poliza: e.target.value })}
                 placeholder="Ej. PL-992100"
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label className="req">Tipo de garantía</label>
               <select
                 value={newGar.tipo}
@@ -279,8 +282,8 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                   </option>
                 ))}
               </select>
-            </div>
-            <div className="f span2">
+            </Field>
+            <Field className="f span2">
               <label className="req">Aseguradora</label>
               <select
                 value={newGar.aseguradora}
@@ -292,8 +295,8 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                   </option>
                 ))}
               </select>
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label>Modalidad de expedición</label>
               <select
                 value={newGar.modalidadPoliza}
@@ -302,9 +305,9 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                 <option value="Póliza individual">Póliza individual</option>
                 <option value="Póliza por cupo">Póliza por cupo</option>
               </select>
-            </div>
+            </Field>
             {newGar.modalidadPoliza === 'Póliza por cupo' && (
-              <div className="f">
+              <Field className="f">
                 <label className="req">Cupo asignado</label>
                 <select
                   value={newGar.cupoId}
@@ -320,41 +323,41 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                     );
                   })}
                 </select>
-              </div>
+              </Field>
             )}
-            <div className="f">
+            <Field className="f">
               <label className="req">Valor asegurado</label>
               <input
                 type="number"
                 value={newGar.valor || ''}
                 onChange={(e) => setNewGar({ ...newGar, valor: Number(e.target.value) })}
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label>Porcentaje (%)</label>
               <input
                 type="number"
                 value={newGar.porcentaje || ''}
                 onChange={(e) => setNewGar({ ...newGar, porcentaje: Number(e.target.value) })}
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label className="req">Fecha de inicio</label>
               <input
                 type="date"
                 value={newGar.fechaInicio}
                 onChange={(e) => setNewGar({ ...newGar, fechaInicio: e.target.value })}
               />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label className="req">Fecha de vencimiento</label>
               <input
                 type="date"
                 value={newGar.fechaVenc}
                 onChange={(e) => setNewGar({ ...newGar, fechaVenc: e.target.value })}
               />
-            </div>
-          </div>
+            </Field>
+          </FormGrid>
         </Modal>
       )}
     </div>

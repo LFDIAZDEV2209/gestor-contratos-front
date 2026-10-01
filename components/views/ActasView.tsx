@@ -1,4 +1,7 @@
 'use client';
+import { notify, confirmAction } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Acta, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -53,9 +56,9 @@ export const ActasView = ({
 
   const handleCreate = () => {
     if (!AuthService.guard('crear')) return;
-    if (!form.contractId) return alert('Seleccione un contrato');
-    if (!form.numero.trim()) return alert('Ingrese el número del acta');
-    if (!form.fecha) return alert('Ingrese la fecha');
+    if (!form.contractId) return notify('Seleccione un contrato');
+    if (!form.numero.trim()) return notify('Ingrese el número del acta');
+    if (!form.fecha) return notify('Ingrese la fecha');
 
     const newActa: Acta = {
       id: uid('AC'),
@@ -91,9 +94,9 @@ export const ActasView = ({
     });
   };
 
-  const handleAnular = (acta: Acta) => {
+  const handleAnular = async (acta: Acta) => {
     if (!AuthService.guard('editar')) return;
-    if (!confirm(`¿Está seguro de anular el acta ${acta.numero}?`)) return;
+    if (!await confirmAction(`¿Está seguro de anular el acta ${acta.numero}?`)) return;
 
     Store.update('actas', acta.id, { estado: 'Anulada' });
     Audit.log({
@@ -129,31 +132,31 @@ export const ActasView = ({
   return (
     <div>
       {/* Page Header */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Actas contractuales</h1>
           <p>Registro formal de hitos, acuerdos, suspensiones, recibos y liquidaciones</p>
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={() => setShowModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
             <Icon name="plus" /> Nueva acta
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Actas Type Count Chips */}
-      <div
+      <Surface
         className="panel mb p-3"
         style={{
           display: 'flex',
@@ -163,28 +166,28 @@ export const ActasView = ({
           background: 'var(--bg-sub)'
         }}
       >
-        <button
+        <Button
           className={`btn sm ${filterTipo === '' ? 'pri' : 'ghost'}`}
           onClick={() => setFilterTipo('')}
         >
           Todas ({allActas.length})
-        </button>
+        </Button>
         {tiposCatalogo.map((t) => {
           const count = allActas.filter((a) => a.tipo === t).length;
           return (
-            <button
+            <Button
               key={t}
               className={`btn sm ${filterTipo === t ? 'pri' : 'ghost'}`}
               onClick={() => setFilterTipo(t)}
             >
               {t} ({count})
-            </button>
+            </Button>
           );
         })}
-      </div>
+      </Surface>
 
       {/* Main Table Panel */}
-      <div className="panel">
+      <Surface className="panel">
         <div className="filters mb" style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
@@ -194,7 +197,7 @@ export const ActasView = ({
               placeholder="Buscar por número, descripción o contrato..."
             />
           </div>
-          <div className="f">
+          <Field className="f">
             <select
               className="inp sm"
               value={filterContract}
@@ -207,11 +210,11 @@ export const ActasView = ({
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
         </div>
 
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -281,22 +284,22 @@ export const ActasView = ({
                     <td className="nw">
                       <div className="row-flex" style={{ gap: '4px' }}>
                         {c && (
-                          <button
+                          <Button
                             className="btn sm"
                             onClick={() => onSelectContract(c.id, 'actas')}
                           >
                             Expediente
-                          </button>
+                          </Button>
                         )}
                         {!isVoid && (
-                          <button
+                          <Button
                             className="icon-btn"
                             style={{ color: 'var(--crit)' }}
                             onClick={() => handleAnular(a)}
                             title="Anular acta"
                           >
                             <Icon name="ban" />
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </td>
@@ -311,9 +314,9 @@ export const ActasView = ({
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Modal for New Acta */}
       {showModal && (
@@ -323,16 +326,16 @@ export const ActasView = ({
           size="lg"
           footer={
             <>
-              <button className="btn" onClick={() => setShowModal(false)}>
+              <Button className="btn" onClick={() => setShowModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 <Icon name="save" /> Registrar acta
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-2" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Contrato</label>
               <select
@@ -420,7 +423,7 @@ export const ActasView = ({
                 onChange={(e) => setForm({ ...form, archivo: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
     </div>

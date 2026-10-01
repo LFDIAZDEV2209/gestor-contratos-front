@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Modification, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -54,8 +57,8 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
 
   const handleCreate = () => {
     if (!AuthService.guard('editar')) return;
-    if (!numero.trim()) return alert('Ingrese el número o identificador de la modificación');
-    if (!justificacion.trim()) return alert('Ingrese la justificación de la modificación');
+    if (!numero.trim()) return notify('Ingrese el número o identificador de la modificación');
+    if (!justificacion.trim()) return notify('Ingrese la justificación de la modificación');
 
     const before = JSON.parse(JSON.stringify(c));
     const newMod: Modification = {
@@ -139,7 +142,7 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="panel">
+    <Surface className="panel">
       <div className="panel-h" style={{ borderTop: 0 }}>
         <div>
           <h3>Modificaciones contractuales</h3>
@@ -147,19 +150,19 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
         </div>
         <div className="row-flex">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={() => setShowModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
             <Icon name="plus" /> Nueva modificación
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -205,14 +208,14 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
         >
           <Icon name="triangle-exclamation" />
           <span>{warningMsg}</span>
-          <button className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={() => setWarningMsg(null)}>
+          <Button className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={() => setWarningMsg(null)}>
             Entendido
-          </button>
+          </Button>
         </div>
       )}
 
-      <div className="tbl-wrap">
-        <table className="tbl">
+      <TableViewport className="tbl-wrap">
+        <DataTable className="tbl">
           <thead>
             <tr>
               <th className="nw">Número</th>
@@ -314,8 +317,8 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </TableViewport>
 
       {showModal && (
         <Modal
@@ -324,16 +327,16 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
           size="lg"
           footer={
             <>
-              <button className="btn" onClick={() => setShowModal(false)}>
+              <Button className="btn" onClick={() => setShowModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 <Icon name="save" /> Aplicar modificación
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-2" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Tipo de modificación</label>
               <select
@@ -470,9 +473,9 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
                 onChange={(e) => setSoporte(e.target.value)}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
-    </div>
+    </Surface>
   );
 };

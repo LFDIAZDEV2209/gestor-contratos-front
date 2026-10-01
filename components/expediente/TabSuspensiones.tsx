@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Modification, Acta, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -52,7 +55,7 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
 
   const handleExecute = () => {
     if (!AuthService.guard('editar')) return;
-    if (!justificacion.trim()) return alert('Ingrese la justificación');
+    if (!justificacion.trim()) return notify('Ingrese la justificación');
 
     const before = JSON.parse(JSON.stringify(c));
     const modId = uid('MD');
@@ -143,7 +146,7 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="panel">
+    <Surface className="panel">
       <div className="panel-h" style={{ borderTop: 0 }}>
         <div>
           <h3>Suspensiones y reinicios</h3>
@@ -159,29 +162,29 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
         </div>
         <div className="row-flex">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button
+          <Button
             className={`btn sm pri`}
             style={isSuspended ? { background: '#2E7D32' } : { background: '#D97706' }}
             onClick={() => handleOpenAction(isSuspended ? 'Reinicio' : 'Suspensión')}
           >
             <Icon name={isSuspended ? 'play' : 'pause'} />
             {isSuspended ? 'Registrar reinicio' : 'Registrar suspensión'}
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="tbl-wrap">
-        <table className="tbl">
+      <TableViewport className="tbl-wrap">
+        <DataTable className="tbl">
           <thead>
             <tr>
               <th className="nw">Número</th>
@@ -228,15 +231,15 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </TableViewport>
 
       <div className="panel-h" style={{ borderTop: '1px solid var(--line)', marginTop: '16px' }}>
         <h3>Actas de suspensión / reinicio</h3>
       </div>
 
-      <div className="tbl-wrap">
-        <table className="tbl">
+      <TableViewport className="tbl-wrap">
+        <DataTable className="tbl">
           <thead>
             <tr>
               <th className="nw">Número acta</th>
@@ -282,8 +285,8 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </TableViewport>
 
       {showModal && (
         <Modal
@@ -296,21 +299,21 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
           size="md"
           footer={
             <>
-              <button className="btn" onClick={() => setShowModal(false)}>
+              <Button className="btn" onClick={() => setShowModal(false)}>
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 className="btn pri"
                 style={actionType === 'Reinicio' ? { background: '#2E7D32' } : { background: '#D97706' }}
                 onClick={handleExecute}
               >
                 <Icon name={actionType === 'Reinicio' ? 'play' : 'pause'} />
                 Confirmar {actionType.toLowerCase()}
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-1" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-1" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Fecha de {actionType.toLowerCase()}</label>
               <input
@@ -371,9 +374,9 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
                 onChange={(e) => setSoporte(e.target.value)}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
-    </div>
+    </Surface>
   );
 };

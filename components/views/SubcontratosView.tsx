@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Subcontract, Contract, Company } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -97,9 +100,9 @@ export const SubcontratosView = ({
 
   const handleCreate = () => {
     if (!AuthService.guard('crear')) return;
-    if (!form.contractId) return alert('Seleccione el contrato principal');
-    if (!form.numero.trim()) return alert('Ingrese el número del subcontrato');
-    if (!form.contratista.trim()) return alert('Ingrese el nombre del contratista');
+    if (!form.contractId) return notify('Seleccione el contrato principal');
+    if (!form.numero.trim()) return notify('Ingrese el número del subcontrato');
+    if (!form.contratista.trim()) return notify('Ingrese el nombre del contratista');
 
     const newSub: Subcontract = {
       id: uid('SC'),
@@ -134,31 +137,31 @@ export const SubcontratosView = ({
   return (
     <div>
       {/* Page Header */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Subcontratos</h1>
           <p>Supervisión y control global de subcontratación en la red de contratos</p>
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm" onClick={() => setShowTree(!showTree)}>
+          <Button className="btn sm" onClick={() => setShowTree(!showTree)}>
             <Icon name="diagram-project" /> {showTree ? 'Ver tabla' : 'Ver árbol'}
-          </button>
-          <button className="btn sm pri" onClick={() => setShowModal(true)}>
+          </Button>
+          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
             <Icon name="plus" /> Nuevo subcontrato
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* KPI Cards */}
       <div className="kpis mb">
@@ -170,7 +173,7 @@ export const SubcontratosView = ({
 
       {/* Visual Tree Mode */}
       {showTree ? (
-        <div className="panel mb p-4" style={{ background: 'var(--bg-sub)' }}>
+        <Surface className="panel mb p-4" style={{ background: 'var(--bg-sub)' }}>
           <div className="tree">
             <ul>
               {allCompanies.map((co) => {
@@ -238,10 +241,10 @@ export const SubcontratosView = ({
               })}
             </ul>
           </div>
-        </div>
+        </Surface>
       ) : (
         /* Table Mode */
-        <div className="panel">
+        <Surface className="panel">
           {/* Filters Bar */}
           <div className="filters mb" style={{ padding: '12px 16px' }}>
             <div className="gsearch">
@@ -252,7 +255,7 @@ export const SubcontratosView = ({
                 placeholder="Buscar por subcontratista, NIT, número u objeto..."
               />
             </div>
-            <div className="f">
+            <Field className="f">
               <select
                 className="inp sm"
                 value={filterCompany}
@@ -265,8 +268,8 @@ export const SubcontratosView = ({
                   </option>
                 ))}
               </select>
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <select
                 className="inp sm"
                 value={filterEstado}
@@ -278,11 +281,11 @@ export const SubcontratosView = ({
                 <option value="Terminado">Terminado</option>
                 <option value="Liquidado">Liquidado</option>
               </select>
-            </div>
+            </Field>
           </div>
 
-          <div className="tbl-wrap">
-            <table className="tbl">
+          <TableViewport className="tbl-wrap">
+            <DataTable className="tbl">
               <thead>
                 <tr>
                   <th className="nw">Número</th>
@@ -353,12 +356,12 @@ export const SubcontratosView = ({
                       </td>
                       <td className="nw">
                         {c && (
-                          <button
+                          <Button
                             className="btn sm"
                             onClick={() => onSelectContract(c.id, 'subcontratos')}
                           >
                             Ver en contrato
-                          </button>
+                          </Button>
                         )}
                       </td>
                     </tr>
@@ -372,9 +375,9 @@ export const SubcontratosView = ({
                   </tr>
                 )}
               </tbody>
-            </table>
-          </div>
-        </div>
+            </DataTable>
+          </TableViewport>
+        </Surface>
       )}
 
       {/* Modal for New Subcontract */}
@@ -385,16 +388,16 @@ export const SubcontratosView = ({
           size="lg"
           footer={
             <>
-              <button className="btn" onClick={() => setShowModal(false)}>
+              <Button className="btn" onClick={() => setShowModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 <Icon name="save" /> Guardar subcontrato
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-2" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Contrato principal</label>
               <select
@@ -474,7 +477,7 @@ export const SubcontratosView = ({
                 onChange={(e) => setForm({ ...form, objeto: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
     </div>

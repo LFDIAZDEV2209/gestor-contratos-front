@@ -1,4 +1,7 @@
 'use client';
+import { notify, requestReason } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Document, DocumentVersion, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -66,8 +69,8 @@ export const DocumentosView = ({
 
   const handleUploadNew = () => {
     if (!AuthService.guard('crear')) return;
-    if (!uploadForm.contractId) return alert('Seleccione un contrato');
-    if (!uploadForm.nombre.trim()) return alert('Ingrese el nombre del documento');
+    if (!uploadForm.contractId) return notify('Seleccione un contrato');
+    if (!uploadForm.nombre.trim()) return notify('Ingrese el nombre del documento');
 
     const u = AuthService.currentUser();
     const docId = uid('DOC');
@@ -114,7 +117,7 @@ export const DocumentosView = ({
   const handleAddVersion = () => {
     if (!newVersionDoc) return;
     if (!AuthService.guard('editar')) return;
-    if (!versionForm.archivo.trim()) return alert('Ingrese el nombre del archivo');
+    if (!versionForm.archivo.trim()) return notify('Ingrese el nombre del archivo');
 
     const u = AuthService.currentUser();
     const currentVersions = newVersionDoc.versions || [];
@@ -145,9 +148,9 @@ export const DocumentosView = ({
     setVersionForm({ archivo: '', motivo: '', cambios: '' });
   };
 
-  const handleAnular = (doc: Document) => {
+  const handleAnular = async (doc: Document) => {
     if (!AuthService.guard('anular')) return;
-    const motivo = prompt(`Motivo de anulación del documento «${doc.nombre}»:`);
+    const motivo = await requestReason(`Motivo de anulación del documento «${doc.nombre}»:`);
     if (!motivo) return;
 
     Store.update('documents', doc.id, { estado: 'Anulado' });
@@ -197,28 +200,28 @@ export const DocumentosView = ({
   return (
     <div>
       {/* Page Header */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Documentos contractuales</h1>
           <p>Repositorio digital con trazabilidad y versionamiento histórico inmutable</p>
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={() => setShowUploadModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowUploadModal(true)}>
             <Icon name="upload" /> Cargar documento
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* KPI Cards */}
       <div className="kpis mb">
@@ -234,7 +237,7 @@ export const DocumentosView = ({
       </div>
 
       {/* Main Panel */}
-      <div className="panel">
+      <Surface className="panel">
         {/* Filters */}
         <div className="filters mb" style={{ padding: '12px 16px' }}>
           <div className="gsearch">
@@ -245,7 +248,7 @@ export const DocumentosView = ({
               placeholder="Buscar por nombre, archivo o contrato..."
             />
           </div>
-          <div className="f">
+          <Field className="f">
             <select
               className="inp sm"
               value={filterContract}
@@ -258,8 +261,8 @@ export const DocumentosView = ({
                 </option>
               ))}
             </select>
-          </div>
-          <div className="f">
+          </Field>
+          <Field className="f">
             <select
               className="inp sm"
               value={filterCat}
@@ -272,12 +275,12 @@ export const DocumentosView = ({
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
         </div>
 
         {/* Table */}
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -348,30 +351,30 @@ export const DocumentosView = ({
                     </td>
                     <td className="nw">
                       <div className="row-flex" style={{ gap: '4px' }}>
-                        <button
+                        <Button
                           className="btn sm"
                           onClick={() => setSelectedDocHistory(d)}
                           title="Historial de versiones"
                         >
                           Versiones
-                        </button>
+                        </Button>
                         {!isVoid && (
                           <>
-                            <button
+                            <Button
                               className="btn sm"
                               onClick={() => setNewVersionDoc(d)}
                               title="Subir nueva versión"
                             >
                               <Icon name="upload" />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               className="icon-btn"
                               style={{ color: 'var(--crit)' }}
                               onClick={() => handleAnular(d)}
                               title="Anular documento"
                             >
                               <Icon name="ban" />
-                            </button>
+                            </Button>
                           </>
                         )}
                       </div>
@@ -387,9 +390,9 @@ export const DocumentosView = ({
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Upload New Document Modal */}
       {showUploadModal && (
@@ -399,16 +402,16 @@ export const DocumentosView = ({
           size="md"
           footer={
             <>
-              <button className="btn" onClick={() => setShowUploadModal(false)}>
+              <Button className="btn" onClick={() => setShowUploadModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleUploadNew}>
+              </Button>
+              <Button className="btn pri" onClick={handleUploadNew}>
                 <Icon name="upload" /> Subir documento
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-1" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-1" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Contrato</label>
               <select
@@ -466,7 +469,7 @@ export const DocumentosView = ({
                 onChange={(e) => setUploadForm({ ...uploadForm, obs: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
 
@@ -477,9 +480,9 @@ export const DocumentosView = ({
           onClose={() => setSelectedDocHistory(null)}
           size="lg"
           footer={
-            <button className="btn pri" onClick={() => setSelectedDocHistory(null)}>
+            <Button className="btn pri" onClick={() => setSelectedDocHistory(null)}>
               Cerrar
-            </button>
+            </Button>
           }
         >
           <div>
@@ -487,8 +490,8 @@ export const DocumentosView = ({
               Categoría: <b>{selectedDocHistory.categoria}</b> · Total versiones:{' '}
               <b>{selectedDocHistory.versions?.length || 1}</b>
             </p>
-            <div className="tbl-wrap">
-              <table className="tbl">
+            <TableViewport className="tbl-wrap">
+              <DataTable className="tbl">
                 <thead>
                   <tr>
                     <th className="nw">Versión</th>
@@ -518,8 +521,8 @@ export const DocumentosView = ({
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+              </DataTable>
+            </TableViewport>
           </div>
         </Modal>
       )}
@@ -532,16 +535,16 @@ export const DocumentosView = ({
           size="md"
           footer={
             <>
-              <button className="btn" onClick={() => setNewVersionDoc(null)}>
+              <Button className="btn" onClick={() => setNewVersionDoc(null)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleAddVersion}>
+              </Button>
+              <Button className="btn pri" onClick={handleAddVersion}>
                 <Icon name="upload" /> Guardar versión v{(newVersionDoc.versions?.length || 1) + 1}
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-1" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-1" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Nuevo archivo</label>
               <input
@@ -570,7 +573,7 @@ export const DocumentosView = ({
                 onChange={(e) => setVersionForm({ ...versionForm, cambios: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
     </div>

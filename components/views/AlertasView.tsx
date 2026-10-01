@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, FormGrid } from '../ui/Workspace';
 
 import React, { useState } from 'react';
 import { Alerts, NotificationService } from '@/lib/alerts';
@@ -131,7 +134,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
     if (!taskAlert) return;
     if (!AuthService.guard('crear')) return;
     if (!taskTitle.trim()) {
-      alert('Escribe el título de la tarea.');
+      notify('Escribe el título de la tarea.');
       return;
     }
     const asg = taskAssignee || taskAlert.responsable || (users[0] ? users[0].nombre : '');
@@ -175,26 +178,26 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
   return (
     <div className="anim-fade-rise">
       {/* Encabezado */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Centro de alertas</h1>
           <p>Alertas automáticas derivadas de plazos, garantías, obligaciones, pagos, ejecución y documentos.</p>
         </div>
         <div className="ph-actions">
-          <button className="btn sm" onClick={markAllRead}>
+          <Button className="btn sm" onClick={markAllRead}>
             <Icon name="check" /> Marcar todas como leídas
-          </button>
-          <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar Excel">
+          </Button>
+          <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar Excel">
             <Icon name="file-excel" /> Excel
-          </button>
-          <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar PDF">
+          </Button>
+          <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar PDF">
             <Icon name="file-pdf" /> PDF
-          </button>
-          <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar CSV">
+          </Button>
+          <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar CSV">
             <Icon name="file-text" /> CSV
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Franja de 6 KPIs */}
       <div className="kpis mb">
@@ -248,7 +251,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
       {/* Grid de 2 columnas: Alertas (66%) y Tareas (33%) */}
       <div className="grid g-21">
         {/* Panel izquierdo: Lista de alertas */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="tabs" style={{ padding: '0 8px', display: 'flex', alignItems: 'center' }}>
             {[
               { id: '', label: 'Todas', count: openAlerts.length },
@@ -257,14 +260,14 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
               { id: 'proxima', label: 'Próximas', count: openAlerts.filter((a) => a.nivel === 'proxima').length },
               { id: 'info', label: 'Informativas', count: openAlerts.filter((a) => a.nivel === 'info').length }
             ].map((t) => (
-              <button
+              <Button
                 key={t.id}
                 className={`tab ${nivelFilter === t.id ? 'on' : ''}`}
                 onClick={() => setNivelFilter(t.id)}
               >
                 {t.label}
                 <span className="n">{t.count}</span>
-              </button>
+              </Button>
             ))}
             <span className="sp" style={{ flex: 1 }} />
             <select
@@ -332,17 +335,17 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
 
                   <div className="acts" style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
                     {a.estado === 'Nueva' && (
-                      <button
+                      <Button
                         className="icon-btn"
                         title="Marcar como leída"
                         onClick={() => handleRead(a)}
                       >
                         <Icon name="mail" />
-                      </button>
+                      </Button>
                     )}
                     {a.estado !== 'Resuelta' ? (
                       <>
-                        <button
+                        <Button
                           className="icon-btn"
                           title="Resolver alerta"
                           onClick={() => {
@@ -351,8 +354,8 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
                           }}
                         >
                           <Icon name="check-circle" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           className="icon-btn"
                           title="Delegar"
                           onClick={() => {
@@ -361,8 +364,8 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
                           }}
                         >
                           <Icon name="share" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           className="icon-btn"
                           title="Crear tarea"
                           onClick={() => {
@@ -373,26 +376,26 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
                           }}
                         >
                           <Icon name="plus" />
-                        </button>
+                        </Button>
                       </>
                     ) : (
-                      <button
+                      <Button
                         className="icon-btn"
                         title="Reabrir alerta"
                         onClick={() => handleReopen(a)}
                       >
                         <Icon name="rotate-ccw" />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </Surface>
 
         {/* Panel derecho: Tareas de seguimiento */}
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h">
             <h3>Tareas</h3>
             <span className="sub">Seguimiento de acciones</span>
@@ -442,7 +445,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
               })
             )}
           </div>
-        </div>
+        </Surface>
       </div>
 
       {/* Modal Resolver */}
@@ -452,12 +455,12 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
           onClose={() => setResolveAlert(null)}
           footer={
             <>
-              <button className="btn" onClick={() => setResolveAlert(null)}>
+              <Button className="btn" onClick={() => setResolveAlert(null)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={submitResolve}>
+              </Button>
+              <Button className="btn pri" onClick={submitResolve}>
                 Resolver
-              </button>
+              </Button>
             </>
           }
         >
@@ -485,12 +488,12 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
           onClose={() => setDelegateAlert(null)}
           footer={
             <>
-              <button className="btn" onClick={() => setDelegateAlert(null)}>
+              <Button className="btn" onClick={() => setDelegateAlert(null)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={submitDelegate}>
+              </Button>
+              <Button className="btn pri" onClick={submitDelegate}>
                 Delegar
-              </button>
+              </Button>
             </>
           }
         >
@@ -521,19 +524,19 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
           onClose={() => setTaskAlert(null)}
           footer={
             <>
-              <button className="btn" onClick={() => setTaskAlert(null)}>
+              <Button className="btn" onClick={() => setTaskAlert(null)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={submitCreateTask}>
+              </Button>
+              <Button className="btn pri" onClick={submitCreateTask}>
                 Crear tarea
-              </button>
+              </Button>
             </>
           }
         >
           <p className="small muted" style={{ marginTop: 0 }}>
             {taskAlert.tipo} · {taskAlert.numero}: {taskAlert.descripcion}
           </p>
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 12, marginTop: 12 }}>
+          <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 12, marginTop: 12 }}>
             <div>
               <label className="form-label">Título de la tarea *</label>
               <input
@@ -566,7 +569,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
                 onChange={(e) => setTaskDueDate(e.target.value)}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
     </div>

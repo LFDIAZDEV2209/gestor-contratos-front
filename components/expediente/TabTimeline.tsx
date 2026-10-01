@@ -1,4 +1,5 @@
 'use client';
+import { Surface } from '../ui/Workspace';
 import type { Contract, Acta, Guarantee, Payment, Modification, Breach } from '../../lib/types';
 import { Store } from '../../lib/store';
 import { M } from '../../lib/metrics';
@@ -163,7 +164,7 @@ export const TabTimeline = ({
   events.sort((a, b) => (a.f < b.f ? -1 : 1));
 
   return (
-    <div className="panel">
+    <Surface className="panel">
       <div className="panel-h" style={{ borderTop: 0 }}>
         <div>
           <h3>Historial del contrato</h3>
@@ -193,6 +194,6 @@ export const TabTimeline = ({
           {events.length === 0 && <div className="empty">Sin eventos en la línea de tiempo.</div>}
         </div>
       </div>
-    </div>
+    </Surface>
   );
 };

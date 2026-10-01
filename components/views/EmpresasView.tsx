@@ -1,4 +1,7 @@
 'use client';
+import { requestReason } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, TableViewport, DataTable, FormGrid, Field } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Company } from '../../lib/types';
 import { Store, Audit } from '../../lib/store';
@@ -41,8 +44,8 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
     }
   };
 
-  const handleAnular = (id: string) => {
-    const motivo = window.prompt('Motivo de anulación:');
+  const handleAnular = async (id: string) => {
+    const motivo = await requestReason('Motivo de anulación:');
     if (motivo) {
       Store.update('companies', id, { status: 'Anulado' });
       Audit.log({
@@ -57,16 +60,16 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
 
   return (
     <div>
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Empresas</h1>
           <p>Directorio de contratistas y terceros</p>
         </div>
         <div className="ph-actions">
-          <button className="btn ghost"><Icon name="file-contract"/> Exportar</button>
-          <button className="btn pri" onClick={() => setEditing({})}><Icon name="plus"/> Nueva Empresa</button>
+          <Button className="btn ghost"><Icon name="file-contract"/> Exportar</Button>
+          <Button className="btn pri" onClick={() => setEditing({})}><Icon name="plus"/> Nueva Empresa</Button>
         </div>
-      </div>
+      </PageHeader>
       
       <div className="kpis mb">
         <Kpi label="Total Empresas" value={total.toString()} />
@@ -74,9 +77,9 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
         <Kpi label="Inactivas" value={inactivas.toString()} color="na" />
       </div>
 
-      <div className="panel">
-        <div className="tbl-wrap">
-          <table className="tbl">
+      <Surface className="panel">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th>NIT</th>
@@ -97,46 +100,46 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                   <td><Badge text={c.status} color={c.status === 'Activo' ? 'ok' : 'crit'} /></td>
                   <td>
                     <div className="acts">
-                      <button className="icon-btn" onClick={() => onSelect(c.id)} title="Ver Ficha"><Icon name="search"/></button>
-                      <button className="icon-btn" onClick={() => setEditing(c)} title="Editar"><Icon name="cog"/></button>
-                      <button className="icon-btn" onClick={() => handleAnular(c.id)} title="Anular"><Icon name="exclamation-circle"/></button>
+                      <Button className="icon-btn" onClick={() => onSelect(c.id)} title="Ver Ficha"><Icon name="search"/></Button>
+                      <Button className="icon-btn" onClick={() => setEditing(c)} title="Editar"><Icon name="cog"/></Button>
+                      <Button className="icon-btn" onClick={() => handleAnular(c.id)} title="Anular"><Icon name="exclamation-circle"/></Button>
                     </div>
                   </td>
                 </tr>
               ))}
               {companies.length === 0 && <tr><td colSpan={6} className="empty">No hay empresas</td></tr>}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {editing && (
         <Modal title={editing.id ? 'Editar Empresa' : 'Nueva Empresa'} onClose={() => setEditing(null)}>
-          <div className="form-grid">
-            <div className="f">
+          <FormGrid className="form-grid">
+            <Field className="f">
               <label className="req">NIT</label>
               <input value={editing.nit || ''} onChange={e => setEditing({...editing, nit: e.target.value})} />
-            </div>
-            <div className="f span2">
+            </Field>
+            <Field className="f span2">
               <label className="req">Razón Social</label>
               <input value={editing.name || ''} onChange={e => setEditing({...editing, name: e.target.value})} />
-            </div>
-            <div className="f span2">
+            </Field>
+            <Field className="f span2">
               <label>Representante Legal</label>
               <input value={editing.rep || ''} onChange={e => setEditing({...editing, rep: e.target.value})} />
-            </div>
-            <div className="f">
+            </Field>
+            <Field className="f">
               <label>Tipo</label>
               <select value={editing.type || ''} onChange={e => setEditing({...editing, type: e.target.value})}>
                 <option value="Privada">Privada</option>
                 <option value="Pública">Pública</option>
                 <option value="Mixta">Mixta</option>
               </select>
-            </div>
-          </div>
+            </Field>
+          </FormGrid>
           <div className="modal-f mt-4">
-            <button className="btn ghost" onClick={() => setEditing(null)}>Cancelar</button>
-            <button className="btn pri" onClick={handleSave}>Guardar</button>
+            <Button className="btn ghost" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button className="btn pri" onClick={handleSave}>Guardar</Button>
           </div>
         </Modal>
       )}

@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { Surface, Field, MetricCard } from '../ui/Workspace';
 
 import React, { useState, useRef } from 'react';
 import { Store } from '@/lib/store';
@@ -154,7 +156,7 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
   const selClients = selectedDeptoData ? Object.keys(selectedDeptoData.clientes) : [];
 
   return (
-    <div className="panel mb" id="mapPanel">
+    <Surface className="panel mb" id="mapPanel">
       {/* Panel Header */}
       <div className="panel-h">
         <h3>
@@ -165,34 +167,34 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
         </span>
         <div className="row-flex">
           <div className="seg" style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
-            <button
+            <Button
               className={`btn sm ${metric === 'contratos' ? 'pri' : 'ghost'}`}
               style={{ borderRadius: 0, margin: 0, border: 'none' }}
               onClick={() => setMetric('contratos')}
             >
               <Icon name="file-text" /> Contratos <b>{tot.contratos}</b>
-            </button>
-            <button
+            </Button>
+            <Button
               className={`btn sm ${metric === 'polizas' ? 'pri' : 'ghost'}`}
               style={{ borderRadius: 0, margin: 0, border: 'none' }}
               onClick={() => setMetric('polizas')}
             >
               <Icon name="umbrella" /> Pólizas <b>{tot.polizas}</b>
-            </button>
-            <button
+            </Button>
+            <Button
               className={`btn sm ${metric === 'clientes' ? 'pri' : 'ghost'}`}
               style={{ borderRadius: 0, margin: 0, border: 'none' }}
               onClick={() => setMetric('clientes')}
             >
               <Icon name="user" /> Clientes <b>{tot.clientes}</b>
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Filtros del mapa */}
       <div className="filters" style={{ padding: '10px 16px', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', borderBottom: '1px solid var(--border)' }}>
-        <div className="f" style={{ width: 140 }}>
+        <Field className="f" style={{ width: 140 }}>
           <label className="small muted">Medir por</label>
           <select
             className="inp"
@@ -204,9 +206,9 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
               {metric === 'polizas' ? 'Valor asegurado' : 'Valor contratado'}
             </option>
           </select>
-        </div>
+        </Field>
 
-        <div className="f" style={{ minWidth: 180 }}>
+        <Field className="f" style={{ minWidth: 180 }}>
           <label className="small muted">Aseguradora</label>
           <select
             className="inp"
@@ -220,9 +222,9 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
               </option>
             ))}
           </select>
-        </div>
+        </Field>
 
-        <div className="f" style={{ width: 150 }}>
+        <Field className="f" style={{ width: 150 }}>
           <label className="small muted">Estado del contrato</label>
           <select
             className="inp"
@@ -236,9 +238,9 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
             <option value="Liquidado">Liquidado</option>
             <option value="Terminado">Terminado</option>
           </select>
-        </div>
+        </Field>
 
-        <div className="f" style={{ minWidth: 180 }}>
+        <Field className="f" style={{ minWidth: 180 }}>
           <label className="small muted">Empresa contratante</label>
           <select
             className="inp"
@@ -252,21 +254,21 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
               </option>
             ))}
           </select>
-        </div>
+        </Field>
 
         {(aseg || estado || empresa || sel) && (
-          <button
+          <Button
             className="btn sm"
             onClick={clearFilters}
             style={{ alignSelf: 'flex-end' }}
           >
             <Icon name="x" /> Limpiar
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Grid: SVG Mapa (Izquierda) + Detalle / Regiones (Derecha) */}
-      <div className="map-wrap" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, padding: '16px' }}>
+      <div className="map-wrap">
         {/* Caja de mapa SVG */}
         <div className="map-box" ref={mapBoxRef} style={{ position: 'relative' }}>
           <svg
@@ -449,32 +451,32 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
                   <div className="small muted">{DEPTOS[sel]?.[1]}</div>
                   <h3 style={{ margin: 0, fontSize: '18px' }}>{DEPTOS[sel]?.[0]}</h3>
                 </div>
-                <button
+                <Button
                   className="icon-btn"
                   onClick={() => setSel(null)}
                   title="Cerrar detalle"
                 >
                   <Icon name="x" />
-                </button>
+                </Button>
               </div>
 
               {/* Mini KPIs */}
               <div className="kpis mini" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 10 }}>
-                <div className="kpi-card" style={{ padding: '8px 10px' }}>
+                <MetricCard className="kpi-card" style={{ padding: '8px 10px' }}>
                   <div className="kpi-t" style={{ fontSize: '11px' }}>Contratos</div>
                   <div className="kpi-v" style={{ fontSize: '16px' }}>{selectedDeptoData.contratos.length}</div>
                   <div className="kpi-s" style={{ fontSize: '10px' }}>{moneyM(selectedDeptoData.valorC)}</div>
-                </div>
-                <div className="kpi-card" style={{ padding: '8px 10px' }}>
+                </MetricCard>
+                <MetricCard className="kpi-card" style={{ padding: '8px 10px' }}>
                   <div className="kpi-t" style={{ fontSize: '11px' }}>Pólizas</div>
                   <div className="kpi-v" style={{ fontSize: '16px' }}>{selectedDeptoData.polizas.length}</div>
                   <div className="kpi-s" style={{ fontSize: '10px' }}>{moneyM(selectedDeptoData.valorP)}</div>
-                </div>
-                <div className="kpi-card" style={{ padding: '8px 10px' }}>
+                </MetricCard>
+                <MetricCard className="kpi-card" style={{ padding: '8px 10px' }}>
                   <div className="kpi-t" style={{ fontSize: '11px' }}>Clientes</div>
                   <div className="kpi-v" style={{ fontSize: '16px' }}>{selClients.length}</div>
                   <div className="kpi-s" style={{ fontSize: '10px' }}>Contratistas</div>
-                </div>
+                </MetricCard>
               </div>
 
               {/* Lista de contratos del depto */}
@@ -563,12 +565,12 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
               </div>
 
               <div style={{ marginTop: 14 }}>
-                <button
+                <Button
                   className="btn sm pri"
                   onClick={() => onNavigateToContractsFilter?.('depto', sel)}
                 >
                   <Icon name="table" /> Ver en contratos
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -671,6 +673,6 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </Surface>
   );
 };

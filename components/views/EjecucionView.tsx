@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Contract, Exec } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -94,9 +97,9 @@ export const EjecucionView = ({
 
   const handleRegisterExec = () => {
     if (!AuthService.guard('crear')) return;
-    if (!form.contractId) return alert('Seleccione un contrato');
-    if (!form.periodo) return alert('Seleccione el periodo');
-    if (!form.valor) return alert('Ingrese el valor ejecutado');
+    if (!form.contractId) return notify('Seleccione un contrato');
+    if (!form.periodo) return notify('Seleccione el periodo');
+    if (!form.valor) return notify('Ingrese el valor ejecutado');
 
     const newExec: Exec = {
       id: 'EX_' + Date.now(),
@@ -122,28 +125,28 @@ export const EjecucionView = ({
   return (
     <div>
       {/* Page Header */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Ejecución contractual</h1>
           <p>Consolidado financiero, físico y alertas de agotamiento temprano de recursos</p>
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={() => setShowModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
             <Icon name="plus" /> Registrar ejecución
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* KPI Cards */}
       <div className="kpis mb">
@@ -155,7 +158,7 @@ export const EjecucionView = ({
 
       {/* Depletion Notice */}
       {agotaAntesList.length > 0 && (
-        <div
+        <Surface
           className="panel mb p-3"
           style={{
             background: 'var(--crit-s)',
@@ -174,22 +177,22 @@ export const EjecucionView = ({
             {agotaAntesList.map((c) => {
               const m = M(c);
               return (
-                <button
+                <Button
                   key={c.id}
                   className="btn sm"
                   style={{ background: '#fff' }}
                   onClick={() => onSelectContract(c.id, 'ejecucion')}
                 >
                   <b>{c.numero}</b> (se agota ~{fdate(m.fechaAgotar)})
-                </button>
+                </Button>
               );
             })}
           </div>
-        </div>
+        </Surface>
       )}
 
       {/* Chart */}
-      <div className="panel mb">
+      <Surface className="panel mb">
         <div className="panel-h">
           <h3>Evolución de ejecución mensual</h3>
           <span className="sub">Valor mensual acumulado del portafolio (últimos 12 meses)</span>
@@ -207,10 +210,10 @@ export const EjecucionView = ({
             />
           </div>
         </div>
-      </div>
+      </Surface>
 
       {/* Table */}
-      <div className="panel">
+      <Surface className="panel">
         <div className="filters mb" style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
@@ -230,8 +233,8 @@ export const EjecucionView = ({
           </label>
         </div>
 
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -315,9 +318,9 @@ export const EjecucionView = ({
                       )}
                     </td>
                     <td className="nw">
-                      <button className="btn sm" onClick={() => onSelectContract(c.id, 'ejecucion')}>
+                      <Button className="btn sm" onClick={() => onSelectContract(c.id, 'ejecucion')}>
                         Expediente
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 );
@@ -330,9 +333,9 @@ export const EjecucionView = ({
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Modal for Registering Execution */}
       {showModal && (
@@ -342,16 +345,16 @@ export const EjecucionView = ({
           size="md"
           footer={
             <>
-              <button className="btn" onClick={() => setShowModal(false)}>
+              <Button className="btn" onClick={() => setShowModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleRegisterExec}>
+              </Button>
+              <Button className="btn pri" onClick={handleRegisterExec}>
                 <Icon name="save" /> Guardar registro
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-1" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-1" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Contrato</label>
               <select
@@ -404,7 +407,7 @@ export const EjecucionView = ({
                 onChange={(e) => setForm({ ...form, obs: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
     </div>

@@ -129,7 +129,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <a
                     key={item.key}
                     className={isActive ? 'on' : ''}
-                    onClick={() => onNavigate(item.key)}
+                    href={`#${item.key}`}
+                    aria-current={isActive ? 'page' : undefined}
+                    onClick={(event) => { event.preventDefault(); onNavigate(item.key); }}
                     title={isCollapsed ? item.label : undefined}
                     aria-label={item.label}
                     style={{

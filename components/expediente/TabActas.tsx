@@ -1,4 +1,7 @@
 'use client';
+import { notify, confirmAction } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Acta } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -44,8 +47,8 @@ export const TabActas = ({ cid }: { cid: string }) => {
 
   const handleCreate = () => {
     if (!AuthService.guard('crear')) return;
-    if (!form.numero.trim()) return alert('Ingrese el número del acta');
-    if (!form.fecha) return alert('Ingrese la fecha del acta');
+    if (!form.numero.trim()) return notify('Ingrese el número del acta');
+    if (!form.fecha) return notify('Ingrese la fecha del acta');
 
     const nuevaActa: Acta = {
       id: uid('AC'),
@@ -80,9 +83,9 @@ export const TabActas = ({ cid }: { cid: string }) => {
     });
   };
 
-  const handleAnular = (acta: Acta) => {
+  const handleAnular = async (acta: Acta) => {
     if (!AuthService.guard('editar')) return;
-    if (!confirm(`¿Está seguro de anular el acta ${acta.numero}?`)) return;
+    if (!await confirmAction(`¿Está seguro de anular el acta ${acta.numero}?`)) return;
 
     Store.update('actas', acta.id, { estado: 'Anulada' });
     Audit.log({
@@ -96,7 +99,7 @@ export const TabActas = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="panel">
+    <Surface className="panel">
       <div className="panel-h" style={{ borderTop: 0 }}>
         <div>
           <h3>Actas</h3>
@@ -104,44 +107,44 @@ export const TabActas = ({ cid }: { cid: string }) => {
         </div>
         <div className="row-flex">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={() => setShowModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
             <Icon name="plus" /> Nueva acta
-          </button>
+          </Button>
         </div>
       </div>
 
       {tipos.length > 0 && (
         <div className="row-flex px-4 py-2" style={{ gap: '6px', borderBottom: '1px solid var(--line)' }}>
-          <button
+          <Button
             className={`btn sm ${filterTipo === '' ? 'pri' : 'ghost'}`}
             onClick={() => setFilterTipo('')}
           >
             Todas ({actas.length})
-          </button>
+          </Button>
           {tipos.map((t) => (
-            <button
+            <Button
               key={t}
               className={`btn sm ${filterTipo === t ? 'pri' : 'ghost'}`}
               onClick={() => setFilterTipo(t)}
             >
               {t} ({actas.filter((a) => a.tipo === t).length})
-            </button>
+            </Button>
           ))}
         </div>
       )}
 
-      <div className="tbl-wrap">
-        <table className="tbl">
+      <TableViewport className="tbl-wrap">
+        <DataTable className="tbl">
           <thead>
             <tr>
               <th className="nw">Número</th>
@@ -195,14 +198,14 @@ export const TabActas = ({ cid }: { cid: string }) => {
                   </td>
                   <td className="nw">
                     {!isVoid && (
-                      <button
+                      <Button
                         className="icon-btn"
                         onClick={() => handleAnular(a)}
                         title="Anular acta"
                         style={{ color: 'var(--crit)' }}
                       >
                         <Icon name="ban" />
-                      </button>
+                      </Button>
                     )}
                   </td>
                 </tr>
@@ -216,8 +219,8 @@ export const TabActas = ({ cid }: { cid: string }) => {
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </TableViewport>
 
       {showModal && (
         <Modal
@@ -226,16 +229,16 @@ export const TabActas = ({ cid }: { cid: string }) => {
           size="lg"
           footer={
             <>
-              <button className="btn" onClick={() => setShowModal(false)}>
+              <Button className="btn" onClick={() => setShowModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 <Icon name="save" /> Registrar acta
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-2" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Tipo de acta</label>
               <select
@@ -308,9 +311,9 @@ export const TabActas = ({ cid }: { cid: string }) => {
                 onChange={(e) => setForm({ ...form, archivo: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
-    </div>
+    </Surface>
   );
 };

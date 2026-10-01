@@ -1,5 +1,7 @@
 'use client';
+import { PageHeader, Surface } from '../ui/Workspace';
 import type { Company, Contract } from '../../lib/types';
+import { M } from '../../lib/metrics';
 import { Store } from '../../lib/store';
 import { Icon } from '../icons';
 import { Kpi } from '../ui/Kpi';
@@ -17,21 +19,21 @@ export const EmpresaView = ({ id, onBack }: { id: string, onBack: () => void }) 
   return (
     <div>
       <div className="crumb"><a onClick={onBack}>Empresas</a> / Ficha</div>
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>{company.razon || company.name}</h1>
           <p>NIT: {company.nit} | Rep: {company.rep || '—'}</p>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="kpis mb">
         <Kpi label="Contratos Activos" value={activeContracts.toString()} color="ok" />
         <Kpi label="Valor Histórico" value={money(totalVal)} />
-        <Kpi label="Ejecución Promedio" value={pct(65)} color="info" />
+        <Kpi label="Ejecución Promedio" value={contracts.length ? pct(contracts.reduce((sum, c) => sum + M(c).pctFin, 0) / contracts.length) : 'Sin datos'} color="info" />
       </div>
 
       <div className="grid g2">
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h"><h3>Información General</h3></div>
           <div className="panel-b np">
             <div className="dl">
@@ -43,9 +45,9 @@ export const EmpresaView = ({ id, onBack }: { id: string, onBack: () => void }) 
               <div><span>Nivel de Riesgo</span><b>{company.level || '1'}</b></div>
             </div>
           </div>
-        </div>
+        </Surface>
 
-        <div className="panel">
+        <Surface className="panel">
           <div className="panel-h"><h3>Valor por Contrato</h3></div>
           <div className="panel-b">
             {/* Simple horizontal bars */}
@@ -63,10 +65,10 @@ export const EmpresaView = ({ id, onBack }: { id: string, onBack: () => void }) 
             })}
             {contracts.length === 0 && <div className="empty">No hay datos</div>}
           </div>
-        </div>
+        </Surface>
       </div>
 
-      <div className="panel mt-4">
+      <Surface className="panel mt-4">
         <div className="panel-h"><h3>Estructura de Contratos</h3></div>
         <div className="tree">
           <ul>
@@ -76,7 +78,7 @@ export const EmpresaView = ({ id, onBack }: { id: string, onBack: () => void }) 
                 {contracts.map(c => (
                   <li key={c.id}>
                     <div className="node">
-                      <Icon name="file-contract"/> {c.num} - {c.obj}
+                      <Icon name="file-contract"/> {c.numero || c.num} - {c.objeto || c.obj}
                     </div>
                     {/* Subcontracts would render here if mapped */}
                   </li>
@@ -85,7 +87,7 @@ export const EmpresaView = ({ id, onBack }: { id: string, onBack: () => void }) 
             </li>
           </ul>
         </div>
-      </div>
+      </Surface>
     </div>
   );
 };

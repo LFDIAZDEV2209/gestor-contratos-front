@@ -1,4 +1,7 @@
 'use client';
+import { notify, confirmAction } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Guarantee, Contract, Cupo } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -87,18 +90,18 @@ export const GarantiasView = ({
     (cp) => cp.aseguradora === form.aseguradora && cp.estado === 'Vigente'
   );
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!AuthService.guard('crear')) return;
-    if (!form.contractId) return alert('Seleccione un contrato');
-    if (!form.poliza.trim()) return alert('Ingrese el número de la póliza');
-    if (!form.valor) return alert('Ingrese el valor asegurado');
+    if (!form.contractId) return notify('Seleccione un contrato');
+    if (!form.poliza.trim()) return notify('Ingrese el número de la póliza');
+    if (!form.valor) return notify('Ingrese el valor asegurado');
 
     if (form.modalidadPoliza === 'Póliza por cupo' && form.cupoId) {
       const cupoObj = Store.get('cupos', form.cupoId);
       if (cupoObj) {
         const stats = cupoStats(cupoObj);
         if (Number(form.valor) > stats.disponible) {
-          const proceed = confirm(
+          const proceed = await confirmAction(
             `El valor asegurado (${money(form.valor)}) supera el saldo disponible del cupo (${money(
               stats.disponible
             )}).\n\n¿Desea registrar la póliza de todas formas?`
@@ -165,28 +168,28 @@ export const GarantiasView = ({
   return (
     <div>
       {/* Page Header */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Garantías y pólizas</h1>
           <p>Control integral de pólizas contractuales, vigencias y esquemas de cupo</p>
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={() => setShowModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
             <Icon name="plus" /> Nueva póliza
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* KPI Cards */}
       <div className="kpis mb">
@@ -198,39 +201,39 @@ export const GarantiasView = ({
       </div>
 
       {/* Main Panel */}
-      <div className="panel">
+      <Surface className="panel">
         {/* Quick Views */}
         <div className="tabs" style={{ padding: '0 12px' }}>
-          <button
+          <Button
             className={`tab ${activeTab === 'todas' ? 'on' : ''}`}
             onClick={() => setActiveTab('todas')}
           >
             Todas ({totalGarantias})
-          </button>
-          <button
+          </Button>
+          <Button
             className={`tab ${activeTab === 'prox30' ? 'on' : ''}`}
             onClick={() => setActiveTab('prox30')}
           >
             Vencen ≤ 30 días ({proxVencer})
-          </button>
-          <button
+          </Button>
+          <Button
             className={`tab ${activeTab === 'vencidas' ? 'on' : ''}`}
             onClick={() => setActiveTab('vencidas')}
           >
             Vencidas ({vencidas})
-          </button>
-          <button
+          </Button>
+          <Button
             className={`tab ${activeTab === 'cupo' ? 'on' : ''}`}
             onClick={() => setActiveTab('cupo')}
           >
             Por cupo ({allGuarantees.filter((g) => g.modalidadPoliza === 'Póliza por cupo').length})
-          </button>
-          <button
+          </Button>
+          <Button
             className={`tab ${activeTab === 'individual' ? 'on' : ''}`}
             onClick={() => setActiveTab('individual')}
           >
             Individuales ({allGuarantees.filter((g) => g.modalidadPoliza !== 'Póliza por cupo').length})
-          </button>
+          </Button>
         </div>
 
         {/* Filter Bar */}
@@ -243,7 +246,7 @@ export const GarantiasView = ({
               placeholder="Buscar por póliza, tomador o contrato..."
             />
           </div>
-          <div className="f">
+          <Field className="f">
             <select
               className="inp sm"
               value={filterAseg}
@@ -256,8 +259,8 @@ export const GarantiasView = ({
                 </option>
               ))}
             </select>
-          </div>
-          <div className="f">
+          </Field>
+          <Field className="f">
             <select
               className="inp sm"
               value={filterTipo}
@@ -270,12 +273,12 @@ export const GarantiasView = ({
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
         </div>
 
         {/* Table */}
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -347,13 +350,13 @@ export const GarantiasView = ({
                     </td>
                     <td className="nw">
                       {c && (
-                        <button
+                        <Button
                           className="btn sm"
                           onClick={() => onSelectContract(c.id, 'garantias')}
                           title="Ver en expediente del contrato"
                         >
                           Expediente
-                        </button>
+                        </Button>
                       )}
                     </td>
                   </tr>
@@ -367,9 +370,9 @@ export const GarantiasView = ({
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Modal for New Policy */}
       {showModal && (
@@ -379,16 +382,16 @@ export const GarantiasView = ({
           size="lg"
           footer={
             <>
-              <button className="btn" onClick={() => setShowModal(false)}>
+              <Button className="btn" onClick={() => setShowModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 <Icon name="save" /> Registrar póliza
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-2" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Contrato</label>
               <select
@@ -535,7 +538,7 @@ export const GarantiasView = ({
                 onChange={(e) => setForm({ ...form, intermediario: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
     </div>

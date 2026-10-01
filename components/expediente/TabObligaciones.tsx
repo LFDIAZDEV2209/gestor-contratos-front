@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Obligation } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -97,9 +99,9 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
         <Kpi label="% Cumplimiento promedio" value={pct(avgCumpl)} />
       </div>
 
-      <div className="panel">
-        <div className="tbl-wrap">
-          <table className="tbl">
+      <Surface className="panel">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th>Descripción</th>
@@ -150,13 +152,13 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
                     <td>{o.responsable}</td>
                     <td>
                       <div className="acts">
-                        <button
+                        <Button
                           className="btn xs ghost"
                           onClick={() => setSelectedOb(o)}
                           title="Ver ficha de obligación"
                         >
                           <Icon name="eye" /> Ficha
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -170,9 +172,9 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Modal Ficha de Obligación */}
       {selectedOb && (
@@ -190,13 +192,13 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
                 )}
               </div>
               <div className="flex gap-2">
-                <button className="btn ghost" onClick={() => setSelectedOb(null)}>
+                <Button className="btn ghost" onClick={() => setSelectedOb(null)}>
                   Cerrar
-                </button>
+                </Button>
                 {selectedOb.estado !== 'Cumplida' && (
-                  <button className="btn pri" onClick={() => handleVerify(selectedOb)}>
+                  <Button className="btn pri" onClick={() => handleVerify(selectedOb)}>
                     <Icon name="check" /> Aprobar y Verificar
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -223,7 +225,7 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
 
           <div className="grid g2 mb-4">
             {/* Checklist */}
-            <div className="panel">
+            <Surface className="panel">
               <div className="panel-h">
                 <h3>Checklist de cumplimiento</h3>
               </div>
@@ -236,9 +238,9 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
                     placeholder="Nuevo ítem de verificación..."
                     className="flex-1"
                   />
-                  <button className="btn sm pri" onClick={handleAddCheck}>
+                  <Button className="btn sm pri" onClick={handleAddCheck}>
                     Agregar
-                  </button>
+                  </Button>
                 </div>
                 <div className="space-y-2">
                   {(selectedOb.checklist || []).map((item) => (
@@ -259,10 +261,10 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
                   )}
                 </div>
               </div>
-            </div>
+            </Surface>
 
             {/* Comentarios y seguimiento */}
-            <div className="panel">
+            <Surface className="panel">
               <div className="panel-h">
                 <h3>Bitácora y Comentarios</h3>
               </div>
@@ -275,9 +277,9 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
                     placeholder="Registrar observación..."
                     className="flex-1"
                   />
-                  <button className="btn sm pri" onClick={handleAddComment}>
+                  <Button className="btn sm pri" onClick={handleAddComment}>
                     Comentar
-                  </button>
+                  </Button>
                 </div>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {(selectedOb.comentarios || []).map((c) => (
@@ -294,7 +296,7 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
                   )}
                 </div>
               </div>
-            </div>
+            </Surface>
           </div>
         </Modal>
       )}

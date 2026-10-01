@@ -1,5 +1,10 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
+import { RiskMatrix } from '../ui/RiskMatrix';
+import { riskPresentation } from '../ui/presentation';
 import type { Risk } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { CAT } from '../../lib/catalog';
@@ -28,7 +33,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
   const c = Store.get('contracts', cid);
   if (!c) return <div className="empty">Contrato no encontrado</div>;
 
-  const risks = (Store.byContract('risks', cid) as Risk[]).sort((a, b) => {
+  const risks = (Store.byContract('risks', cid) as Risk[]).map(riskPresentation).sort((a, b) => {
     const na = Number(a.prob) * Number(a.impacto);
     const nb = Number(b.prob) * Number(b.impacto);
     return nb - na;
@@ -65,7 +70,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
 
   const handleCreate = () => {
     if (!AuthService.guard('crear')) return;
-    if (!form.riesgo.trim()) return alert('Ingrese la descripción del riesgo');
+    if (!form.riesgo.trim()) return notify('Ingrese la descripción del riesgo');
 
     const newRisk: Risk = {
       id: uid('RG'),
@@ -119,7 +124,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="panel">
+    <Surface className="panel">
       <div className="panel-h" style={{ borderTop: 0 }}>
         <div>
           <h3>Matriz de riesgos</h3>
@@ -127,19 +132,19 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
         </div>
         <div className="row-flex">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={() => setShowModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
             <Icon name="plus" /> Nuevo riesgo
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -149,43 +154,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
           <h4 style={{ fontSize: '13px', marginBottom: '10px', color: 'var(--text)' }}>
             Mapa de calor (activos: {activeRisks.length})
           </h4>
-          <div className="heat">
-            {[5, 4, 3, 2, 1].map((p) => (
-              <div key={`row-${p}`} style={{ display: 'contents' }}>
-                <div className="ax">P{p}</div>
-                {[1, 2, 3, 4, 5].map((i) => {
-                  const score = p * i;
-                  const count = activeRisks.filter(
-                    (r) => Number(r.prob) === p && Number(r.impacto) === i
-                  ).length;
-                  const isSelected = selectedCell?.p === p && selectedCell?.i === i;
-                  return (
-                    <div
-                      key={`c-${p}-${i}`}
-                      className={`c ${riskClass(score)} ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleCellClick(p, i)}
-                      title={`Probabilidad ${p} × Impacto ${i} = ${score}`}
-                      style={{
-                        opacity: count ? 1 : 0.35,
-                        cursor: 'pointer',
-                        outline: isSelected ? '2px solid var(--text)' : 'none',
-                        transform: isSelected ? 'scale(1.08)' : 'none',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      {count || ''}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-            <div></div>
-            {[1, 2, 3, 4, 5].map((j) => (
-              <div key={`ax-${j}`} className="ax">
-                I{j}
-              </div>
-            ))}
-          </div>
+          <RiskMatrix risks={activeRisks} selected={selectedCell} onSelect={setSelectedCell} />
 
           <div className="legend mt-3" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '12px' }}>
             <span>
@@ -206,21 +175,21 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
             <div className="mt-3 p-2 small" style={{ background: 'var(--bg-sub)', borderRadius: '4px' }}>
               Filtrando celda: <b>P{selectedCell.p} × I{selectedCell.i}</b> (
               {filteredRisks.length} riesgos)
-              <button
+              <Button
                 className="btn ghost sm"
                 style={{ marginLeft: '8px', padding: '2px 6px' }}
                 onClick={() => setSelectedCell(null)}
               >
                 Limpiar filtro
-              </button>
+              </Button>
             </div>
           )}
         </div>
 
         {/* Risks Table Column */}
         <div>
-          <div className="tbl-wrap">
-            <table className="tbl">
+          <TableViewport className="tbl-wrap">
+            <DataTable className="tbl">
               <thead>
                 <tr>
                   <th>Riesgo</th>
@@ -278,21 +247,21 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
                       </td>
                       <td className="nw">
                         {r.estado !== 'Cerrado' ? (
-                          <button
+                          <Button
                             className="btn ghost sm"
                             onClick={() => handleUpdateStatus(r, 'Cerrado')}
                             title="Cerrar riesgo"
                           >
                             Cerrar
-                          </button>
+                          </Button>
                         ) : (
-                          <button
+                          <Button
                             className="btn ghost sm"
                             onClick={() => handleUpdateStatus(r, 'Abierto')}
                             title="Reabrir riesgo"
                           >
                             Reabrir
-                          </button>
+                          </Button>
                         )}
                       </td>
                     </tr>
@@ -306,8 +275,8 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
                   </tr>
                 )}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
+          </TableViewport>
         </div>
       </div>
 
@@ -318,16 +287,16 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
           size="lg"
           footer={
             <>
-              <button className="btn" onClick={() => setShowModal(false)}>
+              <Button className="btn" onClick={() => setShowModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 <Icon name="save" /> Registrar riesgo
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-2" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="lbl required">Descripción del riesgo</label>
               <textarea
@@ -424,9 +393,9 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
                 onChange={(e) => setForm({ ...form, mitigacion: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
-    </div>
+    </Surface>
   );
 };

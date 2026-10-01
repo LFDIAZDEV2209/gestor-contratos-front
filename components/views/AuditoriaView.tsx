@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, MetricCard, Field, TableViewport, DataTable } from '../ui/Workspace';
 
 import React, { useState } from 'react';
 import { Store, AuthService, Audit } from '@/lib/store';
@@ -28,13 +30,13 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
   if (!canAudit) {
     return (
       <div className="view-content">
-        <div className="page-h">
+        <PageHeader className="page-h">
           <div>
-            <h2>Auditoría</h2>
+            <h1>Auditoría</h1>
             <p className="sub">Bitácora automática de todos los cambios.</p>
           </div>
-        </div>
-        <div className="panel">
+        </PageHeader>
+        <Surface className="panel">
           <div className="empty-state" style={{ padding: '48px 16px', textAlign: 'center' }}>
             <div style={{ fontSize: '36px', color: 'var(--crit)', marginBottom: '12px' }}>
               <Icon name="lock" />
@@ -46,13 +48,13 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
             </p>
             {onOpenUserSwitcher && (
               <div style={{ marginTop: '16px' }}>
-                <button className="btn sm pri" onClick={onOpenUserSwitcher}>
+                <Button className="btn sm pri" onClick={onOpenUserSwitcher}>
                   Cambiar usuario
-                </button>
+                </Button>
               </div>
             )}
           </div>
-        </div>
+        </Surface>
       </div>
     );
   }
@@ -125,62 +127,62 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
   return (
     <div className="view-content">
       {/* Header */}
-      <div className="page-h">
+      <PageHeader className="page-h">
         <div>
-          <h2>Auditoría contractual</h2>
+          <h1>Auditoría contractual</h1>
           <p className="sub">Bitácora automática e inmutable de todas las acciones. No puede editarse desde la interfaz.</p>
         </div>
         <div className="row-flex">
-          <button className="btn sm xs" onClick={() => handleExport('xlsx')}>
+          <Button className="btn sm xs" onClick={() => handleExport('xlsx')}>
             <Icon name="file-spreadsheet" /> Excel
-          </button>
-          <button className="btn sm xs" onClick={() => handleExport('pdf')}>
+          </Button>
+          <Button className="btn sm xs" onClick={() => handleExport('pdf')}>
             <Icon name="file-text" /> PDF
-          </button>
-          <button className="btn sm xs" onClick={() => handleExport('csv')}>
+          </Button>
+          <Button className="btn sm xs" onClick={() => handleExport('csv')}>
             <Icon name="file-text" /> CSV
-          </button>
-          <button className="btn sm xs" onClick={() => handleExport('print')}>
+          </Button>
+          <Button className="btn sm xs" onClick={() => handleExport('print')}>
             <Icon name="printer" /> Imprimir
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* KPIs */}
       <div className="kpis mb">
-        <div className="kpi-card">
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Registros totales</div>
           <div className="kpi-v">{totalAudit}</div>
           <div className="kpi-s">Histórico inmutable</div>
-        </div>
-        <div className="kpi-card">
+        </MetricCard>
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Registros de hoy</div>
           <div className="kpi-v" style={{ color: 'var(--brand-2)' }}>
             {todayCount}
           </div>
           <div className="kpi-s">{fdate(todayIso())}</div>
-        </div>
-        <div className="kpi-card">
+        </MetricCard>
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Usuarios con actividad</div>
           <div className="kpi-v">{usersWithActivity}</div>
           <div className="kpi-s">En el registro</div>
-        </div>
-        <div className="kpi-card">
+        </MetricCard>
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Modificaciones</div>
           <div className="kpi-v">{modifCount}</div>
           <div className="kpi-s">Cambios de campo</div>
-        </div>
-        <div className="kpi-card">
+        </MetricCard>
+        <MetricCard className="kpi-card">
           <div className="kpi-t">Anulaciones</div>
           <div className="kpi-v" style={{ color: 'var(--crit)' }}>
             {anulaCount}
           </div>
           <div className="kpi-s">Registros anulados</div>
-        </div>
+        </MetricCard>
       </div>
 
       {/* Panel principal con filtros y tabla/timeline */}
-      <div className="panel">
+      <Surface className="panel">
         <div className="readonly-note" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', backgroundColor: 'var(--bg-soft, #f7f9fa)', borderBottom: '1px solid var(--border)', fontSize: '12px' }}>
           <Icon name="lock" />
           <span>
@@ -190,7 +192,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
 
         {/* Barra de Filtros */}
         <div className="filters" style={{ padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', borderBottom: '1px solid var(--border)' }}>
-          <div className="f" style={{ minWidth: 140 }}>
+          <Field className="f" style={{ minWidth: 140 }}>
             <label className="small muted">Usuario</label>
             <select
               className="inp"
@@ -204,9 +206,9 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
 
-          <div className="f" style={{ minWidth: 180 }}>
+          <Field className="f" style={{ minWidth: 180 }}>
             <label className="small muted">Contrato</label>
             <select
               className="inp"
@@ -220,9 +222,9 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
 
-          <div className="f" style={{ width: 130 }}>
+          <Field className="f" style={{ width: 130 }}>
             <label className="small muted">Desde</label>
             <input
               type="date"
@@ -230,9 +232,9 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
               value={filterDesde}
               onChange={(e) => setFilterDesde(e.target.value)}
             />
-          </div>
+          </Field>
 
-          <div className="f" style={{ width: 130 }}>
+          <Field className="f" style={{ width: 130 }}>
             <label className="small muted">Hasta</label>
             <input
               type="date"
@@ -240,9 +242,9 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
               value={filterHasta}
               onChange={(e) => setFilterHasta(e.target.value)}
             />
-          </div>
+          </Field>
 
-          <div className="f" style={{ width: 140 }}>
+          <Field className="f" style={{ width: 140 }}>
             <label className="small muted">Acción</label>
             <select
               className="inp"
@@ -256,9 +258,9 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
 
-          <div className="f" style={{ width: 140 }}>
+          <Field className="f" style={{ width: 140 }}>
             <label className="small muted">Módulo</label>
             <select
               className="inp"
@@ -272,9 +274,9 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
 
-          <div className="f" style={{ width: 150 }}>
+          <Field className="f" style={{ width: 150 }}>
             <label className="small muted">Campo</label>
             <input
               className="inp"
@@ -282,30 +284,30 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
               value={filterCampo}
               onChange={(e) => setFilterCampo(e.target.value)}
             />
-          </div>
+          </Field>
 
           <span className="sp" style={{ flex: 1 }} />
 
           <div className="row-flex" style={{ gap: 4 }}>
-            <button
+            <Button
               className={`btn sm ${modo === 'tabla' ? 'pri' : ''}`}
               onClick={() => setModo('tabla')}
             >
               <Icon name="table" /> Tabla
-            </button>
-            <button
+            </Button>
+            <Button
               className={`btn sm ${modo === 'timeline' ? 'pri' : ''}`}
               onClick={() => setModo('timeline')}
             >
               <Icon name="clock" /> Timeline
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Vista Tabla o Timeline */}
         {modo === 'tabla' ? (
-          <div className="tbl-wrap">
-            <table className="tbl">
+          <TableViewport className="tbl-wrap">
+            <DataTable className="tbl">
               <thead>
                 <tr>
                   <th>Fecha / Hora</th>
@@ -389,8 +391,8 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
                   })
                 )}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
+          </TableViewport>
         ) : (
           <div className="panel-b" style={{ padding: '16px' }}>
             {filteredRows.length === 0 ? (
@@ -456,7 +458,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
             )}
           </div>
         )}
-      </div>
+      </Surface>
     </div>
   );
 };

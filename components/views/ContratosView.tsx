@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, Field, TableViewport, DataTable } from '../ui/Workspace';
 
 import React, { useState } from 'react';
 import type { Contract } from '../../lib/types';
@@ -70,17 +72,17 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
 
   const handleExport = () => {
     const cols = [
-      { l: 'Número', sv: (c: Contract) => c.numero },
-      { l: 'Empresa', sv: (c: Contract) => companyName(c.companyId) },
-      { l: 'Contratista', sv: (c: Contract) => c.contratista },
-      { l: 'Objeto', sv: (c: Contract) => c.objeto },
-      { l: 'Estado', sv: (c: Contract) => M(c).estado },
-      { l: 'Semáforo', sv: (c: Contract) => M(c).sem },
-      { l: 'Valor Actual', sv: (c: Contract) => M(c).valorActual },
-      { l: '% Avance Fin.', sv: (c: Contract) => M(c).pctFin },
-      { l: 'Días Restantes', sv: (c: Contract) => M(c).restantes ?? '—' }
+      { l: 'Número', x: (c: Contract) => c.numero },
+      { l: 'Empresa', x: (c: Contract) => companyName(c.companyId) },
+      { l: 'Contratista', x: (c: Contract) => c.contratista },
+      { l: 'Objeto', x: (c: Contract) => c.objeto },
+      { l: 'Estado', x: (c: Contract) => M(c).estado },
+      { l: 'Semáforo', x: (c: Contract) => M(c).sem },
+      { l: 'Valor Actual', x: (c: Contract) => M(c).valorActual },
+      { l: '% Avance Fin.', x: (c: Contract) => M(c).pctFin },
+      { l: 'Días Restantes', x: (c: Contract) => M(c).restantes ?? '—' }
     ];
-    exportRows('xlsx', filtered, cols, 'contratos-nexo');
+    exportRows('Contratos Nexo', cols, filtered, 'xlsx');
   };
 
   const clearAllFilters = () => {
@@ -96,23 +98,23 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
 
   return (
     <div className="anim-fade-rise">
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Contratos</h1>
           <p>Registro maestro de contratos, seguimiento financiero y control de vencimientos</p>
         </div>
         <div className="ph-actions">
-          <button className="btn" onClick={handleExport} title="Descargar como Excel">
+          <Button className="btn" onClick={handleExport} title="Descargar como Excel">
             <Icon name="file-excel" /> Exportar XLSX
-          </button>
-          <button className="btn pri" onClick={() => setEditing({})}>
+          </Button>
+          <Button className="btn pri" onClick={() => setEditing({})}>
             <Icon name="plus" /> Nuevo Contrato
-          </button>
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Barra de Filtros */}
-      <div className="panel mb">
+      <Surface className="panel mb">
         <div className="filters">
           <div className="gsearch" style={{ minWidth: 260 }}>
             <Icon name="search" />
@@ -123,7 +125,7 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
             />
           </div>
 
-          <div className="f">
+          <Field className="f">
             <label>Estado</label>
             <select
               value={filterEstado}
@@ -136,9 +138,9 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
               <option value="En liquidación">En liquidación</option>
               <option value="Liquidado">Liquidado</option>
             </select>
-          </div>
+          </Field>
 
-          <div className="f">
+          <Field className="f">
             <label>Empresa</label>
             <select
               value={filterEmpresa}
@@ -151,9 +153,9 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
 
-          <div className="f">
+          <Field className="f">
             <label>Semáforo</label>
             <select
               value={filterSem}
@@ -165,47 +167,47 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
               <option value="risk">Riesgo (Naranja)</option>
               <option value="crit">Crítico (Rojo)</option>
             </select>
-          </div>
+          </Field>
 
           {hasActiveFilters && (
-            <button className="btn sm ghost" onClick={clearAllFilters} style={{ alignSelf: 'flex-end', height: 38 }}>
+            <Button className="btn sm ghost" onClick={clearAllFilters} style={{ alignSelf: 'flex-end', height: 38 }}>
               Limpiar filtros
-            </button>
+            </Button>
           )}
         </div>
 
         {/* Chips de acceso rápido */}
         <div className="filter-chips">
           <span style={{ fontSize: '11.5px', color: 'var(--muted)', marginRight: 4 }}>Vistas rápidas:</span>
-          <button
+          <Button
             className={`btn xs ${quickFilter === 'proximos' ? 'pri' : 'ghost'}`}
             onClick={() => { setQuickFilter(quickFilter === 'proximos' ? null : 'proximos'); setPage(1); }}
           >
             Próximos a vencer (≤30d)
-          </button>
-          <button
+          </Button>
+          <Button
             className={`btn xs ${quickFilter === 'vencidos' ? 'dan' : 'ghost'}`}
             onClick={() => { setQuickFilter(quickFilter === 'vencidos' ? null : 'vencidos'); setPage(1); }}
           >
             Vencidos
-          </button>
-          <button
+          </Button>
+          <Button
             className={`btn xs ${quickFilter === 'sobreejec' ? 'dan' : 'ghost'}`}
             onClick={() => { setQuickFilter(quickFilter === 'sobreejec' ? null : 'sobreejec'); setPage(1); }}
           >
             Sobreejecución (&gt;100%)
-          </button>
-          <button
+          </Button>
+          <Button
             className={`btn xs ${quickFilter === 'riesgo' ? 'pri' : 'ghost'}`}
             onClick={() => { setQuickFilter(quickFilter === 'riesgo' ? null : 'riesgo'); setPage(1); }}
           >
             Críticos / Riesgo
-          </button>
+          </Button>
         </div>
 
         {/* Tabla de Contratos */}
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th style={{ width: 48, textAlign: 'center' }}>Sem</th>
@@ -286,14 +288,14 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
                     </td>
                     <td>
                       <div className="acts">
-                        <button
+                        <Button
                           className="icon-btn"
                           onClick={() => setEditing(c)}
                           title="Editar contrato"
                           aria-label={`Editar contrato ${num}`}
                         >
                           <Icon name="cog" />
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -325,38 +327,38 @@ export const ContratosView = ({ onSelect }: { onSelect: (id: string) => void }) 
                         <b>{filtered.length}</b> contratos
                       </span>
                       <div className="pager">
-                        <button
+                        <Button
                           disabled={currentPage <= 1}
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
                           aria-label="Página anterior"
                         >
                           &lt;
-                        </button>
+                        </Button>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                          <button
+                          <Button
                             key={p}
                             className={p === currentPage ? 'on' : ''}
                             onClick={() => setPage(p)}
                           >
                             {p}
-                          </button>
+                          </Button>
                         ))}
-                        <button
+                        <Button
                           disabled={currentPage >= totalPages}
                           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                           aria-label="Página siguiente"
                         >
                           &gt;
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </td>
                 </tr>
               </tfoot>
             )}
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {editing && (
         <ContratoFormModal

@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, Field, TableViewport, DataTable } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Obligation, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -149,25 +151,25 @@ export const ObligacionesView = ({
   return (
     <div>
       {/* Page Header */}
-      <div className="ph">
+      <PageHeader className="ph">
         <div>
           <h1>Obligaciones contractuales</h1>
           <p>Supervisión, checklist de evidencias y verificación de cumplimiento del portafolio</p>
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </PageHeader>
 
       {/* KPI Cards */}
       <div className="kpis mb">
@@ -178,33 +180,33 @@ export const ObligacionesView = ({
       </div>
 
       {/* Main Panel */}
-      <div className="panel">
+      <Surface className="panel">
         {/* Quick Views Tabs */}
         <div className="tabs" style={{ padding: '0 12px' }}>
-          <button
+          <Button
             className={`tab ${activeTab === 'todas' ? 'on' : ''}`}
             onClick={() => setActiveTab('todas')}
           >
             Todas ({total})
-          </button>
-          <button
+          </Button>
+          <Button
             className={`tab ${activeTab === 'pendientes' ? 'on' : ''}`}
             onClick={() => setActiveTab('pendientes')}
           >
             Pendientes / En proceso ({pendientes})
-          </button>
-          <button
+          </Button>
+          <Button
             className={`tab ${activeTab === 'vencidas' ? 'on' : ''}`}
             onClick={() => setActiveTab('vencidas')}
           >
             Vencidas ({vencidas})
-          </button>
-          <button
+          </Button>
+          <Button
             className={`tab ${activeTab === 'cumplidas' ? 'on' : ''}`}
             onClick={() => setActiveTab('cumplidas')}
           >
             Cumplidas ({cumplidas})
-          </button>
+          </Button>
         </div>
 
         {/* Filter Toolbar */}
@@ -217,7 +219,7 @@ export const ObligacionesView = ({
               placeholder="Buscar por descripción u objeto..."
             />
           </div>
-          <div className="f">
+          <Field className="f">
             <select
               className="inp sm"
               value={filterContract}
@@ -230,8 +232,8 @@ export const ObligacionesView = ({
                 </option>
               ))}
             </select>
-          </div>
-          <div className="f">
+          </Field>
+          <Field className="f">
             <select
               className="inp sm"
               value={filterTipo}
@@ -246,12 +248,12 @@ export const ObligacionesView = ({
               <option value="Reporte / informe">Reporte / informe</option>
               <option value="Seguridad social">Seguridad social</option>
             </select>
-          </div>
+          </Field>
         </div>
 
         {/* Table */}
-        <div className="tbl-wrap">
-          <table className="tbl">
+        <TableViewport className="tbl-wrap">
+          <DataTable className="tbl">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -341,13 +343,13 @@ export const ObligacionesView = ({
                       {o.verificadoPor ? `${o.verificadoPor} (${fdate(o.verificadoFecha)})` : '—'}
                     </td>
                     <td className="nw">
-                      <button
+                      <Button
                         className="btn sm"
                         onClick={() => setSelectedObl(o)}
                         title="Ver detalle y checklist"
                       >
                         Ficha
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 );
@@ -360,9 +362,9 @@ export const ObligacionesView = ({
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </DataTable>
+        </TableViewport>
+      </Surface>
 
       {/* Obligation Detail & Checklist Modal */}
       {selectedObl && (
@@ -373,14 +375,14 @@ export const ObligacionesView = ({
           footer={
             <>
               {selectedObl.estado !== 'Cumplida' && (
-                <button className="btn pri" onClick={() => handleVerify(selectedObl)}>
+                <Button className="btn pri" onClick={() => handleVerify(selectedObl)}>
                   <Icon name="check-circle" /> Aprobar cumplimiento (100%)
-                </button>
+                </Button>
               )}
               <span style={{ flex: 1 }}></span>
-              <button className="btn" onClick={() => setSelectedObl(null)}>
+              <Button className="btn" onClick={() => setSelectedObl(null)}>
                 Cerrar
-              </button>
+              </Button>
             </>
           }
         >
@@ -467,9 +469,9 @@ export const ObligacionesView = ({
                   if (e.key === 'Enter') handleAddComment();
                 }}
               />
-              <button className="btn sm pri" onClick={handleAddComment}>
+              <Button className="btn sm pri" onClick={handleAddComment}>
                 Agregar
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>

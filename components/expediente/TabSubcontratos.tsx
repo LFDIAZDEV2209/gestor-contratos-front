@@ -1,4 +1,7 @@
 'use client';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Subcontract, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -57,9 +60,9 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
 
   const handleCreate = () => {
     if (!AuthService.guard('crear')) return;
-    if (!form.numero.trim()) return alert('Ingrese el número del subcontrato');
-    if (!form.contratista.trim()) return alert('Ingrese el nombre del subcontratista');
-    if (!form.valor) return alert('Ingrese el valor del subcontrato');
+    if (!form.numero.trim()) return notify('Ingrese el número del subcontrato');
+    if (!form.contratista.trim()) return notify('Ingrese el nombre del subcontratista');
+    if (!form.valor) return notify('Ingrese el valor del subcontrato');
 
     const newSub: Subcontract = {
       id: uid('SC'),
@@ -107,7 +110,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="panel">
+    <Surface className="panel">
       <div className="panel-h" style={{ borderTop: 0 }}>
         <div>
           <h3>Subcontratos</h3>
@@ -117,19 +120,19 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
         </div>
         <div className="row-flex">
           <div className="exp-actions">
-            <button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
-            </button>
-            <button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
               <Icon name="file-pdf" /> PDF
-            </button>
-            <button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
-            </button>
+            </Button>
           </div>
-          <button className="btn sm pri" onClick={() => setShowModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
             <Icon name="plus" /> Nuevo subcontrato
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -182,8 +185,8 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
       </div>
 
       {/* Table */}
-      <div className="tbl-wrap">
-        <table className="tbl">
+      <TableViewport className="tbl-wrap">
+        <DataTable className="tbl">
           <thead>
             <tr>
               <th className="nw">Número</th>
@@ -247,8 +250,8 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </TableViewport>
 
       {showModal && (
         <Modal
@@ -257,16 +260,16 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
           size="lg"
           footer={
             <>
-              <button className="btn" onClick={() => setShowModal(false)}>
+              <Button className="btn" onClick={() => setShowModal(false)}>
                 Cancelar
-              </button>
-              <button className="btn pri" onClick={handleCreate}>
+              </Button>
+              <Button className="btn pri" onClick={handleCreate}>
                 <Icon name="save" /> Guardar subcontrato
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="grid g-2" style={{ gap: '14px' }}>
+          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
             <div>
               <label className="lbl required">Número de subcontrato</label>
               <input
@@ -362,9 +365,9 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
                 onChange={(e) => setForm({ ...form, documentos: e.target.value })}
               />
             </div>
-          </div>
+          </FormGrid>
         </Modal>
       )}
-    </div>
+    </Surface>
   );
 };
