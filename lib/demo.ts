@@ -2,7 +2,7 @@
 // Datos de demostración 1:1 con el prototipo HTML y files/11
 import type { DB } from './types';
 import { defaultPerms, defaultCatalogs } from './catalog';
-import { nowStamp, todayIso, addDays, diffDays, pad, monthLabel, sum, fdate } from './format';
+import { nowStamp, todayIso, addDays, diffDays, pad, monthLabel, sum, fdate, parseD } from './format';
 
 const APP_VERSION = '2.0';
 

@@ -180,6 +180,7 @@ export interface Payment {
   numero: string;
   fecha: ISODate;
   factura?: string;
+  concepto?: string;
   periodo?: ISOMonth;
   bruto: number;
   iva?: number;

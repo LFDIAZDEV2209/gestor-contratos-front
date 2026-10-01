@@ -34,6 +34,7 @@ export const AppShell = () => {
   const [view, setView] = useState('dash');
   const [selectedId, setSelectedId] = useState('');
   const [selectedTab, setSelectedTab] = useState<string | undefined>();
+  const [userTick, setUserTick] = useState(0);
 
   useEffect(() => {
     Store.init(Seed.build());
@@ -77,12 +78,22 @@ export const AppShell = () => {
   };
 
   return (
-    <div className="app">
+    <div className="app" key={`app-root-${userTick}`}>
       <Sidebar current={view} onNavigate={(v, id) => navigate(v, id)} />
       <main className="main">
-        <Header />
+        <Header
+          onSelectContract={(cid, tab) => navigate('contrato', cid, tab)}
+          onSelectCompany={(cid) => navigate('empresa', cid)}
+          onNavigate={(v, filter) => navigate(v, filter)}
+          onUserChanged={() => setUserTick((t) => t + 1)}
+        />
         <div className="content">
-          {view === 'dash' && <DashboardView />}
+          {view === 'dash' && (
+            <DashboardView
+              onSelectContract={(cid, tab) => navigate('contrato', cid, tab)}
+              onNavigate={(v, filter) => navigate(v, filter)}
+            />
+          )}
           {view === 'gerencia' && (
             <GerenciaView onSelectContract={(cid) => navigate('contrato', cid)} />
           )}
@@ -153,7 +164,10 @@ export const AppShell = () => {
             <IncumplimientosView onSelectContract={(cid, tab) => navigate('contrato', cid, tab)} />
           )}
           {view === 'auditoria' && (
-            <AuditoriaView onSelectContract={(cid, tab) => navigate('contrato', cid, tab)} />
+            <AuditoriaView
+              onSelectContract={(cid, tab) => navigate('contrato', cid, tab)}
+              onOpenUserSwitcher={() => {}}
+            />
           )}
           {view === 'reportes' && <ReportesView />}
           {(view === 'configuracion' || view === 'settings') && (
