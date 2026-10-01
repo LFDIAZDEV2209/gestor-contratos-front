@@ -87,11 +87,27 @@ export const clamp = (v: number, a: number, b: number): number => {
   return Math.max(a, Math.min(b, v));
 };
 
+export const pctFmt = (n?: number | null, d: number = 0): string => {
+  if (n == null || !Number.isFinite(Number(n))) return '0%';
+  let val = Number(n);
+  // Si viene en escala 0..1 (fracción como pExecFin = 0.89), convertir a 89%
+  if (Math.abs(val) > 0 && Math.abs(val) <= 1.0) {
+    val = val * 100;
+  }
+  return val.toLocaleString('es-CO', {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d
+  }) + '%';
+};
+
 export const daysTxt = (d?: number | null): string => {
   if (d == null) return '—';
   if (d === 0) return 'Vence hoy';
-  if (d < 0) return `Vencido (${Math.abs(d)} d)`;
-  return `${d} días`;
+  if (d < 0) {
+    const abs = Math.abs(d);
+    return `Vencido hace ${abs} ${abs === 1 ? 'día' : 'días'}`;
+  }
+  return `${d} ${d === 1 ? 'día' : 'días'}`;
 };
 
 export const sum = <T>(arr: T[], fn?: (item: T) => number): number => {

@@ -1,10 +1,18 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Sans } from 'next/font/google';
+import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 
-const ibm = IBM_Plex_Sans({
+const ibmSans = IBM_Plex_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+
+const ibmMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-mono',
   display: 'swap',
 });
 
@@ -22,7 +30,7 @@ export default function RootLayout({
     // suppressHydrationWarning: las extensiones de navegador (p. ej. Bitdefender)
     // inyectan atributos (bis_skin_checked, bis_register) antes de que React
     // hidrate y generan falsos mismatches de hidratación.
-    <html lang="es" className={ibm.className} suppressHydrationWarning>
+    <html lang="es" className={`${ibmSans.variable} ${ibmMono.variable} ${ibmSans.className}`} suppressHydrationWarning>
       <body suppressHydrationWarning>{children}</body>
     </html>
   );
