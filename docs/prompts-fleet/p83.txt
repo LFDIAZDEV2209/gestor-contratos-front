@@ -1,0 +1,11 @@
+[Seven Save · OLA 2.5 · Fixes a11y de TU lote (Expediente A)]
+
+La auditoría estática de accesibilidad (codex) halló controles activos sin etiqueta asociada en TUS archivos. Aplica EXACTAMENTE estos fixes:
+
+- A19 · components/expediente/TabAuditoria.tsx:106 — buscador de auditoría del expediente: aria-label="Buscar en la auditoría del contrato".
+- A20 · TabAuditoria.tsx:114 — selector de usuario: aria-label="Filtrar auditoría por usuario" o label asociado.
+- A21 · TabAuditoria.tsx:129 — selector de módulo: aria-label="Filtrar auditoría por módulo" o label asociado.
+- A22 · components/expediente/TabObligaciones.tsx:416 — nuevo ítem de checklist: aria-label="Nuevo ítem de verificación de la obligación".
+- A23 · TabObligaciones.tsx:455 — nueva observación: aria-label="Nueva observación de la obligación".
+
+Solo tus archivos (ExpedienteView + pestañas 1–9). No toques nada más. Al final: npx tsc --noEmit. Sin commits. Reporta los fixes aplicados.

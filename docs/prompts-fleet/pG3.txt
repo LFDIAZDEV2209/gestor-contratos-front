@@ -1,0 +1,9 @@
+[Seven Save · OLA 2.5 · Fixes a11y de TU lote (Control)]
+
+La auditoría estática de accesibilidad (codex) halló controles activos sin etiqueta asociada en TUS archivos. Aplica EXACTAMENTE estos fixes:
+
+- A03 · components/views/AlertasView.tsx:609 — textarea de resolución con label hermano sin asociación: usa Field con label y Textarea directos, o id/htmlFor para "Gestión realizada / soporte de resolución".
+- A12 · components/views/IncumplimientosView.tsx:480 — buscador: aria-label="Buscar incumplimientos por descripción, tipo, contrato o responsable".
+- A18 · components/views/RiesgosView.tsx:488 — buscador: aria-label="Buscar riesgos por descripción, categoría o contrato".
+
+Solo tus 4 archivos (AlertasView, RiesgosView, IncumplimientosView, AuditoriaView). No toques TabAuditoria (de otro agente). Al final: npx tsc --noEmit. Sin commits. Reporta los fixes aplicados.

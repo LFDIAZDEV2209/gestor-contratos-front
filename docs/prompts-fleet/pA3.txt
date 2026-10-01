@@ -1,0 +1,13 @@
+[Seven Save · OLA FINAL · Re-captura y auditoría completa de cierre]
+
+Trabajas en C:\Users\Luis\Documents\Nexo\Repos\gestor-contratos-front. Eres el agente QA Playwright. La OLA 2 aplicó: PageHeader hero en /subcontratos y /obligaciones, scroll de tablas, tab bar scroll en /configuracion, PageHeader en /configuracion, fixes a11y de labels (OLA 2.5), badge dev desactivado (next.config), y se aclaró el degradado. Falta aún: pK está corrigiendo /agenda (Archivo: components/views/AgendaView.tsx).
+
+TU TRABAJO FINAL (igual que la pasada 1, con estos cambios):
+1. Re-captura la MATRIZ COMPLETA (las 25 rutas × 1440,1280,768,390) sobre .playwright-mcp con prefijo qa3-:
+   node scripts/qa-capture.mjs --url <ruta> --out .playwright-mcp/qa3-<stem> --sizes 1440,1280,768,390
+   (mismo método y rutas de la pasada 1; la ruta /ruta-inexistente incluida; /login incluida).
+2. Hojas de contacto qa3: adapta el Round del script (scripts/qa-contact-sheets.ps1) y genera las sheets.
+3. REVISIÓN VISUAL exhaustiva de los PNG: defectos ALTO/MEDIO/BAJO por ruta, con foco en: (a) si los PageHeader hero quedaron bien en /subcontratos y /obligaciones; (b) tab bar de /configuracion scrolleable a 390; (c) contraste tras el cambio de faint→muted; (d) el degradado hero más claro en todas las vistas (debe verse teal medio, NO negro); (e) login en 390/768; (f) KPIs sin palabras partidas.
+   IMPORTANTE: revisa los PNG en tandas pequeñas para no saturar tu límite de imágenes (max ~20 por tanda; las hojas de contacto te resumen 4 vistas por imagen).
+4. Actualiza C:\Users\Luis\Documents\Nexo\Repos\gestor-contratos-front\QA-UX-REPORT.md AÑADIENDO una sección "## Ola final (qa3)" con: defectos restantes por ruta y severidad, rutas impecables, y veredicto global (APTO / NO APTO para entrega).
+NO edites código de la app (solo scripts/qa* y el reporte). Sin commits. Al terminar reporta tu veredicto global en el chat.

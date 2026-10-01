@@ -1,0 +1,11 @@
+[Seven Save · OLA 2.5 · Fixes a11y de TU lote (Contratación B)]
+
+La auditoría estática de accesibilidad (codex) halló controles activos sin etiqueta asociada en TUS archivos. Aplica EXACTAMENTE estos fixes:
+
+- A13 · components/views/ModificacionesView.tsx:700 — "Valor actual" (deshabilitado) con label no asociado dentro de fragmento: cambia el div inmediato por Field con label/control directos o asocia id/htmlFor.
+- A14 · ModificacionesView.tsx:709 — "Nuevo valor total" sin asociación (FormGrid no recorre fragmentos): cambia el div por Field o asocia id/htmlFor.
+- A15 · ModificacionesView.tsx:723 — "Fecha fin actual" (deshabilitada): idem.
+- A16 · ModificacionesView.tsx:732 — "Nueva fecha de terminación": idem.
+- A17 · components/views/ObligacionesView.tsx:742 — comentario de obligación solo por placeholder: aria-label="Nuevo comentario de la obligación" o label asociado.
+
+Solo tus 4 archivos (ObligacionesView, EjecucionView, PagosView, ModificacionesView). No toques nada más. Al final: npx tsc --noEmit. Sin commits. Reporta los fixes aplicados.

@@ -1,10 +1,17 @@
-param([string]$Round = 'r1')
+param([string]$Round = 'qa2')
 Add-Type -AssemblyName System.Drawing
-$captureRoot = 'C:\Users\Luis\Documents\Nexo\Repos\.playwright-mcp'
+
+$localCapture = Join-Path $PSScriptRoot '..\.playwright-mcp'
+$parentCapture = 'C:\Users\Luis\Documents\Nexo\Repos\.playwright-mcp'
+$captureRoot = if (Test-Path $localCapture) { (Resolve-Path $localCapture).Path } else { $parentCapture }
+
 $qaRoot = 'C:\Users\Luis\AppData\Local\Temp\opencode\qa-redise' + [char]0xF1 + 'o'
 New-Item -ItemType Directory -Force -Path $qaRoot | Out-Null
+
+Write-Host "Buscando capturas en $captureRoot con patron $Round-*-1440.png..."
 Get-ChildItem -LiteralPath $captureRoot -Filter "$Round-*-1440.png" | ForEach-Object {
   $stem = $_.BaseName.Substring(0, $_.BaseName.Length - 5)
+  Write-Host "Generando hoja de contacto para $stem..."
   $canvas = New-Object System.Drawing.Bitmap(2160, 1940)
   $graphics = [System.Drawing.Graphics]::FromImage($canvas)
   $graphics.Clear([System.Drawing.Color]::FromArgb(223,230,232))
@@ -22,6 +29,8 @@ Get-ChildItem -LiteralPath $captureRoot -Filter "$Round-*-1440.png" | ForEach-Ob
     }
   }
   $graphics.Dispose(); $font.Dispose()
-  $canvas.Save((Join-Path $qaRoot "$stem-sheet.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+  $targetSheet = Join-Path $qaRoot "$stem-sheet.png"
+  $canvas.Save($targetSheet, [System.Drawing.Imaging.ImageFormat]::Png)
   $canvas.Dispose()
+  Write-Host "Guardado: $targetSheet"
 }

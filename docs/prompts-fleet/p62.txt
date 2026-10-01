@@ -1,0 +1,9 @@
+[Seven Save · OLA 2 · Expediente B — correcciones QA]
+
+Correcciones de la QA visual sobre /contrato/CT-01 en TUS pestañas (TabEjecucion, TabEntregables, TabSubcontratos, TabModificaciones, TabProrrogas, TabSuspensiones, TabIncumplimientos, TabRiesgos — exclusivas, como antes):
+
+1. [BAJO] Si en TUS pestañas hay cifras monetarias grandes que parten la unidad a otra línea en móvil ("$3,81 mil M" → "M" sola), aplica whitespace-nowrap o reduce la escala tipográfica del valor en móvil.
+2. Re-captura y revisa tus pestañas:
+   node scripts/qa-capture.mjs --url /contrato/CT-01 --out scratch/qa/ola2-exp-b --sizes 1440,390
+   ABRE los PNG y corrige en TUS archivos lo roto (overflow, contraste, truncamientos, empty states).
+Al final npx tsc --noEmit (errores ajenos: repórtalos). Sin commits. Reporta: cambios, PNG revisados, tsc.

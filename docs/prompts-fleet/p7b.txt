@@ -1,0 +1,12 @@
+[Seven Save · Auditoría estática a11y + branding (solo lectura + fixes acotados)]
+
+Eres auditor estático de accesibilidad y branding. Reglas: NO edites app/globals.css, app/layout.tsx, app/login/*, components/app/*, lib/*, components/ui/*, ni components/views/* o components/expediente/* (los agentes dueños siguen trabajando). Solo puedes crear/editar TU reporte.
+
+TAREA 1 — Grep + lectura en C:\Users\Luis\Documents\Nexo\Repos\gestor-contratos-front:
+1. En components/views/*.tsx y components/expediente/*.tsx: localiza TODOS los <button> que contienen solo un <Icon/> sin aria-label ni title accesible (patrón: botones de icono). Lista archivo:línea.
+2. Localiza select/input sin label asociado (sin <label for> o aria-label).
+3. Localiza usos de color var(--faint) para texto informativo (solo permitido en decorativo).
+4. Localiza onClick sin rol/teclado en elementos div/span clicables (excepto los que ya tienen role+tabIndex).
+5. Residuos de branding: grep "Nexo|Gestor Integral|Gestor de Contratos" en el repo excluyendo node_modules/.next/tsbuildinfo.
+TAREA 2 — Escribe el resultado en C:\Users\Luis\AppData\Local\Temp\opencode\fleet\a11y-audit.md con: hallazgos archivo:línea, severidad, y fix propuesto en UNA línea.
+NO apliques fixes: solo el reporte. Al finalizar queda a espera del coordinador.

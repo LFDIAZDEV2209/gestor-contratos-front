@@ -1,0 +1,31 @@
+[Seven Save · 2ª pasada UX/UI · LOTE EXPEDIENTE B (pestañas 9–17)]
+
+Trabajas en C:\Users\Luis\Documents\Nexo\Repos\gestor-contratos-front (Next.js 16 App Router + React 19 + Tailwind 4). La plataforma se renombró a "Seven Save" (marca 7S) y los tokens de marca ya están aclarados: --brand #0F8579, --brand-2 #0C6A60, --brand-3 #17A08F. Dev server corriendo en http://localhost:3000.
+
+TUS ARCHIVOS EXCLUSIVOS (no toques NINGÚN otro):
+- components/expediente/TabEjecucion.tsx
+- components/expediente/TabEntregables.tsx
+- components/expediente/TabSubcontratos.tsx
+- components/expediente/TabModificaciones.tsx
+- components/expediente/TabProrrogas.tsx
+- components/expediente/TabSuspensiones.tsx
+- components/expediente/TabIncumplimientos.tsx
+- components/expediente/TabRiesgos.tsx
+URL para validar: /contrato/CT-01 (cambia de pestaña con los valores reales de la demo)
+
+REGLAS NO NEGOCIABLES:
+- PROHIBIDO editar: app/globals.css, app/layout.tsx, app/login/*, components/app/*, components/views/* (incluida ExpedienteView.tsx, que NO es tuya), lib/*, components/ui/* y las pestañas de expediente de otro agente (TabResumen, TabInformacion, TabObligaciones, TabGarantias, TabPagos, TabActas, TabDocumentos, TabTimeline, TabAuditoria son de otro agente). Si necesitas un primitivo nuevo, repórtalo al final, NO lo crees.
+- NO hagas git commit ni builds de producción. El build final lo corre el coordinador.
+- Reutiliza los primitivos de components/ui/Workspace.tsx (Surface, EmptyState, Field, TableViewport, DataTable, FormGrid, MetricCard) y los patrones visuales de TabResumen.tsx como referencia (solo léela).
+- Comentarios y textos de UI en español.
+
+QUÉ HACER EN CADA PESTAÑA (segunda pasada agresiva):
+1. Sin placeholders ni botones muertos: toda acción (crear/editar/anular) debe funcionar con Store/lib o eliminarse.
+2. ESTADOS: empty states con EmptyState, skeletons de carga, confirmaciones para acciones destructivas.
+3. ACCESIBILIDAD: aria-labels, focus-visible, contraste AA, jerarquía tipográfica.
+4. CONSISTENCIA/MODERNIZACIÓN: espaciado uniforme, badges con tokens semánticos, micro-interacciones, densidad legible.
+5. QA VISUAL CON PLAYWRIGHT (obligatorio):
+   node scripts/qa-capture.mjs --url /contrato/CT-01 --out scratch/qa/exp-b-ejecucion --sizes 1440,768
+   Para enfocarte en TU pestaña añade a la URL el hash/tab que corresponda si ExpedienteView lo soporta (revisa cómo navega). ABRE los PNG (son imágenes, léelos) y corrige visualmente lo roto.
+
+AL TERMINAR reporta: archivos tocados, mejoras por pestaña, PNG revisados, errores TS propios corregidos y errores TS ajenos vistos (sin tocarlos). Al finalizar quedas disponible para el siguiente lote.

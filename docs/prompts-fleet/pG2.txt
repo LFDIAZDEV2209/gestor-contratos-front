@@ -1,0 +1,17 @@
+[Seven Save · OLA 2 · QA visual de TU lote (Control)]
+
+El agente QA auditó las 25 rutas, pero TU grupo de rutas (/alertas, /riesgos, /incumplimientos, /auditoria) quedó BLOQUEADO con error 500 transitorio (causa ajena a ti, ya resuelta): nunca se auditó visualmente tu trabajo. Ahora corresponde:
+
+1. Re-captura tus 4 rutas tú mismo (Playwright):
+   node scripts/qa-capture.mjs --url /alertas --out scratch/qa/ola2-alertas --sizes 1440,768,390
+   node scripts/qa-capture.mjs --url /riesgos --out scratch/qa/ola2-riesgos --sizes 1440,768,390
+   node scripts/qa-capture.mjs --url /incumplimientos --out scratch/qa/ola2-incumplimientos --sizes 1440,768,390
+   node scripts/qa-capture.mjs --url /auditoria --out scratch/qa/ola2-auditoria --sizes 1440,768,390
+2. ABRE cada PNG y corrige en TUS archivos (exclusivos: AlertasView, RiesgosView, IncumplimientosView, AuditoriaView): overflow de tablas sin pista de scroll, contraste, badges, truncamientos, empty states, botones muertos, PageHeader consistente.
+3. Casos específicos de la QA para tu grupo:
+   - /alertas: pestañas por nivel con contador, panel de tareas con fecha límite, acciones (leída/resolver/delegar) funcionales.
+   - /riesgos: mapa de calor probabilidad×impacto con celdas clicables y contraste AA en celdas.
+   - /auditoria: vista tabla y timeline con frases legibles.
+4. Padding inferior de seguridad en móvil si aplica.
+5. Al final: npx tsc --noEmit (errores ajenos: repórtalos). Sin commits.
+Reporta: cambios por vista, PNG revisados, tsc.

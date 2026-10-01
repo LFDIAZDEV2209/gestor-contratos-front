@@ -1,0 +1,16 @@
+[Seven Save · OLA 2 · Correcciones QA de TU lote (Contratación B)]
+
+El agente de QA visual con Playwright auditó las 25 rutas (100 capturas + hojas de contacto). Tu lote anterior está fusionado y sin errores TS. Aplica AHORA estas correcciones concretas a TUS archivos (exclusivos, como antes):
+
+1. [MEDIO] components/views/ObligacionesView.tsx — la vista /obligaciones abre con título plano sin identidad: cámbialo a <PageHeader variant="hero" className="ph"> con icono, título, descripción y los botones de acción agrupados a la derecha (coherencia con /contratos y /empresas, léelos como referencia).
+2. [MEDIO] ObligacionesView.tsx — la tabla a 1280/768px corta columnas (estado, verificación, acciones) sin pista de desplazamiento: envuelve la tabla en contenedor con scroll horizontal (patrón TableViewport existente) y verifica que exista el aviso de desplazamiento en móvil (la clase .tbl-wrap::before ya lo pinta a ≤620px; asegúrate de que tu tabla use .tbl-wrap).
+3. [BAJO] Todas tus vistas: padding inferior de seguridad en móvil (los contenedores principales de cada vista deben evitar que el último contenido quede tapado; si la vista no usa padding propio, no toques nada — solo si lo tiene configurable).
+4. EjecucionView/PagosView/ModificacionesView: revisa que tengas PageHeader y estados completos (la QA no pudo verlas por un error 500 transitorio ajeno a ti: verifica TÚ MISMO con capturas).
+
+VALIDACIÓN VISUAL OBLIGATORIA (Playwright):
+node scripts/qa-capture.mjs --url /obligaciones --out scratch/qa/ola2-obligaciones --sizes 1440,768,390
+node scripts/qa-capture.mjs --url /ejecucion --out scratch/qa/ola2-ejecucion --sizes 1440,768,390
+node scripts/qa-capture.mjs --url /pagos --out scratch/qa/ola2-pagos --sizes 1440,768,390
+node scripts/qa-capture.mjs --url /modificaciones --out scratch/qa/ola2-modificaciones --sizes 1440,768,390
+ABRE los PNG y corrige lo roto. Al final npx tsc --noEmit (errores de archivos ajenos: repórtalos, no los toques). Sin commits.
+Reporta al final: cambios, PNG revisados, tsc.
