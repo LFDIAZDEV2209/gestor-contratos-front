@@ -2303,6 +2303,42 @@ table.tbl {
 .workspace-heading { margin-bottom:24px; align-items:center; }
 .workspace-heading h1,.workspace-heading h2 { font-size:28px; line-height:1.2; font-weight:700; letter-spacing:-.025em; }
 .workspace-heading p { color:var(--muted); max-width:78ch; margin:6px 0 0; font-size:14px; }
+
+/* ---------- PageHeader variante "hero": banner con gradiente de marca ---------- */
+.page-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 58%, #063F3B 100%);
+  border: none;
+  border-radius: var(--r-lg, 16px);
+  padding: 24px 28px;
+  color: #fff;
+  box-shadow: var(--shadow-brand, 0 4px 14px -4px var(--brand-glow));
+}
+.page-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(560px 180px at 88% -40%, rgba(255,255,255,.16), transparent 70%),
+    radial-gradient(420px 160px at 4% 130%, rgba(20,160,150,.35), transparent 75%);
+  pointer-events: none;
+}
+.page-hero h1,.page-hero h2 { color:#fff; font-size:26px; }
+.page-hero p { color: rgba(255,255,255,.82); max-width:78ch; margin:6px 0 0; font-size:14px; }
+.page-hero .crumb { color: rgba(255,255,255,.68); }
+.page-hero .crumb a:hover { color:#fff; }
+.page-hero .ph-actions .btn { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.28); color:#fff; backdrop-filter: blur(6px); }
+.page-hero .ph-actions .btn:hover { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.4); }
+.page-hero .ph-actions .btn.pri { background:#fff; border-color:#fff; color:var(--brand-2); box-shadow: 0 4px 14px -4px rgba(0,0,0,.35); }
+.page-hero .ph-actions .btn.pri:hover { background: var(--brand-soft); }
+.page-hero .legend { color: rgba(255,255,255,.85); }
+@media (max-width: 640px) {
+  .page-hero { padding: 18px 20px; }
+  .page-hero h1,.page-hero h2 { font-size:22px; }
+}
 .page-h { display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; }
 .row-flex { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .row-flex > .sp,.sp { flex:1; }

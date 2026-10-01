@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
+import { Source_Sans_3 } from 'next/font/google';
 import localFont from 'next/font/local';
 import './globals.css';
 
-const ibmSans = localFont({
-  src: './fonts/plex-sans-latin-variable.woff2',
-  weight: '400 700',
+// Fuente principal del producto: Source Sans 3 (variable, 300–900)
+const sourceSans = Source_Sans_3({
+  subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
 });
@@ -34,7 +35,7 @@ export default function RootLayout({
     // suppressHydrationWarning: las extensiones de navegador (p. ej. Bitdefender)
     // inyectan atributos (bis_skin_checked, bis_register) antes de que React
     // hidrate y generan falsos mismatches de hidratación.
-    <html lang="es" className={`${ibmSans.variable} ${ibmMono.variable} ${ibmSans.className}`} suppressHydrationWarning>
+    <html lang="es" className={`${sourceSans.variable} ${ibmMono.variable} ${sourceSans.className}`} suppressHydrationWarning>
       <body suppressHydrationWarning>{children}</body>
     </html>
   );

@@ -4,7 +4,7 @@ import { Icon } from '../icons';
 import { Button } from './button';
 import { Input, Select, Textarea } from './Controls';
 type BoxProps = HTMLAttributes<HTMLDivElement>;
-export function PageHeader({ className = '', children, ...props }: BoxProps) { return <header {...props} className={`ph workspace-heading ${className}`}>{children}</header>; }
+export function PageHeader({ className = '', variant = 'plain', children, ...props }: BoxProps & { variant?: 'plain' | 'hero' }) { return <header {...props} className={`ph workspace-heading ${variant === 'hero' ? 'page-hero' : ''} ${className}`}>{children}</header>; }
 export function Surface({ className = '', ...props }: BoxProps) { return <div {...props} className={`panel ${className}`} />; }
 export function MetricCard({ className = '', ...props }: BoxProps) { return <div {...props} className={`kpi metric-card ${className}`} />; }
 export function TableViewport({ className = '', ...props }: BoxProps) { return <div {...props} className={`tbl-wrap ${className}`} tabIndex={0} role="region" aria-label={props['aria-label'] || 'Tabla de datos; desplazamiento horizontal disponible'} />; }
