@@ -1,10 +1,10 @@
 'use client';
-import { Input, Select } from '../ui/Controls';
-import { Button } from '../ui/button';
-import { PageHeader, Surface, Field, TableViewport, DataTable } from '../ui/Workspace';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { Input, Select } from '../ui/Controls';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, Field, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { contractHref } from '../app/routes';
 import { useQueryFilters } from '../app/useQueryFilters';
 import type { Contract } from '../../lib/types';
@@ -13,6 +13,7 @@ import { M, companyName } from '../../lib/metrics';
 import { Icon } from '../icons';
 import { Badge } from '../ui/Badge';
 import { PBar } from '../ui/PBar';
+import { Kpi } from '../ui/Kpi';
 import { ContratoFormModal } from './ContratoFormModal';
 import { money as fmtMoney, daysTxt } from '../../lib/format';
 import { exportRows } from '../../lib/export';
@@ -22,7 +23,7 @@ export const ContratosView = () => {
   const [contracts, setContracts] = useState<Contract[]>(Store.all('contracts'));
   const [editing, setEditing] = useState<Partial<Contract> | null>(null);
 
-  // Filtros
+  // Filtros sincronizados con la URL
   const [query, updateQuery] = useQueryFilters();
   const q = query.get('q') || '';
   const filterEstado = query.get('estado') || '';
@@ -30,6 +31,7 @@ export const ContratosView = () => {
   const filterSem = query.get('nivel') || '';
   const quickFilter = query.get('vista');
   const geoFilter = query.has('depto') ? 'depto:' + query.get('depto') : query.has('region') ? 'reg:' + query.get('region') : '';
+
   const setQ = (value: string) => updateQuery({ q: value });
   const setFilterEstado = (value: string) => updateQuery({ estado: value });
   const setFilterEmpresa = (value: string) => updateQuery({ empresa: value });
@@ -49,14 +51,15 @@ export const ContratosView = () => {
     const cont = c.contratista || '';
     const nit = c.nitContratista || '';
     const m = M(c.id);
+
     if (geoFilter) {
       const [kind, value] = geoFilter.split(':');
       const deptos = c.deptos || [c.departamento || c.depto || ''];
       if (kind === 'depto' && !deptos.includes(value)) return false;
-      if (kind === 'reg' && !deptos.some(d => DEPTOS[d]?.[1] === value)) return false;
+      if (kind === 'reg' && !deptos.some((d) => DEPTOS[d]?.[1] === value)) return false;
     }
 
-    // Texto
+    // Búsqueda de texto
     if (q) {
       const ql = q.toLowerCase();
       const match =
@@ -91,10 +94,10 @@ export const ContratosView = () => {
 
   const handleExport = () => {
     const cols = [
-      { l: 'Número', x: (c: Contract) => c.numero },
-      { l: 'Empresa', x: (c: Contract) => companyName(c.companyId) },
+      { l: 'Número', x: (c: Contract) => c.numero || (c as any).num },
+      { l: 'Empresa', x: (c: Contract) => companyName(c.companyId || (c as any).company) },
       { l: 'Contratista', x: (c: Contract) => c.contratista },
-      { l: 'Objeto', x: (c: Contract) => c.objeto },
+      { l: 'Objeto', x: (c: Contract) => c.objeto || (c as any).obj },
       { l: 'Estado', x: (c: Contract) => M(c).estado },
       { l: 'Semáforo', x: (c: Contract) => M(c).sem },
       { l: 'Valor Actual', x: (c: Contract) => M(c).valorActual },
@@ -111,13 +114,66 @@ export const ContratosView = () => {
 
   const hasActiveFilters = Boolean(q || filterEstado || filterEmpresa || filterSem || quickFilter || geoFilter);
 
+  // Métricas agregadas para KPIs
+  const totalActivos = contracts.filter((c) => M(c).activo).length;
+  const totalCriticos = contracts.filter((c) => M(c).sem === 'crit').length;
+  const totalRiesgo = contracts.filter((c) => ['warn', 'risk'].includes(M(c).sem)).length;
+  const valorTotal = contracts.reduce((acc, c) => acc + (M(c).valorActual || 0), 0);
+
   return (
     <div className="anim-fade-rise">
-      <PageHeader className="ph">
+      {/* Banner de cabecera con gradiente de marca institucional */}
+      <PageHeader variant="hero" className="ph">
         <div>
-          <h1>Contratos</h1>
-          <p>Registro maestro de contratos, seguimiento financiero y control de vencimientos</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.16)',
+                color: 'var(--surface)',
+                display: 'grid',
+                placeItems: 'center',
+                backdropFilter: 'blur(8px)',
+                flexShrink: 0
+              }}
+            >
+              <Icon name="file-contract" size={24} />
+            </span>
+            <div>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+                Contratos
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--r-pill)',
+                    background: 'rgba(255, 255, 255, 0.18)',
+                    color: 'var(--surface)'
+                  }}
+                >
+                  {filtered.length} {filtered.length === 1 ? 'contrato' : 'contratos'}
+                </span>
+              </h1>
+              <p style={{ margin: '4px 0 0' }}>
+                Registro maestro de contratos, seguimiento financiero y control preventivo de vencimientos
+              </p>
+            </div>
+          </div>
+
+          {/* Leyenda institucional de semáforo dentro del hero */}
+          <div className="legend" style={{ marginTop: 16 }}>
+            <span><span className="sem ok" /> Normal (&gt;30d)</span>
+            <span><span className="sem warn" /> Atención (16–30d)</span>
+            <span><span className="sem risk" /> Riesgo (1–15d / &gt;90% fin.)</span>
+            <span><span className="sem crit" /> Crítico (&le;0d / &gt;100% fin.)</span>
+          </div>
         </div>
+
         <div className="ph-actions">
           <Button className="btn" onClick={handleExport} title="Descargar como Excel">
             <Icon name="file-excel" /> Exportar XLSX
@@ -128,15 +184,66 @@ export const ContratosView = () => {
         </div>
       </PageHeader>
 
-      {/* Barra de Filtros */}
-      {geoFilter && <div className="filter-bar mb"><span>Territorio: <strong>{geoFilter.split(':')[1]}</strong></span><Button size="sm" onClick={()=>setGeoFilter('')}>Quitar filtro territorial</Button></div>}
+      {/* KPI Cards con entrada escalonada */}
+      <div className="kpis mb">
+        <Kpi
+          label="Total Registros"
+          value={contracts.length.toString()}
+          icon="file-contract"
+          className="anim-fade-rise stagger-1"
+        />
+        <Kpi
+          label="Contratos Activos"
+          value={totalActivos.toString()}
+          color="ok"
+          icon="check-circle"
+          className="anim-fade-rise stagger-2"
+        />
+        <Kpi
+          label="Vencidos / Críticos"
+          value={totalCriticos.toString()}
+          color="crit"
+          icon="alert-circle"
+          className="anim-fade-rise stagger-3"
+        />
+        <Kpi
+          label="En Atención / Riesgo"
+          value={totalRiesgo.toString()}
+          color="warn"
+          icon="alert-triangle"
+          className="anim-fade-rise stagger-4"
+        />
+        <Kpi
+          label="Compromiso Total"
+          value={fmtMoney(valorTotal)}
+          icon="wallet"
+          className="anim-fade-rise stagger-5"
+        />
+      </div>
+
+      {/* Filtro territorial activo si existe */}
+      {geoFilter && (
+        <div className="filter-bar mb" style={{ background: 'var(--surface)', padding: '10px 16px', borderRadius: 'var(--r)', border: '1px solid var(--line)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
+            Filtro Territorial: <strong style={{ color: 'var(--brand)' }}>{geoFilter.split(':')[1]}</strong>
+          </span>
+          <Button className="btn sm ghost" onClick={() => setGeoFilter('')}>
+            Quitar filtro territorial
+          </Button>
+        </div>
+      )}
+
+      {/* Panel de Filtros y Búsqueda */}
       <Surface className="panel mb">
         <div className="filters">
           <div className="gsearch" style={{ minWidth: 260 }}>
             <Icon name="search" />
             <Input
               value={q}
-              onChange={(e) => { setQ(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
               placeholder="Buscar por número, contratista, objeto, NIT..."
             />
           </div>
@@ -145,7 +252,10 @@ export const ContratosView = () => {
             <label>Estado</label>
             <Select
               value={filterEstado}
-              onChange={(e) => { setFilterEstado(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setFilterEstado(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">Todos los estados</option>
               <option value="Activo">Activo</option>
@@ -160,7 +270,10 @@ export const ContratosView = () => {
             <label>Empresa</label>
             <Select
               value={filterEmpresa}
-              onChange={(e) => { setFilterEmpresa(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setFilterEmpresa(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">Todas las empresas</option>
               {companies.map((co) => (
@@ -175,7 +288,10 @@ export const ContratosView = () => {
             <label>Semáforo</label>
             <Select
               value={filterSem}
-              onChange={(e) => { setFilterSem(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setFilterSem(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">Todos los niveles</option>
               <option value="ok">Normal (Verde)</option>
@@ -186,39 +302,54 @@ export const ContratosView = () => {
           </Field>
 
           {hasActiveFilters && (
-            <Button className="btn sm ghost" onClick={clearAllFilters} style={{ alignSelf: 'flex-end', height: 38 }}>
-              Limpiar filtros
+            <Button
+              className="btn sm ghost"
+              onClick={clearAllFilters}
+              style={{ alignSelf: 'flex-end', height: 38 }}
+            >
+              <Icon name="trash" /> Limpiar filtros
             </Button>
           )}
         </div>
 
-        {/* Chips de acceso rápido */}
+        {/* Chips de acceso rápido seleccionables */}
         <div className="filter-chips">
-          <span style={{ fontSize: '11.5px', color: 'var(--muted)', marginRight: 4 }}>Vistas rápidas:</span>
-          <Button
-            className={`btn xs ${quickFilter === 'proximos' ? 'pri' : 'ghost'}`}
-            onClick={() => { setQuickFilter(quickFilter === 'proximos' ? null : 'proximos'); setPage(1); }}
-          >
-            Próximos a vencer (≤30d)
-          </Button>
-          <Button
-            className={`btn xs ${quickFilter === 'vencidos' ? 'dan' : 'ghost'}`}
-            onClick={() => { setQuickFilter(quickFilter === 'vencidos' ? null : 'vencidos'); setPage(1); }}
-          >
-            Vencidos
-          </Button>
-          <Button
-            className={`btn xs ${quickFilter === 'sobreejec' ? 'dan' : 'ghost'}`}
-            onClick={() => { setQuickFilter(quickFilter === 'sobreejec' ? null : 'sobreejec'); setPage(1); }}
-          >
-            Sobreejecución (&gt;100%)
-          </Button>
-          <Button
-            className={`btn xs ${quickFilter === 'riesgo' ? 'pri' : 'ghost'}`}
-            onClick={() => { setQuickFilter(quickFilter === 'riesgo' ? null : 'riesgo'); setPage(1); }}
-          >
-            Críticos / Riesgo
-          </Button>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginRight: 6 }}>
+            Vistas rápidas:
+          </span>
+          {[
+            { id: 'proximos', label: 'Próximos a vencer (≤30d)', icon: 'clock' },
+            { id: 'vencidos', label: 'Vencidos', icon: 'alert-circle' },
+            { id: 'sobreejec', label: 'Sobreejecución (>100%)', icon: 'trending-up' },
+            { id: 'riesgo', label: 'Críticos / Riesgo', icon: 'alert-triangle' }
+          ].map((chip) => {
+            const isActive = quickFilter === chip.id;
+            return (
+              <button
+                type="button"
+                key={chip.id}
+                onClick={() => {
+                  setQuickFilter(isActive ? null : chip.id);
+                  setPage(1);
+                }}
+                className={`btn xs ${isActive ? 'active-chip' : 'ghost'}`}
+                style={{
+                  borderRadius: 'var(--r-pill)',
+                  background: isActive ? 'var(--selection, var(--brand-soft))' : 'var(--surface-2)',
+                  color: isActive ? 'var(--selection-text, var(--brand-2))' : 'var(--ink-2)',
+                  borderColor: isActive ? 'var(--brand)' : 'var(--border-control)',
+                  fontWeight: isActive ? 600 : 500,
+                  transition: 'all var(--t-fast) var(--ease)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <Icon name={chip.icon} size={12} />
+                {chip.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Tabla de Contratos */}
@@ -226,19 +357,19 @@ export const ContratosView = () => {
           <DataTable className="tbl">
             <thead>
               <tr>
-                <th style={{ width: 48, textAlign: 'center' }}>Sem</th>
-                <th style={{ width: 130 }}>Número</th>
-                <th>Empresa</th>
-                <th style={{ minWidth: 220 }}>Contratista y Objeto</th>
-                <th style={{ width: 110 }}>Estado</th>
+                <th style={{ width: 56, textAlign: 'center' }}>Sem</th>
+                <th style={{ width: 140 }}>Número</th>
+                <th style={{ width: 180 }}>Empresa</th>
+                <th style={{ minWidth: 260 }}>Contratista y Objeto</th>
+                <th style={{ width: 120 }}>Estado</th>
                 <th className="num" style={{ width: 140 }}>Valor Actual</th>
                 <th style={{ width: 160 }}>Avance Fin.</th>
                 <th style={{ width: 140 }}>Días Restantes</th>
-                <th style={{ width: 80, textAlign: 'right' }}>Acciones</th>
+                <th style={{ width: 90, textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {pagedContracts.map((c) => {
+              {pagedContracts.map((c, idx) => {
                 const metrics = M(c.id);
                 const rail =
                   metrics.sem === 'ok'
@@ -254,7 +385,15 @@ export const ContratosView = () => {
                 const st = metrics.estado;
 
                 return (
-                  <tr key={c.id} className="rail" style={{ '--railc': rail } as any}>
+                  <tr
+                    key={c.id}
+                    className="rail anim-fade-rise"
+                    style={{
+                      '--railc': rail,
+                      animationDelay: `${idx * 40}ms`,
+                      transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)'
+                    } as any}
+                  >
                     <td style={{ textAlign: 'center' }}>
                       <span className={`sem ${metrics.sem}`} title={`Semáforo: ${metrics.sem}`} />
                     </td>
@@ -272,28 +411,30 @@ export const ContratosView = () => {
                       <span style={{ fontWeight: 500 }}>{co?.razon || (co as any).name || '—'}</span>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{c.contratista}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{c.contratista || '—'}</div>
                       <div className="clip" style={{ fontSize: '11.5px', color: 'var(--muted)', marginTop: 2 }}>
                         {obj}
                       </div>
                     </td>
                     <td>
-                      <Badge text={st} color={st === 'Activo' ? 'ok' : st === 'Vencido' ? 'crit' : 'na'} />
+                      <Badge
+                        text={st}
+                        color={st === 'Activo' ? 'ok' : st === 'Vencido' ? 'crit' : st === 'Suspendido' ? 'warn' : 'na'}
+                      />
                     </td>
                     <td className="num">
                       <span style={{ fontWeight: 600 }}>{fmtMoney(metrics.valorActual)}</span>
                     </td>
                     <td>
-                      {/* Corregido: usa metrics.pctFin directamente en escala 0-100 con clamp y sin dividir por 100 */}
                       <PBar value={metrics.pctFin} showLabel={true} />
                     </td>
                     <td>
                       {metrics.daysLeft < 0 ? (
-                        <span className="badge b-crit" style={{ fontSize: '11px' }}>
+                        <span className="badge b-crit" style={{ fontSize: '11px', borderRadius: 'var(--r-pill)' }}>
                           {daysTxt(metrics.daysLeft)}
                         </span>
                       ) : metrics.daysLeft <= 15 ? (
-                        <span className="badge b-warn" style={{ fontSize: '11px' }}>
+                        <span className="badge b-warn" style={{ fontSize: '11px', borderRadius: 'var(--r-pill)' }}>
                           {daysTxt(metrics.daysLeft)}
                         </span>
                       ) : (
@@ -304,6 +445,14 @@ export const ContratosView = () => {
                     </td>
                     <td>
                       <div className="acts">
+                        <Link
+                          href={contractHref(c.id)}
+                          className="icon-btn"
+                          title="Ver expediente digital"
+                          aria-label={`Ver expediente de ${num}`}
+                        >
+                          <Icon name="search" />
+                        </Link>
                         <Button
                           className="icon-btn"
                           onClick={() => setEditing(c)}
@@ -312,6 +461,19 @@ export const ContratosView = () => {
                         >
                           <Icon name="cog" />
                         </Button>
+                        <details className="action-disclosure" style={{ display: 'none' }}>
+                          <summary aria-label={`Acciones adicionales para ${num}`}>
+                            <Icon name="settings" />
+                          </summary>
+                          <div className="action-disclosure-content">
+                            <Link href={contractHref(c.id)} className="btn text-link">
+                              <Icon name="eye" /> Ver expediente
+                            </Link>
+                            <Button className="btn text-link" onClick={() => setEditing(c)}>
+                              <Icon name="cog" /> Modificar
+                            </Button>
+                          </div>
+                        </details>
                       </div>
                     </td>
                   </tr>
@@ -320,14 +482,18 @@ export const ContratosView = () => {
 
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="empty">
-                    <div className="empty-icon">
-                      <Icon name="folder" />
-                    </div>
-                    <b>No se encontraron contratos</b>
-                    <p style={{ margin: '4px 0 0', fontSize: '12px' }}>
-                      Prueba ajustando los filtros o realizando otra búsqueda.
-                    </p>
+                  <td colSpan={9}>
+                    <EmptyState
+                      title="No se encontraron contratos"
+                      description="Prueba ajustando los filtros o realizando otra búsqueda."
+                      action={
+                        hasActiveFilters ? (
+                          <Button className="btn sm" onClick={clearAllFilters} style={{ marginTop: 8 }}>
+                            Restablecer filtros
+                          </Button>
+                        ) : undefined
+                      }
+                    />
                   </td>
                 </tr>
               )}
@@ -376,6 +542,7 @@ export const ContratosView = () => {
         </TableViewport>
       </Surface>
 
+      {/* Modal de edición / creación de contrato */}
       {editing && (
         <ContratoFormModal
           contract={editing}
