@@ -104,7 +104,7 @@ export const ContratosView = () => {
       { l: '% Avance Fin.', x: (c: Contract) => M(c).pctFin },
       { l: 'Días Restantes', x: (c: Contract) => M(c).restantes ?? '—' }
     ];
-    exportRows('Contratos Nexo', cols, filtered, 'xlsx');
+    exportRows('Contratos Seven Save', cols, filtered, 'xlsx');
   };
 
   const clearAllFilters = () => {
@@ -266,6 +266,7 @@ export const ContratosView = () => {
                 setPage(1);
               }}
               placeholder="Buscar por número, contratista, objeto, NIT..."
+              aria-label="Buscar contratos por número, contratista, objeto o NIT"
             />
           </div>
 

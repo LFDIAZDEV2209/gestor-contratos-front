@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { requestReason, notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
 import type { Company } from '../../lib/types';
-import { Store, Audit } from '../../lib/store';
+import { Store, Audit, AuthService } from '../../lib/store';
 import { Icon } from '../icons';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
@@ -14,6 +15,8 @@ import { Modal } from '../ui/Modal';
 import { uid } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 
+// El Badge resuelve el color semántico con el catálogo del sistema
+// (Activa → ok, Inactiva/Anulada → crit), sin colores improvisados por vista.
 export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) => {
   const [companies, setCompanies] = useState<Company[]>(Store.all('companies'));
   const [editing, setEditing] = useState<Partial<Company> | null>(null);
@@ -25,35 +28,30 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
 
   const contracts = Store.all('contracts');
 
+  // Naturalezas jurídicas reales presentes en el directorio: el filtro
+  // nunca ofrece opciones que no existen en los datos.
+  const tipos = Array.from(new Set(companies.map((c) => (c.tipo || c.type || '').trim()).filter(Boolean))).sort();
+
   const total = companies.length;
   const activas = companies.filter((c) => ['Activa', 'Activo'].includes(c.estado || c.status || '')).length;
-  const inactivas = companies.filter((c) => ['Inactiva', 'Inactivo', 'Anulada', 'Anulado'].includes(c.estado || c.status || '')).length;
-  const totalContratosAsociados = contracts.length;
+  const inactivas = total - activas;
+  const totalContratosAsociados = contracts.filter((ct) => !ct.anulado).length;
 
   const filtered = companies.filter((c) => {
     const nit = (c.nit || '').toLowerCase();
     const razon = (c.razon || c.name || '').toLowerCase();
     const rep = (c.rep || '').toLowerCase();
     const tipo = (c.tipo || c.type || '').toLowerCase();
-    const estado = (c.estado || c.status || '');
+    const estado = c.estado || c.status || '';
     const isActiva = ['Activa', 'Activo'].includes(estado);
 
     if (q) {
       const ql = q.toLowerCase();
-      if (!nit.includes(ql) && !razon.includes(ql) && !rep.includes(ql) && !tipo.includes(ql)) {
-        return false;
-      }
+      if (!nit.includes(ql) && !razon.includes(ql) && !rep.includes(ql) && !tipo.includes(ql)) return false;
     }
-
-    if (filterTipo && (c.tipo || c.type) !== filterTipo) {
-      return false;
-    }
-
+    if (filterTipo && (c.tipo || c.type) !== filterTipo) return false;
     if (statusChip === 'activas' && !isActiva) return false;
     if (statusChip === 'inactivas' && isActiva) return false;
-    if (statusChip === 'privadas' && (c.tipo || c.type) !== 'Privada') return false;
-    if (statusChip === 'publicas' && (c.tipo || c.type) !== 'Pública') return false;
-
     return true;
   });
 
@@ -63,41 +61,60 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
 
   const handleSave = () => {
     if (!editing) return;
-    const razon = editing.razon || editing.name;
-    if (!editing.nit || !razon) {
-      notify('El NIT y la Razón Social son obligatorios.');
+    const razon = (editing.razon || editing.name || '').trim();
+    const nit = (editing.nit || '').trim();
+    const email = (editing.email || '').trim();
+
+    if (!nit || !razon) {
+      notify('El NIT y la razón social son obligatorios.');
+      return;
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      notify('El correo electrónico no tiene un formato válido.');
+      return;
+    }
+    // NIT único en el directorio
+    const duplicado = companies.find((c) => (c.nit || '').trim() === nit && c.id !== editing.id);
+    if (duplicado) {
+      notify(`Ya existe «${duplicado.razon || duplicado.name}» registrada con el NIT ${nit}.`);
       return;
     }
 
+    const estado = editing.estado || editing.status || 'Activa';
+    const payload: Partial<Company> = {
+      ...editing,
+      razon,
+      name: razon,
+      tipo: editing.tipo || editing.type || 'Sociedad comercial',
+      type: editing.tipo || editing.type || 'Sociedad comercial',
+      estado,
+      status: estado
+    };
+
     if (editing.id) {
-      const updated: Company = {
-        ...editing,
-        razon: razon,
-        name: razon,
-        tipo: editing.tipo || editing.type || 'Privada',
-        type: editing.tipo || editing.type || 'Privada'
-      } as Company;
-      Store.update('companies', editing.id, updated);
-      Audit.log({
-        modulo: 'Empresas',
-        accion: 'Edición',
-        campo: 'Empresa ' + razon,
-        nuevo: 'Actualización de datos institucionales'
+      // Snapshot previo: Store.update muta el registro en sitio y falsearía el diff
+      const before = { ...Store.get('companies', editing.id) };
+      Store.update('companies', editing.id, payload);
+      Audit.diff('Empresas', '', before, payload, {
+        nit: 'NIT de empresa',
+        razon: 'Razón social de empresa',
+        name: 'Razón social de empresa',
+        rep: 'Representante legal de empresa',
+        tipo: 'Naturaleza de empresa',
+        type: 'Naturaleza de empresa',
+        direccion: 'Dirección de empresa',
+        tel: 'Teléfono de empresa',
+        email: 'Correo de empresa',
+        estado: 'Estado de empresa',
+        status: 'Estado de empresa'
       });
       notify(`Empresa «${razon}» actualizada.`);
     } else {
-      const newId = uid();
       const created: Company = {
-        ...editing,
-        id: newId,
-        razon: razon,
-        name: razon,
-        tipo: editing.tipo || editing.type || 'Privada',
-        type: editing.tipo || editing.type || 'Privada',
+        ...payload,
+        id: uid('EMP'),
         risk: 0,
-        level: '1',
-        estado: 'Activa',
-        status: 'Activo'
+        level: '1'
       } as Company;
       Store.insert('companies', created);
       Audit.log({
@@ -113,19 +130,26 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
   };
 
   const handleAnular = async (id: string) => {
+    if (!AuthService.guard('anular')) return;
     const target = companies.find((c) => c.id === id);
-    const motivo = await requestReason(`Motivo de anulación para ${target?.razon || target?.name || 'la empresa'}:`);
-    if (motivo) {
-      Store.update('companies', id, { estado: 'Anulada', status: 'Anulado' });
-      Audit.log({
-        modulo: 'Empresas',
-        accion: 'Anulación',
-        campo: 'Empresa ' + (target?.razon || target?.name || id),
-        obs: `Motivo: ${motivo}`
-      });
-      notify('Empresa marcada como anulada.');
-      setCompanies(Store.all('companies'));
+    const nombre = target?.razon || target?.name || 'la empresa';
+    if (['Anulada', 'Anulado'].includes(target?.estado || target?.status || '')) {
+      notify(`«${nombre}» ya se encuentra anulada.`);
+      return;
     }
+    const motivo = await requestReason(`Motivo de anulación para ${nombre}:`);
+    if (!motivo) return;
+    Store.update('companies', id, { estado: 'Anulada', status: 'Anulado' });
+    Audit.log({
+      modulo: 'Empresas',
+      accion: 'Anulación',
+      campo: 'Empresa ' + nombre,
+      anterior: target?.estado || target?.status || '',
+      nuevo: 'Anulada',
+      obs: `Motivo: ${motivo}`
+    });
+    notify(`«${nombre}» quedó anulada.`);
+    setCompanies(Store.all('companies'));
   };
 
   const handleExport = () => {
@@ -136,6 +160,8 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
         { l: 'Razón Social', x: (c: Company) => c.razon || c.name || '' },
         { l: 'Representante', x: (c: Company) => c.rep || '—' },
         { l: 'Tipo', x: (c: Company) => c.tipo || c.type || '—' },
+        { l: 'Dirección', x: (c: Company) => [c.direccion, c.ciudad].filter(Boolean).join(', ') || '—' },
+        { l: 'Teléfono', x: (c: Company) => c.tel || '—' },
         { l: 'Estado', x: (c: Company) => c.estado || c.status || '' }
       ],
       filtered,
@@ -151,6 +177,14 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
   };
 
   const hasFilters = Boolean(q || filterTipo || statusChip !== 'todas');
+
+  // Solo los accesos de escritura exigen permiso; la vista sigue siendo consultable.
+  const openCreate = () => {
+    if (AuthService.guard('crear')) setEditing({});
+  };
+  const openEdit = (c: Company) => {
+    if (AuthService.guard('editar')) setEditing(c);
+  };
 
   return (
     <div className="anim-fade-rise">
@@ -200,46 +234,59 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
 
         <div className="ph-actions">
           <Button className="btn" onClick={handleExport} title="Exportar directorio a Excel">
-            <Icon name="file-contract" /> Exportar
+            <Icon name="file-excel" /> Exportar
           </Button>
-          <Button className="btn pri" onClick={() => setEditing({})}>
+          <Button className="btn pri" onClick={openCreate}>
             <Icon name="plus" /> Nueva Empresa
           </Button>
         </div>
       </PageHeader>
 
-      {/* Tarjetas KPI con entrada escalonada */}
+      {/* Tarjetas KPI: los totales funcionan como accesos a los filtros de la tabla */}
       <div className="kpis mb">
         <Kpi
           label="Total Empresas"
-          value={total.toString()}
+          value={total}
           icon="building"
-          className="anim-fade-rise stagger-1"
+          color="brand"
+          className="anim-fade-rise stagger-1 click"
+          onClick={() => {
+            setStatusChip('todas');
+            setPage(1);
+          }}
         />
         <Kpi
           label="Empresas Activas"
-          value={activas.toString()}
+          value={activas}
           color="ok"
           icon="check-circle"
-          className="anim-fade-rise stagger-2"
+          className="anim-fade-rise stagger-2 click"
+          onClick={() => {
+            setStatusChip('activas');
+            setPage(1);
+          }}
         />
         <Kpi
           label="Inactivas / Anuladas"
-          value={inactivas.toString()}
+          value={inactivas}
           color="na"
           icon="alert-circle"
-          className="anim-fade-rise stagger-3"
+          className="anim-fade-rise stagger-3 click"
+          onClick={() => {
+            setStatusChip('inactivas');
+            setPage(1);
+          }}
         />
         <Kpi
           label="Contratos Vinculados"
-          value={totalContratosAsociados.toString()}
-          color="brand"
+          value={totalContratosAsociados}
+          color="info"
           icon="file-signature"
           className="anim-fade-rise stagger-4"
         />
       </div>
 
-      {/* Superficie de Filtros y Búsqueda */}
+      {/* Superficie de filtros y búsqueda */}
       <Surface className="panel mb">
         <div className="filters">
           <div className="gsearch" style={{ minWidth: 280 }}>
@@ -251,11 +298,12 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                 setPage(1);
               }}
               placeholder="Buscar por NIT, razón social o representante..."
+              aria-label="Buscar empresas por NIT, razón social o representante"
             />
           </div>
 
           <Field className="f">
-            <label>Tipo de Persona</label>
+            <label>Naturaleza</label>
             <Select
               value={filterTipo}
               onChange={(e) => {
@@ -263,35 +311,31 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                 setPage(1);
               }}
             >
-              <option value="">Todos los tipos</option>
-              <option value="Privada">Privada</option>
-              <option value="Pública">Pública</option>
-              <option value="Mixta">Mixta</option>
+              <option value="">Todas las naturalezas</option>
+              {tipos.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
             </Select>
           </Field>
 
           {hasFilters && (
-            <Button
-              className="btn sm ghost"
-              onClick={clearFilters}
-              style={{ alignSelf: 'flex-end', height: 38 }}
-            >
+            <Button className="btn sm ghost" onClick={clearFilters} style={{ alignSelf: 'flex-end', height: 38 }}>
               <Icon name="trash" /> Limpiar filtros
             </Button>
           )}
         </div>
 
-        {/* Chips de filtro rápido */}
+        {/* Chips de filtro rápido con micro-interacción de activación */}
         <div className="filter-chips">
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginRight: 6 }}>
             Filtrar por:
           </span>
           {[
-            { id: 'todas', label: 'Todas las empresas' },
-            { id: 'activas', label: 'Activas' },
-            { id: 'inactivas', label: 'Inactivas / Anuladas' },
-            { id: 'privadas', label: 'Sector Privado' },
-            { id: 'publicas', label: 'Sector Público' }
+            { id: 'todas', label: 'Todas las empresas', icon: 'building' },
+            { id: 'activas', label: 'Activas', icon: 'check-circle' },
+            { id: 'inactivas', label: 'Inactivas / Anuladas', icon: 'alert-circle' }
           ].map((chip) => {
             const isActive = statusChip === chip.id;
             return (
@@ -303,22 +347,37 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                   setPage(1);
                 }}
                 className={`btn xs ${isActive ? 'active-chip' : 'ghost'}`}
+                aria-pressed={isActive}
                 style={{
                   borderRadius: 'var(--r-pill)',
                   background: isActive ? 'var(--selection, var(--brand-soft))' : 'var(--surface-2)',
                   color: isActive ? 'var(--selection-text, var(--brand-2))' : 'var(--ink-2)',
                   borderColor: isActive ? 'var(--brand)' : 'var(--border-control)',
                   fontWeight: isActive ? 600 : 500,
-                  transition: 'all var(--t-fast) var(--ease)'
+                  transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                  boxShadow: isActive ? '0 2px 8px -2px rgba(15, 133, 121, 0.35)' : 'none',
+                  transition: 'transform var(--t-fast) cubic-bezier(0.34, 1.56, 0.64, 1), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.transform = 'scale(1.03)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = isActive ? 'scale(1.05)' : 'scale(1)';
                 }}
               >
-                {chip.label}
+                <Icon name={chip.icon} size={12} style={{ color: isActive ? 'var(--brand)' : 'var(--muted)' }} />
+                <span>{chip.label}</span>
+                {isActive && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--brand)', marginLeft: 2 }} />}
               </button>
             );
           })}
         </div>
 
-        {/* Tabla de Empresas */}
+        {/* Tabla de empresas con hover de elevación y entrada escalonada */}
         <TableViewport className="tbl-wrap">
           <DataTable className="tbl">
             <thead>
@@ -326,24 +385,35 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                 <th style={{ width: 140 }}>NIT</th>
                 <th style={{ minWidth: 260 }}>Razón Social</th>
                 <th style={{ minWidth: 200 }}>Representante Legal</th>
-                <th style={{ width: 130 }}>Tipo</th>
+                <th style={{ width: 150 }}>Naturaleza</th>
                 <th style={{ width: 110, textAlign: 'center' }}>Contratos</th>
                 <th style={{ width: 120 }}>Estado</th>
-                <th style={{ width: 100, textAlign: 'right' }}>Acciones</th>
+                <th style={{ width: 110, textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {pagedCompanies.map((c, idx) => {
-                const isActiva = ['Activa', 'Activo'].includes(c.estado || c.status || '');
-                const relatedContracts = contracts.filter((ct) => ct.companyId === c.id || ct.company === c.id);
+                const nombre = c.razon || c.name || '—';
+                const relatedContracts = contracts.filter((ct) => !ct.anulado && (ct.companyId === c.id || ct.company === c.id));
 
                 return (
                   <tr
                     key={c.id}
                     className="anim-fade-rise"
                     style={{
-                      animationDelay: `${idx * 40}ms`,
+                      animationDelay: `${idx * 25}ms`,
                       transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow-2)';
+                      e.currentTarget.style.position = 'relative';
+                      e.currentTarget.style.zIndex = '2';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'none';
+                      e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.zIndex = 'auto';
                     }}
                   >
                     <td>
@@ -356,9 +426,10 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                         variant="link"
                         className="text-link"
                         onClick={() => onSelect(c.id)}
-                        style={{ fontWeight: 600, fontSize: '13px', textAlign: 'left' }}
+                        style={{ fontWeight: 600, fontSize: '13px' }}
+                        title="Ver ficha institucional"
                       >
-                        {c.razon || c.name}
+                        {nombre}
                       </Button>
                     </td>
                     <td>
@@ -370,68 +441,46 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                       </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <span
-                        className="badge"
-                        style={{
-                          background: 'var(--surface-2)',
-                          color: 'var(--brand-2)',
-                          border: '1px solid var(--line)',
-                          borderRadius: 'var(--r-pill)',
-                          fontSize: '11.5px',
-                          padding: '2px 8px'
-                        }}
+                      {/* Atajo real: lleva a Contratos filtrado por esta empresa */}
+                      <Link
+                        href={`/contratos?empresa=${encodeURIComponent(c.id)}`}
+                        className="badge b-info"
+                        title={`Abrir los ${relatedContracts.length} contratos de esta empresa`}
+                        aria-label={`Ver los ${relatedContracts.length} contratos vinculados a ${nombre}`}
+                        style={{ borderRadius: 'var(--r-pill)', fontSize: '11.5px', padding: '2px 8px' }}
                       >
                         {relatedContracts.length}
-                      </span>
+                      </Link>
                     </td>
                     <td>
-                      <Badge
-                        text={c.estado || c.status || 'Activa'}
-                        color={isActiva ? 'ok' : 'na'}
-                      />
+                      <Badge text={c.estado || c.status || 'Activa'} />
                     </td>
                     <td>
                       <div className="acts">
                         <Button
                           className="icon-btn"
                           onClick={() => onSelect(c.id)}
-                          title="Ver Ficha Institucional"
-                          aria-label={`Ver ficha de ${c.razon || c.name}`}
+                          title="Ver ficha institucional"
+                          aria-label={`Ver ficha de ${nombre}`}
                         >
                           <Icon name="search" />
                         </Button>
                         <Button
                           className="icon-btn"
-                          onClick={() => setEditing(c)}
-                          title="Editar Empresa"
-                          aria-label={`Editar ${c.razon || c.name}`}
+                          onClick={() => openEdit(c)}
+                          title="Editar empresa"
+                          aria-label={`Editar ${nombre}`}
                         >
                           <Icon name="cog" />
                         </Button>
                         <Button
                           className="icon-btn"
                           onClick={() => handleAnular(c.id)}
-                          title="Anular Empresa"
-                          aria-label={`Anular ${c.razon || c.name}`}
+                          title="Anular empresa (requiere motivo)"
+                          aria-label={`Anular ${nombre}`}
                         >
-                          <Icon name="exclamation-circle" />
+                          <Icon name="trash" />
                         </Button>
-                        <details className="action-disclosure" style={{ display: 'none' }}>
-                          <summary aria-label={`Acciones para ${c.razon || c.name}`}>
-                            <Icon name="settings" />
-                          </summary>
-                          <div className="action-disclosure-content">
-                            <Button className="btn text-link" onClick={() => onSelect(c.id)}>
-                              <Icon name="eye" /> Ver expediente
-                            </Button>
-                            <Button className="btn text-link" onClick={() => setEditing(c)}>
-                              <Icon name="cog" /> Modificar
-                            </Button>
-                            <Button className="btn text-link" onClick={() => handleAnular(c.id)}>
-                              <Icon name="trash" /> Anular
-                            </Button>
-                          </div>
-                        </details>
                       </div>
                     </td>
                   </tr>
@@ -479,6 +528,7 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                             key={p}
                             className={p === currentPage ? 'on' : ''}
                             onClick={() => setPage(p)}
+                            aria-label={`Ir a la página ${p}`}
                           >
                             {p}
                           </Button>
@@ -528,22 +578,27 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
               />
             </Field>
 
-            <Field className="f span2">
+            <Field className="f">
+              <label>Estado de Actividad</label>
+              <Select
+                value={editing.estado || editing.status || 'Activa'}
+                onChange={(e) => setEditing({ ...editing, estado: e.target.value, status: e.target.value })}
+              >
+                <option value="Activa">Activa</option>
+                <option value="Inactiva">Inactiva</option>
+              </Select>
+            </Field>
+
+            <Field className="f span3">
               <label className="req">Razón Social o Nombre Legal</label>
               <Input
                 value={editing.razon || editing.name || ''}
-                onChange={(e) =>
-                  setEditing({
-                    ...editing,
-                    razon: e.target.value,
-                    name: e.target.value
-                  })
-                }
+                onChange={(e) => setEditing({ ...editing, razon: e.target.value, name: e.target.value })}
                 placeholder="Nombre comercial o personería jurídica"
               />
             </Field>
 
-            <Field className="f span2">
+            <Field className="f">
               <label>Representante Legal</label>
               <Input
                 value={editing.rep || ''}
@@ -553,21 +608,37 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
             </Field>
 
             <Field className="f">
-              <label>Naturaleza / Tipo</label>
+              <label>Naturaleza / Sector</label>
               <Select
-                value={editing.tipo || editing.type || 'Privada'}
-                onChange={(e) =>
-                  setEditing({
-                    ...editing,
-                    tipo: e.target.value,
-                    type: e.target.value
-                  })
-                }
+                value={editing.tipo || editing.type || ''}
+                onChange={(e) => setEditing({ ...editing, tipo: e.target.value, type: e.target.value })}
               >
-                <option value="Privada">Privada</option>
-                <option value="Pública">Pública</option>
-                <option value="Mixta">Mixta</option>
+                <option value="">Sin clasificar</option>
+                {(tipos.length ? tipos : ['Sociedad comercial']).map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
               </Select>
+            </Field>
+
+            <Field className="f">
+              <label>Teléfono de Contacto</label>
+              <Input
+                value={editing.tel || ''}
+                onChange={(e) => setEditing({ ...editing, tel: e.target.value })}
+                placeholder="Ej. 605 385 2210"
+              />
+            </Field>
+
+            <Field className="f">
+              <label>Correo Electrónico</label>
+              <Input
+                type="email"
+                value={editing.email || ''}
+                onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+                placeholder="contratacion@empresa.co"
+              />
             </Field>
 
             <Field className="f span3">
@@ -575,7 +646,7 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
               <Input
                 value={editing.direccion || ''}
                 onChange={(e) => setEditing({ ...editing, direccion: e.target.value })}
-                placeholder="Ej. Cra 7 # 71-52, Bogotá"
+                placeholder="Ej. Cra 54 # 72-80, Barranquilla"
               />
             </Field>
           </FormGrid>

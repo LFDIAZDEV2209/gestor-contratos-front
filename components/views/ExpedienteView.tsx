@@ -11,10 +11,12 @@ import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
 import { Validator } from '../../lib/validator';
 import { LEVEL_TXT } from '../../lib/catalog';
-import { pct, clamp, fdate, nowStamp } from '../../lib/format';
-import { exportRows } from '../../lib/export';
+import { pct, clamp, fdate, nowStamp, money, moneyM } from '../../lib/format';
+import { deptoNames } from '../../lib/geo';
+import { exportRows, saveFile } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
+import { notify, requestReason } from '../ui/Feedback';
 import { Icon } from '../icons';
 
 import { TabResumen } from '../expediente/TabResumen';
@@ -62,6 +64,17 @@ const TABS: TabDef[] = [
   { id: 'timeline', label: 'Línea de Tiempo' }
 ];
 
+/** Estado del contrato → color semántico del badge (files/08). */
+const colorEstado = (estado: string) =>
+  estado === 'Activo' ? 'ok'
+  : estado === 'Suspendido' ? 'warn'
+  : estado === 'Vencido' ? 'crit'
+  : estado === 'Anulado' ? 'na'
+  : 'default';
+
+// Formato compacto sin cortes de palabra en móvil ("mil M" indivisible).
+const nb = (s: string) => s.replace('mil M', 'mil\u00A0M');
+
 export const ExpedienteView = ({
   id
 }: {
@@ -99,6 +112,25 @@ export const ExpedienteView = ({
   const [showEditModal, setShowEditModal] = useState(false);
   const [valResult, setValResult] = useState<{ areas: { a: string; ok: boolean }[]; issues: VIssue[] } | null>(null);
   const [recResult, setRecResult] = useState<{ doc: DocType; diffs: number; rows: [string, string, string, boolean][] } | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const actionsRef = useRef<HTMLDivElement>(null);
+
+  // El menú de acciones se cierra al hacer clic fuera o con Escape.
+  useEffect(() => {
+    if (!actionsOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (actionsRef.current && !actionsRef.current.contains(e.target as Node)) setActionsOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActionsOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [actionsOpen]);
 
   const c = Store.get('contracts', id) as Contract | undefined;
   if (!c) {
@@ -175,13 +207,39 @@ export const ExpedienteView = ({
     exportRows('Validación contrato ' + c.numero, cols, valResult.issues, format);
   };
 
+  /* ── Acciones del menú del expediente ────────────────────────────────── */
+
+  const handlePrint = () => window.print();
+
+  const handleExportExpediente = () => {
+    if (!AuthService.guard('exportar')) return;
+    // Descarga el expediente completo (contrato + colecciones hijas) como JSON.
+    const colecciones = ['subcontracts', 'obligations', 'deliverables', 'execs', 'payments', 'guarantees', 'actas', 'modifications', 'risks', 'breaches', 'plans', 'documents'];
+    const expediente: Record<string, unknown> = { contrato: c };
+    for (const col of colecciones) expediente[col] = (Store.byContract as any)(col, c.id);
+    saveFile(`expediente-${c.numero}-${nowStamp().slice(0, 10)}.json`, JSON.stringify(expediente, null, 2), 'application/json');
+    Audit.log({ contractId: c.id, modulo: 'Expediente', accion: 'Exportación', campo: 'JSON', obs: 'Descarga del expediente completo' });
+    notify('Expediente exportado (JSON)');
+  };
+
+  const handleAnularContrato = async () => {
+    if (!AuthService.guard('anular')) return;
+    const mot = await requestReason(`Motivo de anulación del contrato ${c.numero}:`);
+    if (!mot) return;
+    Store.anular('contracts', c.id, mot);
+    notify(`Contrato ${c.numero} anulado`);
+    onBack();
+  };
+
   const insurers = (Store.byContract('guarantees', c.id) as any[])
     .map((g) => g.aseguradora)
     .filter(Boolean);
   const uniqueInsurers = Array.from(new Set(insurers));
 
-  const deptos = c.departamento ? [c.departamento] : [];
-  const primaryReason = m.razones.filter((r) => r.l === m.nivel).map((r) => r.t).join(' ');
+  const cobertura = deptoNames(c.deptos);
+  const razones = m.razones.map((r) => r.t);
+  const razonesClave = razones.slice(0, 2);
+  const razonesExtras = razones.length - razonesClave.length;
 
   const handleTabChangeByName = (tabName: string) => {
     const found = TABS.find(
@@ -193,9 +251,9 @@ export const ExpedienteView = ({
   };
 
   return (
-    <div>
+    <div className="max-[620px]:pb-20">
       {/* Crumb */}
-      <div className="crumb">
+      <nav className="crumb" aria-label="Ruta de navegación">
         <Link href="/contratos">Contratos</Link> /{' '}
         {company ? (
           <Link href={companyHref(company.id)}>{company.razon}</Link>
@@ -203,25 +261,17 @@ export const ExpedienteView = ({
           '—'
         )}{' '}
         / Expediente
-      </div>
+      </nav>
 
       {/* Expediente Header */}
-      <div className="exp-head" style={{ '--railc': `var(--${m.sem})` } as any}>
+      <header className="exp-head" style={{ '--railc': `var(--${m.sem})` } as any}>
         <div className="exp-top">
           <div>
             <div className="exp-num">
               CONTRATO #{c.numero}{' '}
               <Badge
                 text={m.estado}
-                color={
-                  m.estado === 'Activo'
-                    ? 'ok'
-                    : m.estado === 'Suspendido'
-                    ? 'warn'
-                    : m.estado === 'Vencido' || m.estado === 'Terminado'
-                    ? 'crit'
-                    : 'default'
-                }
+                color={colorEstado(m.estado)}
               />
               <div className={`semtag ${m.sem}`}>
                 <div className={`sem ${m.sem}`}></div> {LEVEL_TXT[m.nivel]}
@@ -234,6 +284,39 @@ export const ExpedienteView = ({
           </div>
 
           <div className="ph-actions">
+            {/* Menú de acciones del expediente */}
+            <div ref={actionsRef} style={{ position: 'relative' }}>
+              <Button
+                className="btn"
+                aria-haspopup="menu"
+                aria-expanded={actionsOpen}
+                onClick={() => setActionsOpen(!actionsOpen)}
+              >
+                <Icon name="bars" /> Acciones <Icon name="chevron-down" />
+              </Button>
+              {actionsOpen && (
+                <div className="dropdown" role="menu" aria-label="Acciones del expediente" style={{ minWidth: 280 }}>
+                  <Button className="btn sm ghost" onClick={handlePrint} style={{ width: '100%', justifyContent: 'flex-start' }}>
+                    <Icon name="print" /> Imprimir expediente
+                  </Button>
+                  <Button className="btn sm ghost" onClick={handleExportExpediente} style={{ width: '100%', justifyContent: 'flex-start' }}>
+                    <Icon name="file-export" /> Exportar expediente (JSON)
+                  </Button>
+                  {!c.anulado && (
+                    <Button
+                      className="btn sm ghost"
+                      onClick={() => {
+                        setActionsOpen(false);
+                        void handleAnularContrato();
+                      }}
+                      style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--crit)' }}
+                    >
+                      <Icon name="gavel" /> Anular contrato…
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
             {!c.anulado && (
               <Button className="btn" onClick={() => setShowEditModal(true)}>
                 <Icon name="pen" /> Editar
@@ -248,81 +331,66 @@ export const ExpedienteView = ({
           </div>
         </div>
 
-        <details className="context-disclosure">
-          <summary>Contexto contractual y métricas de ejecución</summary>
-        {/* Metadata */}
-        <div className="exp-meta">
+        {/* Cifras clave siempre visibles */}
+        <div className="exp-meta" style={{ marginTop: '14px' }}>
           <div>
-            <span>Empresa</span>
-            <b
-              className="link"
-              onClick={() => company && router.push(companyHref(company.id))}
-              style={{ cursor: 'pointer' }}
-            >
-              {company ? company.razon : '—'}
+            <span>Valor actualizado</span>
+            <b className="mono">{nb(moneyM(m.valorActual))}</b>
+          </div>
+          <div>
+            <span>Ejecutado</span>
+            <b className="mono">{nb(moneyM(m.ejecutado))} <span className="muted small">{pct(m.pctFin, 0)}</span></b>
+          </div>
+          <div>
+            <span>Saldo</span>
+            <b className="mono" style={{ color: m.saldo < 0 ? 'var(--crit)' : 'inherit' }}>
+              {nb(moneyM(m.saldo))} <span className="muted small">{pct(m.pctSaldo, 0)}</span>
             </b>
           </div>
           <div>
-            <span>Contratista</span>
-            <b>
-              {c.contratista}{' '}
-              {c.nitContratista && <span className="muted small">NIT {c.nitContratista}</span>}
+            <span>Días restantes</span>
+            <b className="mono" style={{ color: m.restantes != null && m.restantes < 0 && m.activo ? 'var(--crit)' : 'inherit' }}>
+              {m.restantes == null ? '—' : m.restantes < 0 ? 'Vencido' : m.restantes}
             </b>
           </div>
           <div>
-            <span>Responsable</span>
-            <b>{c.responsable || '—'}</b>
+            <span>Valor pagado</span>
+            <b className="mono">{nb(moneyM(m.pagado))}</b>
           </div>
           <div>
-            <span>Supervisor / Interventor</span>
-            <b>
-              {c.supervisor || '—'}
-              {c.interventor ? ` / ${c.interventor}` : ''}
-            </b>
-          </div>
-          <div>
-            <span>Aseguradoras</span>
-            <b
-              className="link"
-              style={{ cursor: 'pointer' }}
-              onClick={() => setActiveTab('garantias')}
-            >
-              {uniqueInsurers.length > 0 ? (
-                uniqueInsurers.join(' · ')
-              ) : (
-                <span style={{ color: 'var(--crit)' }}>Sin pólizas</span>
-              )}
-            </b>
-          </div>
-          <div>
-            <span>Ejecución</span>
-            <b>
-              {(c.municipio ? `${c.municipio} · ` : '') + (deptos.join(', ') || '—')}
-            </b>
+            <span>Cobertura</span>
+            <b>{c.municipio ? `${c.municipio} · ` : ''}{cobertura.join(', ') || '—'}</b>
           </div>
         </div>
 
-        {/* Traffic Light Reason */}
-        <div className="reason" style={{ marginTop: '12px' }}>
-          <span className={`sem ${m.sem}`} style={{ display: 'inline-block', marginRight: '6px' }}></span>
-          <b>{LEVEL_TXT[m.nivel]}</b> — {primaryReason || 'Todos los factores bajo parámetros normales.'}{' '}
-          {m.razones.length > 1 && m.nivel !== 'ok' && (
-            <span className="muted small">({m.razones.length} factores evaluados)</span>
-          )}
-        </div>
+        {/* Razón principal del semáforo, siempre visible cuando hay alerta */}
+        {m.nivel !== 'ok' && (
+          <div className="reason" style={{ marginTop: '12px' }}>
+            <span className={`sem ${m.sem}`} style={{ display: 'inline-block', marginRight: '6px' }}></span>
+            <b>{LEVEL_TXT[m.nivel]}</b> — {razonesClave.join(' ')}
+            {razonesExtras > 0 && (
+              <details style={{ display: 'inline-block', marginLeft: '4px' }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--brand)', fontWeight: 600, listStyle: 'none' }}>
+                  +{razonesExtras} factor{razonesExtras > 1 ? 'es' : ''} más
+                </summary>
+                <span className="small muted"> · {razones.slice(2).join(' · ')}</span>
+              </details>
+            )}
+          </div>
+        )}
 
         {/* 3 Progress Bars con clamp y badge de exceso */}
         <div className="dual" style={{ marginTop: '16px', maxWidth: '780px' }}>
           <div className="row">
             <span>Tiempo transcurrido</span>
-            <div className="bar lg">
+            <div className="bar lg" role="progressbar" aria-label="Porcentaje de tiempo transcurrido" aria-valuenow={Math.round(clamp(m.pctTiempo, 0, 100))} aria-valuemin={0} aria-valuemax={100}>
               <i style={{ width: `${clamp(m.pctTiempo, 0, 100)}%`, background: 'var(--info)' }}></i>
             </div>
             <b>{pct(m.pctTiempo, 0)}</b>
           </div>
           <div className="row">
             <span>Ejecución financiera</span>
-            <div className="bar lg">
+            <div className="bar lg" role="progressbar" aria-label="Porcentaje de ejecución financiera" aria-valuenow={Math.round(clamp(m.pctFin, 0, 100))} aria-valuemin={0} aria-valuemax={100}>
               <i
                 style={{
                   width: `${clamp(m.pctFin, 0, 100)}%`,
@@ -341,14 +409,91 @@ export const ExpedienteView = ({
           </div>
           <div className="row">
             <span>Ejecución física</span>
-            <div className="bar lg">
+            <div className="bar lg" role="progressbar" aria-label="Porcentaje de ejecución física" aria-valuenow={Math.round(clamp(m.pctFis, 0, 100))} aria-valuemin={0} aria-valuemax={100}>
               <i style={{ width: `${clamp(m.pctFis, 0, 100)}%`, background: 'var(--brand-3)' }}></i>
             </div>
             <b>{pct(m.pctFis, 0)}</b>
           </div>
         </div>
+
+        {/* Contexto completo plegado */}
+        <details className="context-disclosure">
+          <summary>Contexto contractual y metadatos completos</summary>
+          <div className="exp-meta" style={{ marginTop: '12px' }}>
+            <div>
+              <span>Empresa</span>
+              <b
+                className="link"
+                onClick={() => company && router.push(companyHref(company.id))}
+                style={{ cursor: 'pointer' }}
+              >
+                {company ? company.razon : '—'}
+              </b>
+            </div>
+            <div>
+              <span>Contratista</span>
+              <b>
+                {c.contratista}{' '}
+                {c.nitContratista && <span className="muted small">NIT {c.nitContratista}</span>}
+              </b>
+            </div>
+            <div>
+              <span>Representante legal</span>
+              <b>{c.repContratista || '—'}</b>
+            </div>
+            <div>
+              <span>Responsable</span>
+              <b>{c.responsable || '—'}</b>
+            </div>
+            <div>
+              <span>Supervisor / Interventor</span>
+              <b>
+                {c.supervisor || '—'}
+                {c.interventor ? ` / ${c.interventor}` : ''}
+              </b>
+            </div>
+            <div>
+              <span>Aseguradoras</span>
+              <b
+                className="link"
+                style={{ cursor: 'pointer' }}
+                onClick={() => setActiveTab('garantias')}
+              >
+                {uniqueInsurers.length > 0 ? (
+                  uniqueInsurers.join(' · ')
+                ) : (
+                  <span style={{ color: 'var(--crit)' }}>Sin pólizas</span>
+                )}
+              </b>
+            </div>
+            <div>
+              <span>Fechas</span>
+              <b>
+                {fdate(c.fechaFirma)} · {fdate(c.fechaInicio)} → {fdate(c.fechaFin)}
+              </b>
+            </div>
+            <div>
+              <span>Departamentos de cobertura</span>
+              <b>{cobertura.join(', ') || '—'}</b>
+            </div>
+          </div>
+
+          {/* Factores del semáforo completos */}
+          {razones.length > 2 && (
+            <div className="reason" style={{ marginTop: '12px' }}>
+              <b className="small">Factores evaluados ({razones.length})</b>
+              <div className="mt-2">
+                {m.razones.map((r, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0' }}>
+                    <span className={`sem ${r.l}`} style={{ marginTop: 3 }}></span>
+                    <span className="small">{r.t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </details>
-      </div>
+      </header>
 
       {/* Tabs con navegación horizontal y selector móvil para 17 pestañas */}
       <Surface className="panel" style={{ marginTop: '16px' }}>
@@ -489,6 +634,7 @@ export const ExpedienteView = ({
       {showValidator && valResult && (
         <Modal
           title="Validador contractual"
+          subtitle={`${c.numero} · ${nowStamp()}`}
           onClose={() => setShowValidator(false)}
           size="lg"
           footer={
@@ -514,7 +660,7 @@ export const ExpedienteView = ({
                 alignItems: 'center',
                 gap: '8px',
                 padding: '12px 16px',
-                borderRadius: '6px',
+                borderRadius: '10px',
                 background: valResult.issues.length ? 'var(--crit-s)' : 'var(--ok-s)',
                 color: valResult.issues.length ? 'var(--crit)' : 'var(--ok)',
                 fontWeight: 600,
@@ -531,9 +677,6 @@ export const ExpedienteView = ({
                     }`
                   : 'Contrato validado correctamente'}
               </span>
-              <span style={{ marginLeft: 'auto', fontWeight: 400, fontSize: '13px', color: 'var(--muted)' }}>
-                {c.numero} · {nowStamp()}
-              </span>
             </div>
 
             {/* Checklist of areas */}
@@ -545,7 +688,7 @@ export const ExpedienteView = ({
                 gap: '8px',
                 padding: '10px',
                 background: 'var(--bg-sub)',
-                borderRadius: '6px'
+                borderRadius: '10px'
               }}
             >
               {valResult.areas.map((a) => (
@@ -554,9 +697,9 @@ export const ExpedienteView = ({
                   className={`small ${a.ok ? '' : 'bad'}`}
                   style={{
                     padding: '3px 8px',
-                    borderRadius: '4px',
-                    background: a.ok ? 'rgba(78, 154, 143, 0.12)' : 'rgba(208, 84, 63, 0.12)',
-                    color: a.ok ? 'var(--ok)' : 'var(--crit)',
+                    borderRadius: '6px',
+                    background: a.ok ? 'var(--ok-bg)' : 'var(--crit-s)',
+                    color: a.ok ? 'var(--ok-text)' : 'var(--crit)',
                     fontWeight: 600
                   }}
                 >
@@ -579,21 +722,13 @@ export const ExpedienteView = ({
                       gap: '12px',
                       padding: '12px',
                       border: '1px solid var(--line)',
-                      borderRadius: '6px'
+                      borderRadius: '10px'
                     }}
                   >
                     <div>
                       <Badge
                         text={i.sev}
-                        color={
-                          i.sev === 'crit'
-                            ? 'crit'
-                            : i.sev === 'risk'
-                            ? 'risk'
-                            : i.sev === 'warn'
-                            ? 'warn'
-                            : 'info'
-                        }
+                        color={i.sev === 'Alta' ? 'crit' : i.sev === 'Media' ? 'warn' : 'info'}
                       />
                       <div className="small muted" style={{ marginTop: '4px' }}>
                         {i.area}
@@ -620,7 +755,7 @@ export const ExpedienteView = ({
                           <span className="muted" style={{ display: 'block' }}>
                             Valor esperado
                           </span>
-                          <span style={{ color: 'var(--ok)' }}>{i.esperado}</span>
+                          <span style={{ color: 'var(--ok-text)' }}>{i.esperado}</span>
                         </div>
                         <div>
                           <span className="muted" style={{ display: 'block' }}>
@@ -700,7 +835,7 @@ export const ExpedienteView = ({
                     background: 'var(--warn-s)',
                     color: '#7A5C00',
                     padding: '12px',
-                    borderRadius: '6px',
+                    borderRadius: '10px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
@@ -723,9 +858,9 @@ export const ExpedienteView = ({
                   className={`result-banner ${recResult.diffs ? 'bad' : 'ok'}`}
                   style={{
                     background: recResult.diffs ? 'var(--crit-s)' : 'var(--ok-s)',
-                    color: recResult.diffs ? 'var(--crit)' : 'var(--ok)',
+                    color: recResult.diffs ? 'var(--crit)' : 'var(--ok-text)',
                     padding: '12px',
-                    borderRadius: '6px',
+                    borderRadius: '10px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
@@ -766,7 +901,7 @@ export const ExpedienteView = ({
                         return (
                           <tr
                             key={idx}
-                            style={{ background: match ? 'transparent' : 'rgba(208, 84, 63, 0.08)' }}
+                            style={{ background: match ? 'transparent' : 'var(--crit-s)' }}
                           >
                             <td className="strong">{campo}</td>
                             <td>{docVal}</td>
@@ -774,7 +909,7 @@ export const ExpedienteView = ({
                             <td
                               className={`nw ${match ? 'ok' : 'bad'}`}
                               style={{
-                                color: match ? 'var(--ok)' : 'var(--crit)',
+                                color: match ? 'var(--ok-text)' : 'var(--crit)',
                                 fontWeight: 600
                               }}
                             >

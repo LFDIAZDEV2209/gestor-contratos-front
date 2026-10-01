@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify, requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
+import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid, EmptyState } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Document, DocumentVersion, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -17,6 +17,40 @@ import { Kpi } from '../ui/Kpi';
 import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
 
+const PAGE_SIZE = 10;
+
+// Chip de vista rápida reutilizable: pill seleccionable con estado activo
+// (--selection con fallback a --brand-soft) y microinteracción de escala.
+const chipStyle = (isActive: boolean): React.CSSProperties => ({
+  borderRadius: 'var(--r-pill)',
+  background: isActive ? 'var(--selection, var(--brand-soft))' : 'var(--surface-2)',
+  color: isActive ? 'var(--selection-text, var(--brand-2))' : 'var(--ink-2)',
+  borderColor: isActive ? 'var(--brand)' : 'var(--border-control)',
+  fontWeight: isActive ? 600 : 500,
+  transform: isActive ? 'scale(1.05)' : 'scale(1)',
+  boxShadow: isActive ? '0 2px 8px -2px rgba(11, 110, 104, 0.35)' : 'none',
+  transition: 'transform var(--t-fast) cubic-bezier(0.34, 1.56, 0.64, 1), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  cursor: 'pointer'
+});
+
+// Hover lift de filas (translateY + sombra), igual que la vista de contratos.
+const rowHover = {
+  onMouseEnter: (e: React.MouseEvent<HTMLTableRowElement>) => {
+    e.currentTarget.style.transform = 'translateY(-2px)';
+    e.currentTarget.style.boxShadow = 'var(--shadow-2)';
+    e.currentTarget.style.position = 'relative';
+    e.currentTarget.style.zIndex = '2';
+  },
+  onMouseLeave: (e: React.MouseEvent<HTMLTableRowElement>) => {
+    e.currentTarget.style.transform = 'none';
+    e.currentTarget.style.boxShadow = 'none';
+    e.currentTarget.style.zIndex = 'auto';
+  }
+};
+
 export const DocumentosView = ({
   onSelectContract
 }: {
@@ -25,6 +59,8 @@ export const DocumentosView = ({
   const [q, setQ] = useState('');
   const [filterContract, setFilterContract] = useState('');
   const [filterCat, setFilterCat] = useState('');
+  const [viewEstado, setViewEstado] = useState<'todos' | 'Activos' | 'Anulados'>('todos');
+  const [page, setPage] = useState(1);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedDocHistory, setSelectedDocHistory] = useState<Document | null>(null);
   const [newVersionDoc, setNewVersionDoc] = useState<Document | null>(null);
@@ -56,6 +92,9 @@ export const DocumentosView = ({
   const anuladosCount = allDocs.filter((d) => d.estado === 'Anulado').length;
 
   const filtered = allDocs.filter((d) => {
+    // Estados de repositorio: 'Activo'/'Vigente' cuentan como activos; solo 'Anulado' sale del flujo.
+    if (viewEstado === 'Activos' && d.estado === 'Anulado') return false;
+    if (viewEstado === 'Anulados' && d.estado !== 'Anulado') return false;
     if (filterContract && d.contractId !== filterContract) return false;
     if (filterCat && d.categoria !== filterCat) return false;
     if (q) {
@@ -69,6 +108,19 @@ export const DocumentosView = ({
     }
     return true;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const hasActiveFilters = Boolean(viewEstado !== 'todos' || filterContract || filterCat || q);
+  const clearFilters = () => {
+    setViewEstado('todos');
+    setFilterContract('');
+    setFilterCat('');
+    setQ('');
+    setPage(1);
+  };
 
   const handleUploadNew = () => {
     if (!AuthService.guard('crear')) return;
@@ -200,23 +252,74 @@ export const DocumentosView = ({
     exportRows('Repositorio Global de Documentos', cols, filtered, format);
   };
 
+  const QUICK_CHIPS: { id: 'todos' | 'Activos' | 'Anulados'; label: string; icon: string }[] = [
+    { id: 'todos', label: `Todos (${totalDocs})`, icon: 'folder-tree' },
+    { id: 'Activos', label: `Activos (${totalDocs - anuladosCount})`, icon: 'check-circle' },
+    { id: 'Anulados', label: `Anulados (${anuladosCount})`, icon: 'circle-xmark' }
+  ];
+
   return (
-    <div>
-      {/* Page Header */}
-      <PageHeader className="ph">
+    <div className="anim-fade-rise">
+      {/* Banner de cabecera con gradiente de marca institucional */}
+      <PageHeader variant="hero" className="ph">
         <div>
-          <h1>Documentos contractuales</h1>
-          <p>Repositorio digital con trazabilidad y versionamiento histórico inmutable</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.16)',
+                color: 'var(--surface)',
+                display: 'grid',
+                placeItems: 'center',
+                backdropFilter: 'blur(8px)',
+                flexShrink: 0
+              }}
+            >
+              <Icon name="folder-tree" size={24} />
+            </span>
+            <div>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+                Documentos contractuales
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--r-pill)',
+                    background: 'rgba(255, 255, 255, 0.18)',
+                    color: 'var(--surface)'
+                  }}
+                >
+                  {totalDocs} {totalDocs === 1 ? 'documento' : 'documentos'}
+                </span>
+              </h1>
+              <p style={{ margin: '4px 0 0' }}>
+                Repositorio digital con trazabilidad y versionamiento histórico inmutable por contrato
+              </p>
+            </div>
+          </div>
+
+          {/* Leyenda de estados dentro del hero */}
+          <div className="legend" style={{ marginTop: 16 }}>
+            <span><span className="sem ok" /> Activo / Vigente</span>
+            <span><span className="sem crit" /> Anulado</span>
+            <span><span className="sem info" /> vN = historial inmutable de versiones</span>
+          </div>
         </div>
+
         <div className="ph-actions">
           <div className="exp-actions">
-            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar documentos a Excel">
               <Icon name="file-excel" /> Excel
             </Button>
-            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar documentos a PDF">
               <Icon name="file-pdf" /> PDF
             </Button>
-            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar documentos a CSV">
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
@@ -226,36 +329,47 @@ export const DocumentosView = ({
         </div>
       </PageHeader>
 
-      {/* KPI Cards */}
+      {/* KPI Cards con icono, entrada escalonada y navegación contextual */}
       <div className="kpis mb">
-        <Kpi label="Total Documentos" value={totalDocs} />
-        <Kpi label="Versiones Totales" value={totalVersions} sub="Nunca se eliminan" color="brand" />
+        <Kpi label="Total Documentos" value={totalDocs} icon="file-text" color="brand" className="anim-fade-rise stagger-1 click" onClick={() => { setViewEstado('todos'); setPage(1); }} />
+        <Kpi label="Versiones Totales" value={totalVersions} sub="Nunca se eliminan" icon="history" color="info" className="anim-fade-rise stagger-2" />
         <Kpi
           label="Contratos con Faltantes"
           value={faltantesCount}
           sub="Requeridos: Contrato, Propuesta, Pólizas, Actas"
+          icon="alert-triangle"
           color={faltantesCount > 0 ? 'warn' : 'ok'}
+          className="anim-fade-rise stagger-3"
         />
-        <Kpi label="Documentos Anulados" value={anuladosCount} color={anuladosCount > 0 ? 'crit' : 'ok'} />
+        <Kpi
+          label="Documentos Anulados"
+          value={anuladosCount}
+          icon="circle-xmark"
+          color={anuladosCount > 0 ? 'crit' : 'ok'}
+          className="anim-fade-rise stagger-4 click"
+          onClick={() => { setViewEstado('Anulados'); setPage(1); }}
+        />
       </div>
 
       {/* Main Panel */}
       <Surface className="panel">
-        {/* Filters */}
-        <div className="filters mb" style={{ padding: '12px 16px' }}>
-          <div className="gsearch">
+        {/* Filtros */}
+        <div className="filters" style={{ padding: '12px 16px' }}>
+          <div className="gsearch" style={{ alignSelf: 'flex-end' }}>
             <Icon name="search" />
             <Input
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => { setQ(e.target.value); setPage(1); }}
               placeholder="Buscar por nombre, archivo o contrato..."
+              aria-label="Buscar documentos por nombre, archivo o contrato"
             />
           </div>
           <Field className="f">
+            <label>Contrato</label>
             <Select
               className="inp sm"
               value={filterContract}
-              onChange={(e) => setFilterContract(e.target.value)}
+              onChange={(e) => { setFilterContract(e.target.value); setPage(1); }}
             >
               <option value="">— Todos los contratos —</option>
               {allContracts.map((c) => (
@@ -266,10 +380,11 @@ export const DocumentosView = ({
             </Select>
           </Field>
           <Field className="f">
+            <label>Categoría</label>
             <Select
               className="inp sm"
               value={filterCat}
-              onChange={(e) => setFilterCat(e.target.value)}
+              onChange={(e) => { setFilterCat(e.target.value); setPage(1); }}
             >
               <option value="">— Todas las categorías —</option>
               {CAT('categoriasDoc').map((cat) => (
@@ -279,9 +394,47 @@ export const DocumentosView = ({
               ))}
             </Select>
           </Field>
+          {hasActiveFilters && (
+            <Button className="btn sm ghost" onClick={clearFilters} style={{ alignSelf: 'flex-end', height: 38 }}>
+              <Icon name="trash" /> Limpiar
+            </Button>
+          )}
         </div>
 
-        {/* Table */}
+        {/* Chips de vistas rápidas seleccionables */}
+        <div className="filter-chips" role="group" aria-label="Vistas rápidas" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 2 }}>
+            <Icon name="eye" size={13} />
+            <span>Vistas rápidas:</span>
+          </span>
+          {QUICK_CHIPS.map((chip) => {
+            const isActive = viewEstado === chip.id;
+            return (
+              <button
+                type="button"
+                key={chip.id}
+                onClick={() => { setViewEstado(chip.id); setPage(1); }}
+                aria-pressed={isActive}
+                className={`btn xs ${isActive ? 'active-chip' : 'ghost'}`}
+                style={chipStyle(isActive)}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.transform = 'scale(1.03)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = isActive ? 'scale(1.05)' : 'scale(1)';
+                }}
+              >
+                <Icon name={chip.icon} size={12} style={{ color: isActive ? 'var(--brand)' : 'var(--muted)' }} />
+                <span>{chip.label}</span>
+                {isActive && (
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--brand)', marginLeft: 2 }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tabla de documentos con rail de estado y hover lift */}
         <TableViewport className="tbl-wrap">
           <DataTable className="tbl">
             <thead>
@@ -298,13 +451,22 @@ export const DocumentosView = ({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((d) => {
+              {pageRows.map((d, idx) => {
                 const c = Store.get('contracts', d.contractId);
                 const lastVer = d.versions?.[d.versions.length - 1];
                 const isVoid = d.estado === 'Anulado';
 
                 return (
-                  <tr key={d.id} className={isVoid ? 'void' : ''}>
+                  <tr
+                    key={d.id}
+                    className={`rail anim-fade-rise ${isVoid ? 'void' : ''}`}
+                    style={{
+                      '--railc': isVoid ? 'var(--na)' : 'var(--ok)',
+                      animationDelay: `${idx * 25}ms`,
+                      transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)'
+                    } as any}
+                    {...rowHover}
+                  >
                     <td className="nw">
                       {c ? (
                         <Link
@@ -327,8 +489,8 @@ export const DocumentosView = ({
                     </td>
                     <td className="nw">
                       {lastVer ? (
-                        <span className="link" title="Descargar o ver archivo">
-                          <Icon name="paperclip" /> {lastVer.archivo}
+                        <span className="badge b-na" style={{ whiteSpace: 'normal', overflowWrap: 'anywhere', maxWidth: 240 }} title={`Archivo: ${lastVer.archivo}`}>
+                          <Icon name="file-text" size={12} /> {lastVer.archivo}
                         </span>
                       ) : (
                         '—'
@@ -336,9 +498,18 @@ export const DocumentosView = ({
                     </td>
                     <td className="nw">
                       <span
-                        className="badge brand font-bold"
-                        style={{ cursor: 'pointer' }}
+                        className="badge b-brand font-bold"
+                        style={{ cursor: 'pointer', borderRadius: 'var(--r-pill)' }}
                         onClick={() => setSelectedDocHistory(d)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedDocHistory(d);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Ver historial de versiones de ${d.nombre}`}
                         title="Ver historial de versiones"
                       >
                         v{d.versions?.length || 1}
@@ -349,15 +520,16 @@ export const DocumentosView = ({
                     <td className="nw">
                       <Badge
                         text={d.estado}
-                        color={d.estado === 'Activo' ? 'ok' : 'crit'}
+                        color={d.estado === 'Activo' || d.estado === 'Vigente' ? 'ok' : 'crit'}
                       />
                     </td>
                     <td className="nw">
-                      <div className="row-flex" style={{ gap: '4px' }}>
+                      <div className="row-flex" style={{ gap: '4px', flexWrap: 'nowrap' }}>
                         <Button
                           className="btn sm"
                           onClick={() => setSelectedDocHistory(d)}
                           title="Historial de versiones"
+                          aria-label={`Ver historial de versiones de ${d.nombre}`}
                         >
                           Versiones
                         </Button>
@@ -367,16 +539,18 @@ export const DocumentosView = ({
                               className="btn sm"
                               onClick={() => setNewVersionDoc(d)}
                               title="Subir nueva versión"
+                              aria-label={`Subir nueva versión de ${d.nombre}`}
                             >
                               <Icon name="upload" />
                             </Button>
                             <Button
                               className="icon-btn"
-                              style={{ color: 'var(--crit)' }}
+                              style={{ color: 'var(--crit-text)' }}
                               onClick={() => handleAnular(d)}
                               title="Anular documento"
+                              aria-label={`Anular documento ${d.nombre}`}
                             >
-                              <Icon name="ban" />
+                              <Icon name="x" />
                             </Button>
                           </>
                         )}
@@ -385,14 +559,65 @@ export const DocumentosView = ({
                   </tr>
                 );
               })}
+
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="empty">
-                    No se encontraron documentos con los filtros seleccionados.
+                  <td colSpan={9}>
+                    <EmptyState
+                      title="No se encontraron documentos"
+                      description="Prueba ajustando los filtros o la búsqueda del repositorio."
+                      action={
+                        hasActiveFilters ? (
+                          <Button className="btn sm" onClick={clearFilters} style={{ marginTop: 8 }}>
+                            Restablecer filtros
+                          </Button>
+                        ) : (
+                          <Button className="btn sm pri" onClick={() => setShowUploadModal(true)} style={{ marginTop: 8 }}>
+                            <Icon name="upload" /> Cargar primer documento
+                          </Button>
+                        )
+                      }
+                    />
                   </td>
                 </tr>
               )}
             </tbody>
+
+            {filtered.length > 0 && (
+              <tfoot>
+                <tr>
+                  <td colSpan={9}>
+                    <div className="tbl-foot">
+                      <span>
+                        Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} de{' '}
+                        <b>{filtered.length}</b> documentos
+                      </span>
+                      <div className="pager">
+                        <Button
+                          disabled={currentPage <= 1}
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          aria-label="Página anterior"
+                        >
+                          &lt;
+                        </Button>
+                        {Array.from({ length: totalPages }, (_, p) => p + 1).map((p) => (
+                          <Button key={p} className={p === currentPage ? 'on' : ''} aria-current={p === currentPage ? 'page' : undefined} onClick={() => setPage(p)}>
+                            {p}
+                          </Button>
+                        ))}
+                        <Button
+                          disabled={currentPage >= totalPages}
+                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                          aria-label="Página siguiente"
+                        >
+                          &gt;
+                        </Button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </DataTable>
         </TableViewport>
       </Surface>
@@ -508,13 +733,13 @@ export const DocumentosView = ({
                   {(selectedDocHistory.versions || []).map((ver) => (
                     <tr key={ver.v}>
                       <td className="nw">
-                        <span className="badge brand font-bold">v{ver.v}</span>
+                        <span className="badge b-brand font-bold" style={{ borderRadius: 'var(--r-pill)' }}>v{ver.v}</span>
                       </td>
                       <td className="nw">{fdate(ver.fecha)}</td>
                       <td>{ver.usuario}</td>
                       <td className="nw">
-                        <span className="link">
-                          <Icon name="paperclip" /> {ver.archivo}
+                        <span className="badge b-na" style={{ whiteSpace: 'normal', overflowWrap: 'anywhere', maxWidth: 240 }} title={`Archivo: ${ver.archivo}`}>
+                          <Icon name="file-text" size={12} /> {ver.archivo}
                         </span>
                       </td>
                       <td>

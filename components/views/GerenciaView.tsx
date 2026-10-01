@@ -1,6 +1,6 @@
 'use client';
 import { Button } from '../ui/button';
-import { PageHeader, Surface } from '../ui/Workspace';
+import { PageHeader, Surface, EmptyState } from '../ui/Workspace';
 import type { Contract, Guarantee, Breach, Obligation, Exec, Payment } from '../../lib/types';
 import { Store } from '../../lib/store';
 import { M, portfolio, companyName } from '../../lib/metrics';
@@ -17,6 +17,19 @@ export const GerenciaView = ({
 }) => {
   const P = portfolio();
   const allObligations = Store.all('obligations') as Obligation[];
+
+  // Abreviatura monetaria para ejes de gráficas (coherente con moneyM de lib/format)
+  const moneyShort = (v: unknown): string => {
+    const n = typeof v === 'number' ? v : Number(String(v).replace(/[^0-9.-]/g, ''));
+    if (!isFinite(n) || n === 0) return '0';
+    const abs = Math.abs(n);
+    const f = (x: number, d: number) => x.toLocaleString('es-CO', { maximumFractionDigits: d });
+    if (abs >= 1e12) return `${f(n / 1e12, 1)} B`;
+    if (abs >= 1e9) return `${f(n / 1e9, 1)} mil M`;
+    if (abs >= 1e6) return `${f(n / 1e6, 0)} M`;
+    if (abs >= 1e3) return `${f(n / 1e3, 0)} k`;
+    return f(n, 0);
+  };
   const allGuarantees = (Store.all('guarantees') as Guarantee[]).filter((g) => g.estado === 'Aprobada');
   const allBreaches = (Store.all('breaches') as Breach[]).filter(
     (b) => b.estado !== 'Cerrado' && b.estado !== 'Subsanado'
@@ -64,8 +77,8 @@ export const GerenciaView = ({
       {
         label: 'Ejecutado acumulado',
         data: dataExecAcc,
-        borderColor: '#0B6E68',
-        backgroundColor: 'rgba(11,110,104,0.12)',
+        borderColor: '#0F8579',
+        backgroundColor: 'rgba(15,133,121,0.12)',
         fill: true,
         tension: 0.25
       },
@@ -77,6 +90,8 @@ export const GerenciaView = ({
       }
     ]
   };
+  // La evolución solo se grafica si hubo ejecutado o pagos en el período
+  const evoHayDatos = dataExecAcc.some((v) => v > 0) || dataPayAcc.some((v) => v > 0);
 
   // Gráfica 2: estado de las garantías
   const now = todayIso();
@@ -92,7 +107,7 @@ export const GerenciaView = ({
     datasets: [
       {
         data: [gVigentes, gPorVencer, gVencidas],
-        backgroundColor: ['#0B6E68', '#C99A06', '#BE3A2E']
+        backgroundColor: ['#0F8579', '#B98B00', '#BE3A2E']
       }
     ]
   };
@@ -113,19 +128,24 @@ export const GerenciaView = ({
       {
         label: 'Valor actualizado',
         data: companyValAct,
-        backgroundColor: '#C9DCDA',
+        backgroundColor: 'rgba(15, 133, 121, 0.30)',
         borderRadius: 3
       },
       {
         label: 'Ejecutado',
         data: companyEjec,
-        backgroundColor: '#0B6E68',
+        backgroundColor: '#0F8579',
         borderRadius: 3
       }
     ]
   };
 
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv') => {
+    // Si no hay contratos críticos se exporta el portafolio completo (acción útil)
+    const rows = criticalContracts.length ? criticalContracts : P.cs;
+    const title = criticalContracts.length
+      ? 'Control Gerencial - Contratos Críticos'
+      : 'Control Gerencial - Portafolio Completo';
     const cols = [
       { l: 'Contrato', k: 'numero' },
       { l: 'Empresa', k: 'companyId', r: (c: any) => companyName(c.companyId) },
@@ -138,7 +158,7 @@ export const GerenciaView = ({
         r: (c: any) => M(c).razones.map((r) => r.t).join('; ')
       }
     ];
-    exportRows('Control Gerencial - Contratos Críticos', cols, criticalContracts, format);
+    exportRows(title, cols, rows, format);
   };
 
   return (
@@ -248,7 +268,7 @@ export const GerenciaView = ({
         <div className="anim-fade-rise" style={{ animationDelay: '200ms', transition: 'translate var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}>
           <div className="l" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="clock" size={13} style={{ color: 'var(--warn)' }} />
-            <span>Vencimientos ≤ 30 d</span>
+            <span>Vencimientos&nbsp;≤&nbsp;30&nbsp;d</span>
           </div>
           <div className="v">{P.prox}</div>
           <div className="s">{P.venc} vencidos</div>
@@ -285,7 +305,20 @@ export const GerenciaView = ({
           </div>
           <div className="panel-b">
             <div className="chart-box lg" style={{ height: '260px' }}>
-              <Chart type="line" data={evoChartData} />
+              {evoHayDatos ? (
+                <Chart
+                  type="line"
+                  data={evoChartData}
+                  options={{
+                    scales: { y: { ticks: { callback: (v: string | number) => moneyShort(v) } } }
+                  }}
+                />
+              ) : (
+                <EmptyState
+                  title="Sin ejecución registrada"
+                  description="La evolución acumulada de ejecutado y pagado se dibujará al registrar movimientos."
+                />
+              )}
             </div>
           </div>
         </Surface>
@@ -302,11 +335,14 @@ export const GerenciaView = ({
           </div>
           <div className="panel-b">
             <div className="chart-box lg" style={{ height: '260px' }}>
-              <Chart
-                type="doughnut"
-                data={garChartData}
-                options={{ cutout: '65%' }}
-              />
+              {allGuarantees.length > 0 ? (
+                <Chart type="doughnut" data={garChartData} options={{ cutout: '65%' }} />
+              ) : (
+                <EmptyState
+                  title="Sin garantías aprobadas"
+                  description="El estado de las pólizas (vigentes, por vencer y vencidas) aparecerá al aprobar garantías."
+                />
+              )}
             </div>
           </div>
         </Surface>
@@ -326,16 +362,23 @@ export const GerenciaView = ({
           </div>
           <div className="panel-b">
             <div className="chart-box lg" style={{ height: '280px' }}>
-              <Chart
-                type="bar"
-                data={empChartData}
-                options={{
-                  indexAxis: 'y' as const,
-                  scales: {
-                    x: { ticks: { callback: (val: any) => moneyM(val) } }
-                  }
-                }}
-              />
+              {companyKeys.length > 0 ? (
+                <Chart
+                  type="bar"
+                  data={empChartData}
+                  options={{
+                    indexAxis: 'y' as const,
+                    scales: {
+                      x: { ticks: { callback: (val: any) => moneyShort(val) } }
+                    }
+                  }}
+                />
+              ) : (
+                <EmptyState
+                  title="Sin contratos por empresa"
+                  description="Asocia contratos a empresas para ver la distribución del valor contratado y ejecutado."
+                />
+              )}
             </div>
           </div>
         </Surface>
@@ -379,7 +422,17 @@ export const GerenciaView = ({
               );
             })}
             {criticalContracts.length === 0 && (
-              <div className="empty p-4">Ningún contrato en nivel crítico o de riesgo.</div>
+              <div className="panel-b np">
+                <EmptyState
+                  title="Sin contratos críticos ni en riesgo"
+                  description="Todo el portafolio está en niveles normales o de atención. Exporta el portafolio completo para el informe gerencial."
+                  action={
+                    <Button className="btn sm pri" onClick={() => handleExport('xlsx')}>
+                      <Icon name="file-excel" /> Exportar portafolio
+                    </Button>
+                  }
+                />
+              </div>
             )}
           </div>
         </Surface>

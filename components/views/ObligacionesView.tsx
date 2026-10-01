@@ -2,8 +2,8 @@
 import { PBar } from '../ui/PBar';
 import { Input, Select } from '../ui/Controls';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, Field, TableViewport, DataTable } from '../ui/Workspace';
-import { useState } from 'react';
+import { PageHeader, Surface, Field, TableViewport, DataTable, EmptyState, WorkspaceSkeleton } from '../ui/Workspace';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { obligationHref, contractHref } from '../app/routes';
@@ -16,8 +16,22 @@ import { fdate, pct, sum, todayIso } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+
+// Acciones sobre la tabla que mutan Store: marcan el refresco de la vista
+const HOVER_LIFT = {
+  onMouseEnter: (e: React.MouseEvent<HTMLTableRowElement>) => {
+    e.currentTarget.style.transform = 'translateY(-2px)';
+    e.currentTarget.style.boxShadow = 'var(--shadow-2)';
+    e.currentTarget.style.position = 'relative';
+    e.currentTarget.style.zIndex = '2';
+  },
+  onMouseLeave: (e: React.MouseEvent<HTMLTableRowElement>) => {
+    e.currentTarget.style.transform = 'none';
+    e.currentTarget.style.boxShadow = 'none';
+    e.currentTarget.style.zIndex = 'auto';
+  }
+};
 
 export const ObligacionesView = ({
   onSelectContract,
@@ -31,6 +45,14 @@ export const ObligacionesView = ({
   const [filterTipo, setFilterTipo] = useState('');
   const [filterContract, setFilterContract] = useState('');
   const [q, setQ] = useState('');
+  // Paginación real sobre el listado filtrado
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
+  // Guardia de hidratación: el store vive en localStorage; mientras tanto, skeleton
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [selectedObl, setSelectedObl] = useState<Obligation | null>(() => {
     const obligation = detailId ? Store.get('obligations', detailId) : null;
     return obligation ? obligationPresentation(obligation) : null;
@@ -38,8 +60,19 @@ export const ObligacionesView = ({
   const closeDetail = () => detailId ? router.push('/obligaciones') : setSelectedObl(null);
   const [newComment, setNewComment] = useState('');
 
-  const allObligations = (Store.all('obligations') as Obligation[]).slice();
-  const allContracts = (Store.all('contracts') as Contract[]).filter((c) => !c.anulado);
+  // Lectura tolerante a fallos del almacenamiento local (manejo de error)
+  let loadError: string | null = null;
+  const readAll = (kind: 'obligations' | 'contracts'): any[] => {
+    try {
+      return Store.all(kind) as any[];
+    } catch {
+      loadError = 'No fue posible leer los datos del expediente. Verifica el almacenamiento del navegador.';
+      return [];
+    }
+  };
+
+  const allObligations = (readAll('obligations') as Obligation[]).slice();
+  const allContracts = (readAll('contracts') as Contract[]).filter((c) => !c.anulado);
 
   const total = allObligations.length;
   const cumplidas = allObligations.filter((o) => o.estado === 'Cumplida').length;
@@ -47,10 +80,13 @@ export const ObligacionesView = ({
     const e = effOblig(o);
     return e === 'Vencida' || e === 'Incumplida';
   }).length;
-  const pendientes = total - cumplidas;
+  // Pendientes reales: ni cumplidas ni vencidas (coincide con la pestaña "Pendientes")
+  const pendientes = total - cumplidas - vencidas;
   const avgCumpl = total
     ? sum(allObligations, (o) => Number(o.cumplimiento || 0)) / total
     : 0;
+  // Tipos derivados de los datos reales, no de una lista fija
+  const tipos = Array.from(new Set(allObligations.map((o) => o.tipo).filter(Boolean)));
 
   const filtered = allObligations.filter((o) => {
     const eff = effOblig(o);
@@ -68,6 +104,11 @@ export const ObligacionesView = ({
     }
     return true;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const hasActiveFilters = Boolean(q || filterTipo || filterContract || activeTab !== 'todas');
 
   const handleVerify = (ob: Obligation) => {
     if (!AuthService.guard('aprobar')) return;
@@ -97,6 +138,27 @@ export const ObligacionesView = ({
         verificadoFecha: todayIso()
       });
     }
+    setPage(1);
+  };
+
+  // Crea de verdad el checklist estándar en el Store (reemplaza el seed demo)
+  const handleCreateChecklist = () => {
+    if (!selectedObl) return;
+    if (!AuthService.guard('editar')) return;
+    const base = [
+      { id: `${selectedObl.id}-chk-1`, texto: 'Revisión y verificación técnica del entregable', listo: false },
+      { id: `${selectedObl.id}-chk-2`, texto: 'Aporte de soportes documentales y actas', listo: false },
+      { id: `${selectedObl.id}-chk-3`, texto: 'Visto bueno del supervisor técnico', listo: false }
+    ];
+    Store.update('obligations', selectedObl.id, { checklist: base });
+    Audit.log({
+      contractId: selectedObl.contractId,
+      modulo: 'Obligaciones',
+      accion: 'Edición',
+      campo: 'Checklist de obligación ' + selectedObl.id,
+      nuevo: 'Checklist estándar creado (3 ítems)'
+    });
+    setSelectedObl({ ...selectedObl, checklist: base });
   };
 
   const handleAddComment = () => {
@@ -163,13 +225,61 @@ export const ObligacionesView = ({
   };
 
   return (
-    <div>
+    <div className="anim-fade-rise">
+      {!mounted ? (
+        <WorkspaceSkeleton />
+      ) : loadError ? (
+        <div className="feedback-notice" role="alert">
+          <Icon name="triangle-exclamation" />
+          <div>
+            <b>Error al cargar obligaciones.</b> {loadError}
+          </div>
+        </div>
+      ) : (
+        <>
       {!detailId && <>
-      {/* Page Header */}
-      <PageHeader className="ph">
+      {/* Page Header (variante hero con gradiente de marca) */}
+      <PageHeader variant="hero" className="ph">
         <div>
-          <h1>Obligaciones contractuales</h1>
-          <p>Supervisión, checklist de evidencias y verificación de cumplimiento del portafolio</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.16)',
+                color: 'var(--surface)',
+                display: 'grid',
+                placeItems: 'center',
+                backdropFilter: 'blur(8px)',
+                flexShrink: 0
+              }}
+            >
+              <Icon name="list-check" size={24} />
+            </span>
+            <div>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+                Obligaciones contractuales
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--r-pill)',
+                    background: 'rgba(255, 255, 255, 0.18)',
+                    color: 'var(--surface)'
+                  }}
+                >
+                  {filtered.length} {filtered.length === 1 ? 'obligación' : 'obligaciones'}
+                </span>
+              </h1>
+              <p style={{ margin: '4px 0 0' }}>
+                Supervisión, checklist de evidencias y verificación de cumplimiento del portafolio
+              </p>
+            </div>
+          </div>
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
@@ -186,41 +296,93 @@ export const ObligacionesView = ({
         </div>
       </PageHeader>
 
-      {/* KPI Cards */}
+      {/* KPI Cards: Kpi v2 con icono, tono semántico y clic que activa su vista */}
       <div className="kpis mb">
-        <Kpi label="Total Obligaciones" value={total} />
-        <Kpi label="Cumplimiento Promedio" value={pct(avgCumpl, 0)} color={avgCumpl >= 80 ? 'ok' : 'warn'} />
-        <Kpi label="Pendientes" value={pendientes} color={pendientes > 0 ? 'warn' : 'ok'} />
-        <Kpi label="Vencidas / En riesgo" value={vencidas} color={vencidas > 0 ? 'crit' : 'ok'} />
+        <Kpi
+          label="Total Obligaciones"
+          value={total}
+          icon="list-check"
+          color="brand"
+          className="anim-fade-rise stagger-1 click"
+          onClick={() => {
+            setActiveTab('todas');
+            setPage(1);
+          }}
+        />
+        <Kpi
+          label="Cumplimiento Promedio"
+          value={pct(avgCumpl, 0)}
+          icon="chart-line"
+          color={avgCumpl >= 80 ? 'ok' : 'warn'}
+          className="anim-fade-rise stagger-2"
+        />
+        <Kpi
+          label="Pendientes"
+          value={pendientes}
+          icon="hourglass-half"
+          color={pendientes > 0 ? 'warn' : 'ok'}
+          className="anim-fade-rise stagger-3 click"
+          onClick={() => {
+            setActiveTab('pendientes');
+            setPage(1);
+          }}
+        />
+        <Kpi
+          label="Vencidas / En riesgo"
+          value={vencidas}
+          icon="alert-circle"
+          color={vencidas > 0 ? 'crit' : 'ok'}
+          className="anim-fade-rise stagger-4 click"
+          onClick={() => {
+            setActiveTab('vencidas');
+            setPage(1);
+          }}
+        />
       </div>
 
       {/* Main Panel */}
       <Surface className="panel">
-        {/* Quick Views Tabs */}
+        {/* Quick Views Tabs con icono */}
         <div className="tabs" style={{ padding: '0 12px' }}>
           <Button
             className={`tab ${activeTab === 'todas' ? 'on' : ''}`}
-            onClick={() => setActiveTab('todas')}
+            aria-pressed={activeTab === 'todas'}
+            onClick={() => {
+              setActiveTab('todas');
+              setPage(1);
+            }}
           >
-            Todas ({total})
+            <Icon name="list-check" size={12} /> Todas ({total})
           </Button>
           <Button
             className={`tab ${activeTab === 'pendientes' ? 'on' : ''}`}
-            onClick={() => setActiveTab('pendientes')}
+            aria-pressed={activeTab === 'pendientes'}
+            onClick={() => {
+              setActiveTab('pendientes');
+              setPage(1);
+            }}
           >
-            Pendientes / En proceso ({pendientes})
+            <Icon name="hourglass-half" size={12} /> Pendientes / En proceso ({pendientes})
           </Button>
           <Button
             className={`tab ${activeTab === 'vencidas' ? 'on' : ''}`}
-            onClick={() => setActiveTab('vencidas')}
+            aria-pressed={activeTab === 'vencidas'}
+            onClick={() => {
+              setActiveTab('vencidas');
+              setPage(1);
+            }}
           >
-            Vencidas ({vencidas})
+            <Icon name="alert-circle" size={12} /> Vencidas ({vencidas})
           </Button>
           <Button
             className={`tab ${activeTab === 'cumplidas' ? 'on' : ''}`}
-            onClick={() => setActiveTab('cumplidas')}
+            aria-pressed={activeTab === 'cumplidas'}
+            onClick={() => {
+              setActiveTab('cumplidas');
+              setPage(1);
+            }}
           >
-            Cumplidas ({cumplidas})
+            <Icon name="check-circle" size={12} /> Cumplidas ({cumplidas})
           </Button>
         </div>
 
@@ -230,7 +392,11 @@ export const ObligacionesView = ({
             <Icon name="search" />
             <Input
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              aria-label="Buscar obligaciones"
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
               placeholder="Buscar por descripción u objeto..."
             />
           </div>
@@ -238,7 +404,11 @@ export const ObligacionesView = ({
             <Select
               className="inp sm"
               value={filterContract}
-              onChange={(e) => setFilterContract(e.target.value)}
+              aria-label="Filtrar por contrato"
+              onChange={(e) => {
+                setFilterContract(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">— Todos los contratos —</option>
               {allContracts.map((c) => (
@@ -252,16 +422,18 @@ export const ObligacionesView = ({
             <Select
               className="inp sm"
               value={filterTipo}
-              onChange={(e) => setFilterTipo(e.target.value)}
+              aria-label="Filtrar por tipo de obligación"
+              onChange={(e) => {
+                setFilterTipo(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">— Todos los tipos —</option>
-              <option value="General">General</option>
-              <option value="Específica">Específica</option>
-              <option value="Técnica">Técnica</option>
-              <option value="Financiera">Financiera</option>
-              <option value="Legal">Legal</option>
-              <option value="Reporte / informe">Reporte / informe</option>
-              <option value="Seguridad social">Seguridad social</option>
+              {tipos.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
             </Select>
           </Field>
         </div>
@@ -285,11 +457,17 @@ export const ObligacionesView = ({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((o) => {
+              {paged.map((o, idx) => {
                 const c = Store.get('contracts', o.contractId);
                 const eff = effOblig(o);
+                const vencidaEff = eff === 'Vencida' || eff === 'Incumplida';
                 return (
-                  <tr key={o.id}>
+                  <tr
+                    key={o.id}
+                    className="anim-fade-rise"
+                    style={{ animationDelay: `${idx * 25}ms`, transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
+                    {...HOVER_LIFT}
+                  >
                     <td className="nw">
                       {c ? (
                         <Link
@@ -303,7 +481,9 @@ export const ObligacionesView = ({
                         '—'
                       )}
                     </td>
-                    <td>{o.tipo}</td>
+                    <td>
+                      <span className="badge b-info">{o.tipo}</span>
+                    </td>
                     <td
                       className="clip"
                       style={{ maxWidth: '280px', cursor: 'pointer' }}
@@ -314,16 +494,18 @@ export const ObligacionesView = ({
                     </td>
                     <td>{o.responsable}</td>
                     <td className="nw">
-                      <span
-                        className={
-                          eff === 'Vencida' ? 'badge crit' : eff === 'Incumplida' ? 'badge crit' : ''
-                        }
-                      >
-                        {fdate(o.fechaLimite)}
-                      </span>
+                      {vencidaEff ? (
+                        <span className="badge b-crit" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          <Icon name="triangle-exclamation" size={11} /> {fdate(o.fechaLimite)}
+                        </span>
+                      ) : (
+                        <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--ink-2)' }}>
+                          {fdate(o.fechaLimite)}
+                        </span>
+                      )}
                     </td>
                     <td className="nw">
-<PBar value={o.cumplimiento || 0} color={eff === 'Cumplida' ? 'var(--ok)' : eff === 'Vencida' ? 'var(--crit)' : 'var(--brand)'} />
+                      <PBar value={o.cumplimiento || 0} color={eff === 'Cumplida' ? 'var(--ok)' : vencidaEff ? 'var(--crit)' : 'var(--brand)'} />
                     </td>
                     <td className="nw">
                       <Badge
@@ -331,7 +513,7 @@ export const ObligacionesView = ({
                         color={
                           eff === 'Cumplida'
                             ? 'ok'
-                            : eff === 'Vencida'
+                            : vencidaEff
                             ? 'crit'
                             : eff === 'En proceso'
                             ? 'info'
@@ -356,12 +538,72 @@ export const ObligacionesView = ({
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="empty">
-                    No se encontraron obligaciones con los filtros aplicados.
+                  <td colSpan={9}>
+                    <EmptyState
+                      title={activeTab === 'vencidas' ? 'Sin obligaciones vencidas' : 'No se encontraron obligaciones'}
+                      description={
+                        hasActiveFilters
+                          ? 'Ajusta la búsqueda, la pestaña activa o los filtros para ver más resultados.'
+                          : 'Cuando se registren obligaciones en los contratos aparecerán aquí.'
+                      }
+                      action={
+                        hasActiveFilters ? (
+                          <Button
+                            className="btn sm"
+                            style={{ marginTop: 8 }}
+                            onClick={() => {
+                              setQ('');
+                              setFilterTipo('');
+                              setFilterContract('');
+                              setActiveTab('todas');
+                              setPage(1);
+                            }}
+                          >
+                            <Icon name="trash" /> Restablecer filtros
+                          </Button>
+                        ) : undefined
+                      }
+                    />
                   </td>
                 </tr>
               )}
             </tbody>
+
+            {filtered.length > 0 && (
+              <tfoot>
+                <tr>
+                  <td colSpan={9}>
+                    <div className="tbl-foot">
+                      <span>
+                        Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} de{' '}
+                        <b>{filtered.length}</b> obligaciones
+                      </span>
+                      <div className="pager">
+                        <Button
+                          disabled={currentPage <= 1}
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          aria-label="Página anterior"
+                        >
+                          &lt;
+                        </Button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                          <Button key={p} className={p === currentPage ? 'on' : ''} onClick={() => setPage(p)}>
+                            {p}
+                          </Button>
+                        ))}
+                        <Button
+                          disabled={currentPage >= totalPages}
+                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                          aria-label="Página siguiente"
+                        >
+                          &gt;
+                        </Button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </DataTable>
         </TableViewport>
       </Surface>
@@ -396,8 +638,35 @@ export const ObligacionesView = ({
                 <span className="small muted">Límite: {fdate(selectedObl.fechaLimite)}</span>
               </div>
               <p style={{ margin: 0, fontWeight: 500 }}>{selectedObl.descripcion}</p>
-              <div className="mt-2 text-xs text-muted-foreground">
-                Responsable: <b>{selectedObl.responsable}</b> · Estado: <b>{selectedObl.estado}</b>
+              <div className="mt-2 pbar">
+                <div className="bar sm">
+                  <i
+                    style={{
+                      width: `${Number(selectedObl.cumplimiento) || 0}%`,
+                      background:
+                        (Number(selectedObl.cumplimiento) || 0) >= 100
+                          ? 'var(--ok)'
+                          : (Number(selectedObl.cumplimiento) || 0) >= 50
+                          ? 'var(--warn)'
+                          : 'var(--crit)'
+                    }}
+                  />
+                </div>
+                <span className="mono small">{pct(Number(selectedObl.cumplimiento) || 0, 0)}</span>
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span>
+                  Responsable: <b>{selectedObl.responsable}</b>
+                </span>
+                <span>·</span>
+                <span>
+                  Estado: <b>{selectedObl.estado}</b>
+                </span>
+                {selectedObl.verificadoPor && (
+                  <span className="badge b-ok" style={{ marginLeft: 'auto' }}>
+                    <Icon name="check-circle" size={11} /> Verificada por {selectedObl.verificadoPor} ({fdate(selectedObl.verificadoFecha)})
+                  </span>
+                )}
               </div>
             </div>
 
@@ -406,11 +675,7 @@ export const ObligacionesView = ({
               Checklist de actividades ({selectedObl.checklist?.length || 0})
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
-              {(selectedObl.checklist || [
-                { id: '1', texto: 'Revisión y verificación técnica del entregable', listo: selectedObl.estado === 'Cumplida' },
-                { id: '2', texto: 'Aporte de soportes documentales y actas', listo: selectedObl.estado === 'Cumplida' },
-                { id: '3', texto: 'Visto bueno del supervisor técnico', listo: selectedObl.estado === 'Cumplida' }
-              ]).map((chk) => (
+              {(selectedObl.checklist || []).map((chk) => (
                 <label
                   key={chk.id}
                   style={{
@@ -433,6 +698,17 @@ export const ObligacionesView = ({
                   </span>
                 </label>
               ))}
+              {(!selectedObl.checklist || selectedObl.checklist.length === 0) && (
+                <EmptyState
+                  title="Sin checklist de verificación"
+                  description="Crea el checklist estándar (revisión técnica, soportes documentales y visto bueno del supervisor) para registrar el avance."
+                  action={
+                    <Button className="btn sm pri" style={{ marginTop: 8 }} onClick={handleCreateChecklist}>
+                      <Icon name="list-check" /> Crear checklist base
+                    </Button>
+                  }
+                />
+              )}
             </div>
 
             {/* Comments */}
@@ -466,6 +742,7 @@ export const ObligacionesView = ({
               <Input
                 className="inp sm"
                 placeholder="Escribir comentario u observación..."
+                aria-label="Nuevo comentario de la obligación"
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 onKeyDown={(e) => {
@@ -478,6 +755,8 @@ export const ObligacionesView = ({
             </div>
           </div>
         </DetailFrame>
+      )}
+        </>
       )}
     </div>
   );

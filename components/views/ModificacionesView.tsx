@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
-import { useState } from 'react';
+import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid, EmptyState, WorkspaceSkeleton } from '../ui/Workspace';
+import { useState, useEffect } from 'react';
 import type { Modification, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M, companyName } from '../../lib/metrics';
@@ -15,6 +15,21 @@ import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
 import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+
+// Hover lift de filas (mismo patrón que ContratosView)
+const HOVER_LIFT = {
+  onMouseEnter: (e: React.MouseEvent<HTMLTableRowElement>) => {
+    e.currentTarget.style.transform = 'translateY(-2px)';
+    e.currentTarget.style.boxShadow = 'var(--shadow-2)';
+    e.currentTarget.style.position = 'relative';
+    e.currentTarget.style.zIndex = '2';
+  },
+  onMouseLeave: (e: React.MouseEvent<HTMLTableRowElement>) => {
+    e.currentTarget.style.transform = 'none';
+    e.currentTarget.style.boxShadow = 'none';
+    e.currentTarget.style.zIndex = 'auto';
+  }
+};
 
 export const ModificacionesView = ({
   onSelectContract
@@ -26,6 +41,15 @@ export const ModificacionesView = ({
   const [q, setQ] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
+  // Paginación real + guardia de hidratación + refresco tras mutaciones
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
+  const [mounted, setMounted] = useState(false);
+  const [tick, setTick] = useState(0);
+  const refresh = () => setTick((t) => t + 1);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [form, setForm] = useState({
     contractId: '',
@@ -39,10 +63,21 @@ export const ModificacionesView = ({
     soporte: ''
   });
 
-  const allModifications = (Store.all('modifications') as Modification[]).slice().sort((a, b) =>
+  // Lectura tolerante a fallos del almacenamiento local (manejo de error)
+  let loadError: string | null = null;
+  const readAll = (kind: 'modifications' | 'contracts'): any[] => {
+    try {
+      return Store.all(kind) as any[];
+    } catch {
+      loadError = 'No fue posible leer el historial de modificaciones del almacenamiento local.';
+      return [];
+    }
+  };
+
+  const allModifications = (readAll('modifications') as Modification[]).slice().sort((a, b) =>
     (a.fecha || '') < (b.fecha || '') ? 1 : -1
   );
-  const allContracts = (Store.all('contracts') as Contract[]).filter((c) => !c.anulado);
+  const allContracts = (readAll('contracts') as Contract[]).filter((c) => !c.anulado);
 
   const totalMods = allModifications.length;
   const totalAdiciones = allModifications
@@ -65,6 +100,11 @@ export const ModificacionesView = ({
     }
     return true;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const hasActiveFilters = Boolean(q || filterTipo || filterContract);
 
   const selectedContract = form.contractId ? Store.get('contracts', form.contractId) : null;
   const selectedMetrics = selectedContract ? M(selectedContract) : null;
@@ -153,6 +193,7 @@ export const ModificacionesView = ({
     }
 
     setShowModal(false);
+    refresh();
   };
 
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv') => {
@@ -184,15 +225,61 @@ export const ModificacionesView = ({
   };
 
   return (
-    <div>
-      {/* Page Header */}
-      <PageHeader className="ph">
+    <div className="anim-fade-rise">
+      {!mounted ? (
+        <WorkspaceSkeleton />
+      ) : loadError ? (
+        <div className="feedback-notice" role="alert">
+          <Icon name="triangle-exclamation" />
+          <div>
+            <b>Error al cargar las modificaciones.</b> {loadError}
+          </div>
+        </div>
+      ) : (
+        <>
+      {/* Page Header (variante hero con gradiente de marca) */}
+      <PageHeader variant="hero" className="ph">
         <div>
-          <h1>Modificaciones contractuales</h1>
-          <p>
-            Historial de adiciones, prórrogas, suspensiones, reinicios y cesiones con efectos
-            automáticos
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.16)',
+                color: 'var(--surface)',
+                display: 'grid',
+                placeItems: 'center',
+                backdropFilter: 'blur(8px)',
+                flexShrink: 0
+              }}
+            >
+              <Icon name="code-compare" size={24} />
+            </span>
+            <div>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+                Modificaciones contractuales
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--r-pill)',
+                    background: 'rgba(255, 255, 255, 0.18)',
+                    color: 'var(--surface)'
+                  }}
+                >
+                  {filtered.length} {filtered.length === 1 ? 'modificación' : 'modificaciones'}
+                </span>
+              </h1>
+              <p style={{ margin: '4px 0 0' }}>
+                Historial de adiciones, prórrogas, suspensiones, reinicios y cesiones con efectos
+                automáticos
+              </p>
+            </div>
+          </div>
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
@@ -212,20 +299,47 @@ export const ModificacionesView = ({
         </div>
       </PageHeader>
 
-      {/* KPI Cards */}
+      {/* KPI Cards: Kpi v2 con icono y tono semántico */}
       <div className="kpis mb">
-        <Kpi label="Total Modificaciones" value={totalMods} />
-        <Kpi label="Total Adiciones" value={moneyM(totalAdiciones)} sub={money(totalAdiciones)} color="ok" />
-        <Kpi label="Total Reducciones" value={moneyM(totalReducciones)} sub={money(totalReducciones)} color="warn" />
-        <Kpi label="Prórrogas Suscritas" value={totalProrrogas} color="brand" />
+        <Kpi
+          label="Total Modificaciones"
+          value={totalMods}
+          icon="code-compare"
+          color="brand"
+          className="anim-fade-rise stagger-1"
+        />
+        <Kpi
+          label="Total Adiciones"
+          value={moneyM(totalAdiciones)}
+          sub={money(totalAdiciones)}
+          icon="plus"
+          color={totalAdiciones > 0 ? 'ok' : 'na'}
+          className="anim-fade-rise stagger-2"
+        />
+        <Kpi
+          label="Total Reducciones"
+          value={moneyM(totalReducciones)}
+          sub={money(totalReducciones)}
+          icon="scale-balanced"
+          color={totalReducciones > 0 ? 'warn' : 'na'}
+          className="anim-fade-rise stagger-3"
+        />
+        <Kpi
+          label="Prórrogas Suscritas"
+          value={totalProrrogas}
+          icon="calendar-days"
+          color="info"
+          className="anim-fade-rise stagger-4"
+        />
       </div>
 
       {warningMsg && (
         <Surface
           className="panel mb p-3"
           style={{
-            background: 'var(--warn-s)',
+            background: 'var(--warn-bg)',
             border: '1px solid var(--warn)',
+            color: 'var(--warn-text)',
             display: 'flex',
             alignItems: 'center',
             gap: '8px'
@@ -246,7 +360,11 @@ export const ModificacionesView = ({
             <Icon name="search" />
             <Input
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              aria-label="Buscar modificaciones"
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
               placeholder="Buscar por justificación, número o contrato..."
             />
           </div>
@@ -254,7 +372,11 @@ export const ModificacionesView = ({
             <Select
               className="inp sm"
               value={filterContract}
-              onChange={(e) => setFilterContract(e.target.value)}
+              aria-label="Filtrar por contrato"
+              onChange={(e) => {
+                setFilterContract(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">— Todos los contratos —</option>
               {allContracts.map((c) => (
@@ -268,7 +390,11 @@ export const ModificacionesView = ({
             <Select
               className="inp sm"
               value={filterTipo}
-              onChange={(e) => setFilterTipo(e.target.value)}
+              aria-label="Filtrar por tipo de modificación"
+              onChange={(e) => {
+                setFilterTipo(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">— Todos los tipos —</option>
               <option value="Adición">Adición</option>
@@ -300,7 +426,7 @@ export const ModificacionesView = ({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((m) => {
+              {paged.map((m, idx) => {
                 const c = Store.get('contracts', m.contractId);
                 const diffVal =
                   m.valorNuevo && m.valorAnterior
@@ -312,13 +438,19 @@ export const ModificacionesView = ({
                     : null;
 
                 return (
-                  <tr key={m.id}>
+                  <tr
+                    key={m.id}
+                    className="anim-fade-rise"
+                    style={{ animationDelay: `${idx * 25}ms`, transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
+                    {...HOVER_LIFT}
+                  >
                     <td className="nw">
                       {c ? (
                         <Link
                           className="link font-bold"
                           href={contractHref(c.id, 'modificaciones')}
                           style={{ cursor: 'pointer' }}
+                          title="Abrir expediente del contrato"
                         >
                           {c.numero}
                         </Link>
@@ -357,7 +489,10 @@ export const ModificacionesView = ({
                           {diffVal != null && (
                             <div
                               className="small"
-                              style={{ color: diffVal > 0 ? 'var(--ok)' : 'var(--crit)' }}
+                              style={{
+                                color: diffVal > 0 ? 'var(--ok-text)' : 'var(--crit-text)',
+                                fontWeight: 600
+                              }}
                             >
                               {diffVal > 0 ? '+' : ''}
                               {money(diffVal)}
@@ -407,12 +542,71 @@ export const ModificacionesView = ({
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="empty">
-                    No se encontraron modificaciones con los filtros seleccionados.
+                  <td colSpan={10}>
+                    <EmptyState
+                      title="No se encontraron modificaciones"
+                      description={
+                        hasActiveFilters
+                          ? 'Ajusta la búsqueda o el tipo/contrato filtrado para ver más resultados.'
+                          : 'Cuando se registren adiciones, prórrogas u otrosíes aparecerán aquí.'
+                      }
+                      action={
+                        hasActiveFilters ? (
+                          <Button
+                            className="btn sm"
+                            style={{ marginTop: 8 }}
+                            onClick={() => {
+                              setQ('');
+                              setFilterTipo('');
+                              setFilterContract('');
+                              setPage(1);
+                            }}
+                          >
+                            <Icon name="trash" /> Restablecer filtros
+                          </Button>
+                        ) : undefined
+                      }
+                    />
                   </td>
                 </tr>
               )}
             </tbody>
+
+            {filtered.length > 0 && (
+              <tfoot>
+                <tr>
+                  <td colSpan={10}>
+                    <div className="tbl-foot">
+                      <span>
+                        Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} de{' '}
+                        <b>{filtered.length}</b> modificaciones
+                      </span>
+                      <div className="pager">
+                        <Button
+                          disabled={currentPage <= 1}
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          aria-label="Página anterior"
+                        >
+                          &lt;
+                        </Button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                          <Button key={p} className={p === currentPage ? 'on' : ''} onClick={() => setPage(p)}>
+                            {p}
+                          </Button>
+                        ))}
+                        <Button
+                          disabled={currentPage >= totalPages}
+                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                          aria-label="Página siguiente"
+                        >
+                          &gt;
+                        </Button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </DataTable>
         </TableViewport>
       </Surface>
@@ -501,7 +695,8 @@ export const ModificacionesView = ({
 
             {(form.tipo === 'Adición' || form.tipo === 'Reducción') && (
               <>
-                <div>
+                {/* Field explícito: FormGrid no recorre fragmentos y dejaría el label sin asociar */}
+                <Field className="f">
                   <label className="lbl">Valor actual</label>
                   <Input
                     className="inp"
@@ -509,8 +704,8 @@ export const ModificacionesView = ({
                     disabled
                     readOnly
                   />
-                </div>
-                <div>
+                </Field>
+                <Field className="f">
                   <label className="lbl required">Nuevo valor total resultante</label>
                   <Input
                     type="number"
@@ -518,13 +713,13 @@ export const ModificacionesView = ({
                     value={form.valorNuevo}
                     onChange={(e) => setForm({ ...form, valorNuevo: Number(e.target.value) })}
                   />
-                </div>
+                </Field>
               </>
             )}
 
             {(form.tipo === 'Prórroga' || form.tipo === 'Reinicio' || form.tipo === 'Terminación anticipada') && (
               <>
-                <div>
+                <Field className="f">
                   <label className="lbl">Fecha fin actual</label>
                   <Input
                     className="inp"
@@ -532,8 +727,8 @@ export const ModificacionesView = ({
                     disabled
                     readOnly
                   />
-                </div>
-                <div>
+                </Field>
+                <Field className="f">
                   <label className="lbl required">Nueva fecha de terminación</label>
                   <Input
                     type="date"
@@ -541,7 +736,7 @@ export const ModificacionesView = ({
                     value={form.fechaNueva}
                     onChange={(e) => setForm({ ...form, fechaNueva: e.target.value })}
                   />
-                </div>
+                </Field>
               </>
             )}
 
@@ -591,6 +786,8 @@ export const ModificacionesView = ({
             </div>
           </FormGrid>
         </Modal>
+      )}
+        </>
       )}
     </div>
   );

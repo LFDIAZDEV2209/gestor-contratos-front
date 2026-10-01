@@ -1,6 +1,6 @@
 'use client';
 import { Button } from '../ui/button';
-import { PageHeader, Surface } from '../ui/Workspace';
+import { PageHeader, Surface, EmptyState } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Contract, Guarantee, Obligation, Deliverable, Payment, Acta, AuditEntry } from '../../lib/types';
 import { Store } from '../../lib/store';
@@ -141,6 +141,9 @@ export const CalendarioView = ({
 
   const events = computeEvents();
   const eventsByDay = groupBy(events, (e) => e.d);
+  const hayEventos = events.length > 0;
+  // Cantidad de tipos ocultos por el usuario (para ofrecer restablecer el filtro)
+  const tiposOcultos = Object.keys(EVT_CONFIG).filter((k) => offTypes[k]).length;
 
   // Navegación entre fechas
   const handleNav = (delta: number) => {
@@ -328,8 +331,32 @@ export const CalendarioView = ({
           </span>
         </div>
 
+        {/* Estados vacíos: sin eventos o con todos los tipos ocultos */}
+        {!hayEventos && tiposOcultos > 0 && (
+          <div className="panel-b np">
+            <EmptyState
+              title="Todos los tipos de evento están ocultos"
+              description="Desactivaste cada tipo de evento en la leyenda superior. Restablece los filtros para volver a ver el calendario."
+              action={
+                <Button className="btn sm pri" onClick={() => setOffTypes({})}>
+                  <Icon name="check" /> Mostrar todos los tipos
+                </Button>
+              }
+            />
+          </div>
+        )}
+
+        {!hayEventos && tiposOcultos === 0 && (
+          <div className="panel-b np">
+            <EmptyState
+              title="Sin eventos programados"
+              description="No hay inicios, terminaciones, garantías ni otros hitos registrados en la base de datos actual."
+            />
+          </div>
+        )}
+
         {/* Vista mensual */}
-        {mode === 'mes' && (
+        {mode === 'mes' && hayEventos && (
           <div className="cal">
             {DH.map((dName) => (
               <div key={dName} className="dh">
@@ -400,7 +427,7 @@ export const CalendarioView = ({
         )}
 
         {/* Vista semanal */}
-        {mode === 'semana' && (
+        {mode === 'semana' && hayEventos && (
           <div className="cal" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
             {DH.map((dName, idx) => {
               const d = weekDays[idx];
@@ -451,7 +478,7 @@ export const CalendarioView = ({
         )}
 
         {/* Vista diaria */}
-        {mode === 'dia' && (
+        {mode === 'dia' && hayEventos && (
           <div className="p-4">
             {(() => {
               const k = iso(currentDate);
@@ -480,6 +507,7 @@ export const CalendarioView = ({
                               borderRadius: 'var(--r)'
                             }}
                             onClick={() => onSelectContract(e.cid, e.tab)}
+                            title={`Abrir ${cfg.label} en el expediente del contrato`}
                           >
                             <span
                               className="sem"
@@ -489,15 +517,24 @@ export const CalendarioView = ({
                               <b>{cfg.label}</b> {c ? `· Contrato ${c.numero}` : ''}
                               <span className="small muted block">{e.txt}</span>
                             </span>
-                            <span className="btn sm shrink-0">
-                              <Icon name="eye" /> Ver en {e.tab}
+                            <span className="small muted shrink-0" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <Icon name="eye" /> {e.tab}
                             </span>
+                            <Icon name="chevron-right" aria-hidden="true" />
                           </button>
                         );
                       })}
                     </div>
                   ) : (
-                    <div className="empty p-4">No hay eventos registrados para este día.</div>
+                    <EmptyState
+                      title="Sin eventos este día"
+                      description="No hay hitos contractuales programados para la fecha seleccionada."
+                      action={
+                        <Button className="btn sm pri" onClick={handleToday}>
+                          <Icon name="calendar" /> Ir a hoy
+                        </Button>
+                      }
+                    />
                   )}
                 </div>
               );

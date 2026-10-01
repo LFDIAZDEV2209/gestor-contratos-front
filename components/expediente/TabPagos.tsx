@@ -13,8 +13,14 @@ import { Kpi } from '../ui/Kpi';
 import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
 
+type VistaRapida = 'todas' | 'porGestionar' | 'pagadosSinSoporte';
+
+// Formato compacto sin cortes de palabra en móvil ("mil M" indivisible).
+const nb = (s: string) => s.replace('mil M', 'mil\u00A0M');
+
 export const TabPagos = ({ cid }: { cid: string }) => {
   const [showNewModal, setShowNewModal] = useState(false);
+  const [vista, setVista] = useState<VistaRapida>('todas');
   const [newPay, setNewPay] = useState({
     numero: '',
     factura: '',
@@ -36,10 +42,18 @@ export const TabPagos = ({ cid }: { cid: string }) => {
 
   const pagados = payments.filter((p) => p.estado === 'Pagado');
   const pendientes = payments.filter((p) => p.estado === 'Pendiente' || p.estado === 'En revisión');
+  const pagadosSinSoporte = pagados.filter((p) => !p.soporte).length;
   const totalNetoPagado = sum(pagados, (p) => +p.neto || 0);
   const totalRetenciones = sum(pagados, (p) => Number(p.retenciones || 0));
   const totalPendiente = sum(pendientes, (p) => +p.neto || 0);
   const pctPagVsEjec = m.ejecutado ? (m.pagado / m.ejecutado) * 100 : 0;
+
+  // Vistas rápidas del prototipo: pendientes/en revisión · pagados sin soporte
+  const filtered = payments.filter((p) => {
+    if (vista === 'porGestionar') return p.estado === 'Pendiente' || p.estado === 'En revisión';
+    if (vista === 'pagadosSinSoporte') return p.estado === 'Pagado' && !p.soporte;
+    return true;
+  });
 
   const handleUpdateStatus = (pay: Payment, newStatus: string) => {
     if (!AuthService.guard('aprobar')) return;
@@ -56,6 +70,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
       anterior: pay.estado,
       nuevo: newStatus
     });
+    notify(`Pago ${pay.numero} → ${newStatus}`);
   };
 
   const handleCreate = () => {
@@ -87,6 +102,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
       campo: 'Pago ' + newPay.numero,
       nuevo: money(neto)
     });
+    notify('Pago registrado (Pendiente)');
     setShowNewModal(false);
   };
 
@@ -107,18 +123,32 @@ export const TabPagos = ({ cid }: { cid: string }) => {
       </div>
 
       <div className="kpis mb">
-        <Kpi label="Total Pagado (Neto)" value={moneyM(totalNetoPagado)} sub={money(totalNetoPagado)} sem="ok" />
+        <Kpi label="Total Pagado (Neto)" value={nb(moneyM(totalNetoPagado))} sub={money(totalNetoPagado)} sem="ok" color={totalNetoPagado ? undefined : 'na'} />
         <Kpi
           label="Pendiente / en revisión"
           value={pendientes.length}
-          sub={moneyM(totalPendiente)}
-          sem={pendientes.length ? 'warn' : null}
+          sub={nb(moneyM(totalPendiente))}
+          sem={pendientes.length ? 'warn' : 'ok'}
+          color={pendientes.length ? undefined : 'na'}
         />
-        <Kpi label="Retenciones practicadas" value={moneyM(totalRetenciones)} sub={money(totalRetenciones)} />
-        <Kpi label="% Pagado vs. ejecutado" value={pct(pctPagVsEjec)} />
+        <Kpi label="Retenciones practicadas" value={nb(moneyM(totalRetenciones))} sub={money(totalRetenciones)} color="na" />
+        <Kpi label="% Pagado vs. ejecutado" value={pct(pctPagVsEjec)} sub={`Ejecutado ${nb(moneyM(m.ejecutado))}`} color="na" />
       </div>
 
-      <Surface className="panel">
+      {/* Vistas rápidas */}
+      <div className="row-flex px-4 py-2" style={{ gap: '6px', flexWrap: 'wrap' }}>
+        <Button className={`btn sm ${vista === 'todas' ? 'pri' : 'ghost'}`} onClick={() => setVista('todas')}>
+          Todos ({payments.length})
+        </Button>
+        <Button className={`btn sm ${vista === 'porGestionar' ? 'pri' : 'ghost'}`} onClick={() => setVista('porGestionar')}>
+          Pendientes / en revisión ({pendientes.length})
+        </Button>
+        <Button className={`btn sm ${vista === 'pagadosSinSoporte' ? 'pri' : 'ghost'}`} onClick={() => setVista('pagadosSinSoporte')}>
+          Pagados sin soporte ({pagadosSinSoporte})
+        </Button>
+      </div>
+
+      <Surface className="panel" style={{ paddingTop: 0 }}>
         <TableViewport className="tbl-wrap">
           <DataTable className="tbl">
             <thead>
@@ -136,18 +166,18 @@ export const TabPagos = ({ cid }: { cid: string }) => {
               </tr>
             </thead>
             <tbody>
-              {payments.map((p) => (
+              {filtered.map((p) => (
                 <tr key={p.id}>
                   <td>
                     <b>{p.numero}</b>
-                    {p.factura && <div className="small muted">Factura: {p.factura}</div>}
+                    {p.factura && <div className="small muted mono">Factura: {p.factura}</div>}
                   </td>
                   <td>{fdate(p.fecha)}</td>
                   <td>{p.periodo ? monthLabel(p.periodo) : '—'}</td>
-                  <td className="num">{money(p.bruto)}</td>
-                  <td className="num">{money(p.iva)}</td>
-                  <td className="num">{money(p.retenciones)}</td>
-                  <td className="num font-semibold">{money(p.neto)}</td>
+                  <td className="num mono">{money(p.bruto)}</td>
+                  <td className="num mono">{money(p.iva)}</td>
+                  <td className="num mono">{money(p.retenciones)}</td>
+                  <td className="num mono font-semibold">{money(p.neto)}</td>
                   <td>
                     <Badge text={p.estado} />
                   </td>
@@ -157,7 +187,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
                         <Icon name="file-pdf" /> {p.soporte}
                       </span>
                     ) : (
-                      <span className="small text-red-600 dark:text-red-400">Sin soporte</span>
+                      <span className="badge b-crit">Sin soporte</span>
                     )}
                   </td>
                   <td>
@@ -182,8 +212,8 @@ export const TabPagos = ({ cid }: { cid: string }) => {
                       )}
                       {p.estado === 'Aprobado' && (
                         <Button
-                          className="btn xs ok"
-                          style={{ background: 'var(--ok)', color: '#fff' }}
+                          className="btn xs"
+                          style={{ background: 'var(--ok)', borderColor: 'var(--ok)', color: '#fff' }}
                           onClick={() => handleUpdateStatus(p, 'Pagado')}
                           title="Marcar como pagado"
                         >
@@ -194,10 +224,12 @@ export const TabPagos = ({ cid }: { cid: string }) => {
                   </td>
                 </tr>
               ))}
-              {payments.length === 0 && (
+              {filtered.length === 0 && (
                 <tr>
                   <td colSpan={10} className="empty">
-                    No se registran pagos en este contrato.
+                    {vista === 'todas'
+                      ? 'No se registran pagos en este contrato.'
+                      : 'No hay pagos que coincidan con esta vista rápida.'}
                   </td>
                 </tr>
               )}
@@ -290,11 +322,14 @@ export const TabPagos = ({ cid }: { cid: string }) => {
               />
             </Field>
             <Field className="f span2">
-              <div className="calc p-3 bg-neutral-50 dark:bg-neutral-900 border rounded flex justify-between items-center text-sm">
+              <div
+                className="calc p-3 rounded flex justify-between items-center text-sm"
+                style={{ background: 'var(--bg-sub)', border: '1px solid var(--line)' }}
+              >
                 <span>
-                  Neto a pagar: <b>{money(calcNeto)}</b>
+                  Neto a pagar: <b className="mono">{money(calcNeto)}</b>
                 </span>
-                <span className="small muted">Fórmula: Bruto + IVA − Retenciones</span>
+                <span className="small muted mono">Bruto + IVA − Retenciones</span>
               </div>
             </Field>
           </FormGrid>

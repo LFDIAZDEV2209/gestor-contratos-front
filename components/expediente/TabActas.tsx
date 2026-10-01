@@ -1,8 +1,8 @@
 'use client';
 import { Select, Input, Textarea } from '../ui/Controls';
-import { notify, confirmAction } from '../ui/Feedback';
+import { notify, requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
+import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Acta } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -72,6 +72,7 @@ export const TabActas = ({ cid }: { cid: string }) => {
       nuevo: `${nuevaActa.tipo} - ${nuevaActa.fecha}`
     });
 
+    notify('Acta registrada');
     setShowModal(false);
     setForm({
       tipo: 'Acta de inicio',
@@ -84,19 +85,14 @@ export const TabActas = ({ cid }: { cid: string }) => {
     });
   };
 
+  /* Anulación con motivo obligatorio (files/08): pide permiso ANULAR y el motivo queda en auditoría. */
   const handleAnular = async (acta: Acta) => {
-    if (!AuthService.guard('editar')) return;
-    if (!await confirmAction(`¿Está seguro de anular el acta ${acta.numero}?`)) return;
+    if (!AuthService.guard('anular')) return;
+    const mot = await requestReason(`Motivo de anulación del acta ${acta.numero}:`, `Error en la radicación del acta ${acta.numero}`);
+    if (!mot) return;
 
-    Store.update('actas', acta.id, { estado: 'Anulada' });
-    Audit.log({
-      contractId: cid,
-      modulo: 'Actas',
-      accion: 'Edición',
-      campo: 'Estado de acta ' + acta.numero,
-      anterior: acta.estado,
-      nuevo: 'Anulada'
-    });
+    Store.anular('actas', acta.id, mot);
+    notify(`Acta ${acta.numero} anulada`);
   };
 
   return (
@@ -163,7 +159,7 @@ export const TabActas = ({ cid }: { cid: string }) => {
               const isVoid = a.estado === 'Anulada';
               return (
                 <tr key={a.id} className={isVoid ? 'void' : ''}>
-                  <td className="nw">
+                  <td className="nw mono">
                     <b>{a.numero}</b>
                   </td>
                   <td>{a.tipo}</td>
@@ -191,10 +187,10 @@ export const TabActas = ({ cid }: { cid: string }) => {
                   <td className="nw">
                     {a.archivo ? (
                       <span className="link" title="Ver documento soporte">
-                        <Icon name="paperclip" /> {a.archivo}
+                        <Icon name="file-text" /> {a.archivo}
                       </span>
                     ) : (
-                      '—'
+                      <span className="badge b-crit">Sin soporte</span>
                     )}
                   </td>
                   <td className="nw">
@@ -202,10 +198,11 @@ export const TabActas = ({ cid }: { cid: string }) => {
                       <Button
                         className="icon-btn"
                         onClick={() => handleAnular(a)}
-                        title="Anular acta"
+                        title="Anular acta (conserva el historial)"
+                        aria-label={`Anular acta ${a.numero}`}
                         style={{ color: 'var(--crit)' }}
                       >
-                        <Icon name="ban" />
+                        <Icon name="circle-xmark" />
                       </Button>
                     )}
                   </td>
@@ -215,13 +212,25 @@ export const TabActas = ({ cid }: { cid: string }) => {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={8} className="empty">
-                  El contrato no registra actas.
+                  {filterTipo ? 'No hay actas de ese tipo.' : 'El contrato no registra actas.'}
                 </td>
               </tr>
             )}
           </tbody>
         </DataTable>
       </TableViewport>
+
+      {actas.length === 0 && (
+        <EmptyState
+          title="Sin actas registradas"
+          description="Registra el acta de inicio y las actas parciales para soportar la ejecución del contrato."
+          action={
+            <Button className="btn sm pri" onClick={() => setShowModal(true)}>
+              <Icon name="plus" /> Registrar primera acta
+            </Button>
+          }
+        />
+      )}
 
       {showModal && (
         <Modal
@@ -239,11 +248,10 @@ export const TabActas = ({ cid }: { cid: string }) => {
             </>
           }
         >
-          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
-            <div>
-              <label className="lbl required">Tipo de acta</label>
+          <FormGrid className="form-grid">
+            <Field className="f">
+              <label className="req">Tipo de acta</label>
               <Select
-                className="inp"
                 value={form.tipo}
                 onChange={(e) => setForm({ ...form, tipo: e.target.value })}
               >
@@ -253,29 +261,26 @@ export const TabActas = ({ cid }: { cid: string }) => {
                   </option>
                 ))}
               </Select>
-            </div>
-            <div>
-              <label className="lbl required">Número de acta</label>
+            </Field>
+            <Field className="f">
+              <label className="req">Número de acta</label>
               <Input
-                className="inp"
                 value={form.numero}
                 placeholder="Ej. ACT-001"
                 onChange={(e) => setForm({ ...form, numero: e.target.value })}
               />
-            </div>
-            <div>
-              <label className="lbl required">Fecha</label>
+            </Field>
+            <Field className="f">
+              <label className="req">Fecha</label>
               <Input
                 type="date"
-                className="inp"
                 value={form.fecha}
                 onChange={(e) => setForm({ ...form, fecha: e.target.value })}
               />
-            </div>
-            <div>
-              <label className="lbl">Estado</label>
+            </Field>
+            <Field className="f">
+              <label>Estado</label>
               <Select
-                className="inp"
                 value={form.estado}
                 onChange={(e) => setForm({ ...form, estado: e.target.value })}
               >
@@ -283,35 +288,32 @@ export const TabActas = ({ cid }: { cid: string }) => {
                 <option value="En firmas">En firmas</option>
                 <option value="Firmada">Firmada</option>
               </Select>
-            </div>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="lbl">Firmantes</label>
+            </Field>
+            <Field className="f span2">
+              <label>Firmantes</label>
               <Input
-                className="inp"
                 value={form.firmantes}
                 placeholder="Nombres y cargos de quienes suscriben el acta"
                 onChange={(e) => setForm({ ...form, firmantes: e.target.value })}
               />
-            </div>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="lbl">Descripción / Objeto del acta</label>
+            </Field>
+            <Field className="f span2">
+              <label>Descripción / Objeto del acta</label>
               <Textarea
-                className="inp"
                 rows={3}
                 value={form.descripcion}
                 placeholder="Detalle o acuerdos registrados en el acta..."
                 onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
               />
-            </div>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="lbl">Documento soporte (archivo)</label>
+            </Field>
+            <Field className="f span2">
+              <label>Documento soporte (archivo)</label>
               <Input
-                className="inp"
                 value={form.archivo}
                 placeholder="Nombre del archivo adjunto (ej. acta_inicio_firmada.pdf)"
                 onChange={(e) => setForm({ ...form, archivo: e.target.value })}
               />
-            </div>
+            </Field>
           </FormGrid>
         </Modal>
       )}

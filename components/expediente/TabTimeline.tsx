@@ -1,5 +1,5 @@
 'use client';
-import { Surface } from '../ui/Workspace';
+import { Surface, EmptyState } from '../ui/Workspace';
 import type { Contract, Acta, Guarantee, Payment, Modification, Breach } from '../../lib/types';
 import { Store } from '../../lib/store';
 import { M } from '../../lib/metrics';
@@ -101,7 +101,7 @@ export const TabTimeline = ({
       'Ejecución periódica',
       `Primer periodo registrado (${monthLabel(firstPeriod)}). ${execs.length} periodo(s) a la fecha.`,
       'Ejecución',
-      '#4E9A8F'
+      'var(--brand-3)'
     );
   }
 
@@ -163,38 +163,59 @@ export const TabTimeline = ({
   // Ordenar cronológicamente
   events.sort((a, b) => (a.f < b.f ? -1 : 1));
 
+  // Agrupación por mes para escanear el historial con facilidad
+  const grupos: Array<{ mes: string; items: TLEvent[] }> = [];
+  for (const ev of events) {
+    const mes = ev.f.slice(0, 7);
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.mes === mes) ultimo.items.push(ev);
+    else grupos.push({ mes, items: [ev] });
+  }
+
   return (
     <Surface className="panel">
       <div className="panel-h" style={{ borderTop: 0 }}>
         <div>
           <h3>Historial del contrato</h3>
-          <span className="sub">Haz clic en un evento para ir a su pestaña</span>
+          <span className="sub">{events.length} eventos · Haz clic en uno para ir a su pestaña</span>
         </div>
       </div>
 
       <div className="panel-b">
-        <div className="tl">
-          {events.map((ev, idx) => (
-            <div
-              key={idx}
-              className={`tl-i ${ev.future ? 'future' : ''}`}
-              style={{ '--tlc': ev.color, cursor: onTabChange ? 'pointer' : 'default' } as any}
-              onClick={() => onTabChange && onTabChange(ev.tab)}
-              role={onTabChange ? 'button' : undefined}
-              tabIndex={onTabChange ? 0 : undefined}
-              onKeyDown={event=>{if(onTabChange && (event.key==='Enter'||event.key===' ')){event.preventDefault();onTabChange(ev.tab);}}}
-              title={onTabChange ? `Ver en ${ev.tab}` : undefined}
-            >
-              <div className="tl-d">
-                {fdate(ev.f)} {ev.future ? '· programado' : ''}
+        <div className="tl" aria-label="Eventos del contrato en orden cronológico">
+          {grupos.map((g) => (
+            <div key={g.mes}>
+              <div
+                className="small mono"
+                style={{ color: 'var(--muted)', fontWeight: 600, letterSpacing: '0.04em', margin: '14px 0 6px' }}
+              >
+                {monthLabel(g.mes)}
               </div>
-              <div className="tl-t">
-                {ev.t} <span className="small muted">({ev.tab})</span>
-              </div>
-              <div className="tl-x">{ev.x}</div>
+              {g.items.map((ev, idx) => (
+                <div
+                  key={idx}
+                  className={`tl-i ${ev.future ? 'future' : ''}`}
+                  style={{ '--tlc': ev.color, cursor: onTabChange ? 'pointer' : 'default' } as any}
+                  onClick={() => onTabChange && onTabChange(ev.tab)}
+                  role={onTabChange ? 'button' : undefined}
+                  tabIndex={onTabChange ? 0 : undefined}
+                  onKeyDown={event=>{if(onTabChange && (event.key==='Enter'||event.key===' ')){event.preventDefault();onTabChange(ev.tab);}}}
+                  title={onTabChange ? `Ver en ${ev.tab}` : undefined}
+                >
+                  <div className="tl-d">
+                    <time dateTime={ev.f}>{fdate(ev.f)}</time> {ev.future ? '· programado' : ''}
+                  </div>
+                  <div className="tl-t">
+                    {ev.t} <span className="small muted">({ev.tab})</span>
+                  </div>
+                  <div className="tl-x">{ev.x}</div>
+                </div>
+              ))}
             </div>
           ))}
-          {events.length === 0 && <div className="empty">Sin eventos en la línea de tiempo.</div>}
+          {events.length === 0 && (
+            <EmptyState title="Sin eventos en la línea de tiempo" description="Los eventos contractuales (actas, pagos, modificaciones y garantías) aparecerán aquí." />
+          )}
         </div>
       </div>
     </Surface>

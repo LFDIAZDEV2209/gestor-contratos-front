@@ -2,12 +2,13 @@
 import { Input, Select } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid, Field } from '../ui/Workspace';
+import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Guarantee, Cupo } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M, contractInsurers, cupoStats } from '../../lib/metrics';
 import { money, moneyM, fdate, diffDays, todayIso, sum, uid } from '../../lib/format';
+import { CAT } from '../../lib/catalog';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
@@ -55,12 +56,14 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
       campo: 'Póliza ' + g.poliza,
       nuevo: 'Aprobada'
     });
+    notify(`Póliza ${g.poliza} aprobada`);
   };
 
   const handleCreate = () => {
     if (!AuthService.guard('crear')) return;
     if (!newGar.poliza) return notify('Ingrese el número de la póliza');
     if (!newGar.valor) return notify('Ingrese el valor asegurado');
+    if (newGar.fechaVenc < newGar.fechaInicio) return notify('El vencimiento no puede ser anterior al inicio');
 
     const garObj: Guarantee = {
       id: uid('GR'),
@@ -86,12 +89,18 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
       campo: 'Póliza ' + newGar.poliza,
       nuevo: money(newGar.valor)
     });
+    notify('Póliza registrada (Pendiente de aprobación)');
     setShowNewModal(false);
   };
 
-  const db = Store.getDB();
   const allCupos = Store.all('cupos') as Cupo[];
   const cuposForAseg = allCupos.filter((cp) => cp.aseguradora === newGar.aseguradora && cp.estado === 'Vigente');
+
+  // Advertencias en vivo al usar cupo (files/06): disponible insuficiente o póliza que vence tras el cupo
+  const cupoElegido = allCupos.find((cp) => cp.id === newGar.cupoId);
+  const cupoDisp = cupoElegido ? cupoStats(cupoElegido).disponible : null;
+  const excedeCupo = cupoDisp != null && newGar.valor > cupoDisp;
+  const venceTrasCupo = !!cupoElegido?.fechaVenc && newGar.fechaVenc > cupoElegido.fechaVenc;
 
   return (
     <div>
@@ -99,7 +108,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
         <div>
           <h3>Seguros y garantías del contrato</h3>
           <span className="sub">
-            {insurers.length} aseguradora(s) · alertas a 30, 15, 5, 3 y 1 día
+            {insurers.length} aseguradora(s) · alertas a 30, 15, 10, 5, 3 y 1 día
           </span>
         </div>
         <div className="row-flex">
@@ -118,7 +127,11 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
             const totalVal = sum(pols, (g) => +g.valor || 0);
 
             return (
-              <div key={aseg} className="expcard p-3 rounded border bg-neutral-50 dark:bg-neutral-900" style={{ borderLeft: '4px solid var(--brand)' }}>
+              <div
+                key={aseg}
+                className="p-3 rounded"
+                style={{ border: '1px solid var(--line)', borderLeft: '4px solid var(--brand)', background: 'var(--bg-sub)' }}
+              >
                 <div className="row-flex" style={{ flexWrap: 'nowrap' }}>
                   <Icon name="umbrella" />
                   <b>{aseg}</b>
@@ -127,7 +140,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                   {pols.length} póliza(s): {pols.map((g) => g.tipo).join(', ')}
                 </div>
                 <div className="row-flex justify-between items-center mt-2">
-                  <b>{money(totalVal)}</b>
+                  <b className="mono">{money(totalVal)}</b>
                   {cu.length > 0 ? (
                     <span className="badge b-info">
                       Por cupo {cu.map((g) => (Store.get('cupos', g.cupoId || '') as Cupo)?.numero || '').filter(Boolean).join(', ')}
@@ -147,7 +160,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
         <div className="readonly-note mb-4 flex items-center gap-2">
           <Icon name="shield-halved" />
           <div>
-            Póliza de cumplimiento <b>{cum.poliza}</b>: cubre {money(cum.valor)}
+            Póliza de cumplimiento <b>{cum.poliza}</b>: cubre <b className="mono">{money(cum.valor)}</b>
             {cum.porcentaje ? ` (${cum.porcentaje}% del valor; requerido hoy ${money((m.valorActual * cum.porcentaje) / 100)})` : ''} hasta{' '}
             {fdate(cum.fechaVenc)}
             {c.fechaFin && cum.fechaVenc < c.fechaFin ? (
@@ -203,7 +216,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                         <span className="badge">Individual</span>
                       )}
                     </td>
-                    <td className="num font-semibold">{money(g.valor)}</td>
+                    <td className="num mono font-semibold">{money(g.valor)}</td>
                     <td>
                       {fdate(g.fechaInicio)} → {fdate(g.fechaVenc)}
                     </td>
@@ -213,7 +226,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                       ) : d <= 15 ? (
                         <span className="badge b-warn">{d} días</span>
                       ) : (
-                        `${d} días`
+                        <span className="mono">{d} días</span>
                       )}
                     </td>
                     <td>
@@ -247,6 +260,22 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
         </TableViewport>
       </Surface>
 
+      {guarantees.length === 0 && (
+        <EmptyState
+          title="Este contrato no tiene pólizas"
+          description={
+            ['Terminado', 'En liquidación', 'Liquidado', 'Anulado'].includes(c.estado)
+              ? 'Contrato cerrado: el validador no exigirá garantías.'
+              : 'Un contrato en curso exige al menos la garantía de cumplimiento. Registra la primera póliza.'
+          }
+          action={
+            <Button className="btn sm pri" onClick={() => setShowNewModal(true)}>
+              <Icon name="plus" /> Registrar primera póliza
+            </Button>
+          }
+        />
+      )}
+
       {showNewModal && (
         <Modal
           title="Registrar póliza de garantía"
@@ -262,6 +291,24 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
             </div>
           }
         >
+          {/* Advertencias en vivo de póliza por cupo (aceptables, files/06) */}
+          {(excedeCupo || venceTrasCupo) && (
+            <div className="alert-box warn mb-3">
+              <Icon name="triangle-exclamation" />
+              <div>
+                {excedeCupo && (
+                  <div>
+                    El valor asegurado supera el disponible del cupo (<b className="mono">{money(cupoDisp || 0)}</b>). Puedes registrarla de todas formas: la decisión queda en auditoría.
+                  </div>
+                )}
+                {venceTrasCupo && (
+                  <div>
+                    La póliza vence después de la vigencia del cupo ({fdate(cupoElegido?.fechaVenc)}).
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           <FormGrid className="form-grid">
             <Field className="f">
               <label className="req">Número de póliza</label>
@@ -277,7 +324,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                 value={newGar.tipo}
                 onChange={(e) => setNewGar({ ...newGar, tipo: e.target.value })}
               >
-                {(db.settings?.catalogs?.tiposGarantia || ['Cumplimiento', 'Calidad', 'Responsabilidad civil']).map((t) => (
+                {CAT('tiposGarantia').map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
@@ -290,7 +337,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                 value={newGar.aseguradora}
                 onChange={(e) => setNewGar({ ...newGar, aseguradora: e.target.value, cupoId: '' })}
               >
-                {(db.settings?.catalogs?.aseguradoras || ['Seguros del Estado S.A.']).map((a) => (
+                {CAT('aseguradoras').map((a) => (
                   <option key={a} value={a}>
                     {a}
                   </option>

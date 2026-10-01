@@ -2,7 +2,7 @@
 import { Input, Select } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, TableViewport, DataTable } from '../ui/Workspace';
+import { PageHeader, Surface, FormGrid, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 
 import React, { useState } from 'react';
 import { Store, AuthService, Audit } from '@/lib/store';
@@ -27,6 +27,18 @@ const CAT_LABEL: Record<string, string> = {
   aseguradoras: 'Aseguradoras'
 };
 
+// Pestañas del módulo con su icono de identificación (navegación interna).
+const TABS = [
+  { id: 'alertas', label: 'Parámetros de alertas', icon: 'bell' },
+  { id: 'catalogos', label: 'Catálogos', icon: 'folder-tree' },
+  { id: 'usuarios', label: 'Usuarios', icon: 'user' },
+  { id: 'permisos', label: 'Roles y permisos', icon: 'lock' },
+  { id: 'empresas', label: 'Empresas', icon: 'building' },
+  { id: 'datos', label: 'Datos y respaldo', icon: 'file-export' }
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
 interface ConfiguracionViewProps {
   onNavigateToEmpresas?: () => void;
   onOpenCompany?: (companyId: string) => void;
@@ -36,7 +48,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
   onNavigateToEmpresas,
   onOpenCompany
 }) => {
-  const [activeTab, setActiveTab] = useState<'alertas' | 'catalogos' | 'usuarios' | 'permisos' | 'empresas' | 'datos'>('alertas');
+  const [activeTab, setActiveTab] = useState<TabId>('alertas');
   const [tick, setTick] = useState(0);
 
   const refresh = () => setTick((t) => t + 1);
@@ -333,43 +345,97 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
 
   return (
     <div className="view-content">
-      {/* Header */}
-      <PageHeader className="page-h">
+      {/* Banner de cabecera con gradiente de marca institucional */}
+      <PageHeader variant="hero" className="ph">
         <div>
-          <h1>Configuración</h1>
-          <p className="sub">
-            Parámetros del sistema, catálogos, usuarios, roles y permisos.{' '}
-            {!isAdmin && (
-              <b style={{ color: 'var(--crit)' }}>
-                Solo lectura: se requiere rol ADMINISTRADOR para modificar.
-              </b>
-            )}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span
+              aria-hidden="true"
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.16)',
+                color: 'var(--surface)',
+                display: 'grid',
+                placeItems: 'center',
+                backdropFilter: 'blur(8px)',
+                flexShrink: 0
+              }}
+            >
+              <Icon name="gear" size={24} />
+            </span>
+            <div>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+                Configuración
+                {!isAdmin && (
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      padding: '2px 8px',
+                      borderRadius: 'var(--r-pill)',
+                      background: 'rgba(255, 255, 255, 0.18)',
+                      color: 'var(--surface)'
+                    }}
+                  >
+                    Solo lectura
+                  </span>
+                )}
+              </h1>
+              <p style={{ margin: '4px 0 0' }}>
+                Parámetros del sistema, catálogos, usuarios, roles y permisos.
+                {!isAdmin && ' Se requiere rol ADMINISTRADOR para modificar.'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Acciones reales del módulo alineadas a la derecha */}
+        <div className="ph-actions">
+          <Button className="btn" onClick={downloadBackup} title="Descarga toda la información en formato JSON">
+            <Icon name="download" /> Descargar respaldo
+          </Button>
         </div>
       </PageHeader>
 
       {/* Tabs */}
       <Surface className="panel">
-        <div className="tabs" style={{ padding: '0 8px' }}>
-          {[
-            { id: 'alertas', label: 'Parámetros de alertas' },
-            { id: 'catalogos', label: 'Catálogos' },
-            { id: 'usuarios', label: 'Usuarios' },
-            { id: 'permisos', label: 'Roles y permisos' },
-            { id: 'empresas', label: 'Empresas' },
-            { id: 'datos', label: 'Datos y respaldo' }
-          ].map((t) => (
+        <div
+          className="tabs"
+          style={{ padding: '0 8px' }}
+          role="tablist"
+          aria-label="Secciones de configuración"
+        >
+          {TABS.map((t, i) => (
             <Button
               key={t.id}
+              role="tab"
+              id={`conf-tab-${t.id}`}
+              aria-selected={activeTab === t.id}
+              aria-controls="conf-panel"
+              tabIndex={activeTab === t.id ? 0 : -1}
               className={`tab ${activeTab === t.id ? 'on' : ''}`}
-              onClick={() => setActiveTab(t.id as any)}
+              onClick={() => setActiveTab(t.id)}
+              onKeyDown={(e) => {
+                // Navegación con flechas entre pestañas (patrón WAI-ARIA).
+                if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  const dir = e.key === 'ArrowRight' ? 1 : -1;
+                  const next = TABS[(i + dir + TABS.length) % TABS.length];
+                  setActiveTab(next.id);
+                  document.getElementById(`conf-tab-${next.id}`)?.focus();
+                }
+              }}
             >
-              {t.label}
+              <Icon name={t.icon} /> {t.label}
             </Button>
           ))}
         </div>
 
-        <div className="panel-b">
+        <div className="panel-b anim-fade-rise" key={activeTab} role="tabpanel" id="conf-panel" aria-labelledby={`conf-tab-${activeTab}`}>
           {/* TAB 1: ALERTAS */}
           {activeTab === 'alertas' && (
             <div className="grid g2">
@@ -386,21 +452,16 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     .slice()
                     .sort((a: number, b: number) => b - a)
                     .map((d: number) => (
-                      <span key={d} className="chip">
+                      <span key={d} className="badge b-brand">
                         {d} días
                         {isAdmin && (
                           <Button
+                            className="icon-btn"
                             onClick={() => deleteAlertDay(d)}
-                            aria-label={`Quitar ${d} días`}
-                            style={{
-                              marginLeft: 4,
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              fontWeight: 700
-                            }}
+                            aria-label={`Quitar umbral de ${d} días`}
+                            style={{ width: 18, height: 18, marginLeft: 2 }}
                           >
-                            ×
+                            <Icon name="x" size={11} />
                           </Button>
                         )}
                       </span>
@@ -414,6 +475,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                       min={1}
                       max={365}
                       placeholder="Días"
+                      aria-label="Nuevos días de alerta"
                       style={{ width: 100 }}
                       value={newAlertDay}
                       onChange={(e) => setNewAlertDay(e.target.value)}
@@ -428,12 +490,14 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 )}
               </div>
 
-              <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 12 }}>
+              <FormGrid className="form-grid" style={{ gap: 12 }}>
                 <div>
                   <label className="form-label">Alerta crítica a (días)</label>
                   <Input
                     type="number"
                     className="inp"
+                    min={0}
+                    max={365}
                     disabled={!isAdmin}
                     value={paramsForm.criticalDays}
                     onChange={(e) => setParamsForm({ ...paramsForm, criticalDays: Number(e.target.value) })}
@@ -445,6 +509,8 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                   <Input
                     type="number"
                     className="inp"
+                    min={1}
+                    max={100}
                     disabled={!isAdmin}
                     value={paramsForm.budgetPct}
                     onChange={(e) => setParamsForm({ ...paramsForm, budgetPct: Number(e.target.value) })}
@@ -456,6 +522,8 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                   <Input
                     type="number"
                     className="inp"
+                    min={1}
+                    max={100}
                     disabled={!isAdmin}
                     value={paramsForm.gapPct}
                     onChange={(e) => setParamsForm({ ...paramsForm, gapPct: Number(e.target.value) })}
@@ -465,7 +533,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 {isAdmin && (
                   <div style={{ marginTop: 8 }}>
                     <Button className="btn pri" onClick={saveParams}>
-                      <Icon name="save" /> Guardar parámetros
+                      <Icon name="clipboard-check" /> Guardar parámetros
                     </Button>
                   </div>
                 )}
@@ -487,31 +555,30 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     <div className="panel-b">
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
                         {list.map((item, idx) => (
-                          <span key={idx} className="chip">
+                          <span key={idx} className="badge b-brand">
                             {item}
                             {isAdmin && (
                               <Button
+                                className="icon-btn"
                                 onClick={() => deleteCatItem(catKey, idx)}
-                                aria-label={`Quitar ${item}`}
-                                style={{
-                                  marginLeft: 4,
-                                  background: 'none',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  fontWeight: 700
-                                }}
+                                aria-label={`Quitar ${item} del catálogo`}
+                                style={{ width: 18, height: 18, marginLeft: 2 }}
                               >
-                                ×
+                                <Icon name="x" size={11} />
                               </Button>
                             )}
                           </span>
                         ))}
+                        {list.length === 0 && (
+                          <span className="small muted">Catálogo vacío: agrega el primer valor.</span>
+                        )}
                       </div>
                       {isAdmin && (
                         <div className="row-flex" style={{ gap: 6 }}>
                           <Input
                             className="inp"
                             placeholder="Nuevo valor"
+                            aria-label={`Nuevo valor para ${CAT_LABEL[catKey] || catKey}`}
                             style={{ flex: 1 }}
                             value={catInputs[catKey] || ''}
                             onChange={(e) =>
@@ -549,6 +616,19 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 )}
               </div>
 
+              {users.length === 0 ? (
+                <EmptyState
+                  title="Sin usuarios registrados"
+                  description="Crea el primer usuario para asignar roles y permisos del sistema."
+                  action={
+                    isAdmin ? (
+                      <Button className="btn pri sm" onClick={openNewUserModal}>
+                        <Icon name="plus" /> Nuevo usuario
+                      </Button>
+                    ) : undefined
+                  }
+                />
+              ) : (
               <TableViewport className="tbl-wrap">
                 <DataTable className="tbl">
                   <thead>
@@ -606,6 +686,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                               <Button
                                 className="icon-btn"
                                 title="Editar"
+                                aria-label={`Editar usuario ${u.nombre}`}
                                 onClick={() => openEditUserModal(u)}
                               >
                                 <Icon name="edit" />
@@ -614,6 +695,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                                 <Button
                                   className="icon-btn"
                                   title={u.estado === 'Activo' ? 'Inactivar' : 'Activar'}
+                                  aria-label={`${u.estado === 'Activo' ? 'Inactivar' : 'Activar'} a ${u.nombre}`}
                                   onClick={() => toggleUserStatus(u)}
                                 >
                                   <Icon name={u.estado === 'Activo' ? 'x' : 'check'} />
@@ -627,6 +709,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                   </tbody>
                 </DataTable>
               </TableViewport>
+              )}
             </div>
           )}
 
@@ -635,7 +718,9 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
             <div>
               <p className="small muted" style={{ marginTop: 0 }}>
                 La eliminación se maneja como <b>anulación</b>: el registro se conserva, cambia de estado
-                y queda en auditoría. El rol ADMINISTRADOR conserva todos los permisos.
+                y queda en auditoría. El rol ADMINISTRADOR conserva todos los permisos. Cada columna
+                habilita una capacidad del rol (Ver, Crear, Editar, Aprobar, Eliminar, Exportar o
+                Auditar); los cambios se guardan al instante y quedan en la bitácora.
               </p>
 
               <TableViewport className="tbl-wrap">
@@ -667,13 +752,15 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                                   checked={isChecked}
                                   disabled={isAdmRow || !isAdmin}
                                   onChange={() => togglePermission(r, p)}
-                                  aria-label={`${r} ${p}`}
+                                  aria-label={`${PERM_LABEL[p]} para rol ${r}${isChecked ? ' (activado)' : ' (desactivado)'}`}
                                 />
                               </td>
                             );
                           })}
                           <td style={{ textAlign: 'center' }}>
-                            <span className="badge">{userCount}</span>
+                            <span className="badge b-info" title={`${userCount} usuario(s) con rol ${r}`}>
+                              {userCount}
+                            </span>
                           </td>
                         </tr>
                       );
@@ -699,6 +786,19 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 Las empresas se administran en su módulo dedicado. Resumen de empresas registradas:
               </p>
 
+              {companies.length === 0 ? (
+                <EmptyState
+                  title="Sin empresas registradas"
+                  description="Las empresas contratantes aparecerán aquí cuando se registren en su módulo."
+                  action={
+                    onNavigateToEmpresas ? (
+                      <Button className="btn pri sm" onClick={onNavigateToEmpresas}>
+                        <Icon name="building" /> Ir al módulo de empresas
+                      </Button>
+                    ) : undefined
+                  }
+                />
+              ) : (
               <TableViewport className="tbl-wrap">
                 <DataTable className="tbl">
                   <thead>
@@ -712,13 +812,15 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     {companies.map((c) => (
                       <tr key={c.id}>
                         <td>
-                          <span
+                          <Button
+                            variant="link"
                             className="link"
-                            style={{ cursor: 'pointer', color: 'var(--brand-2)', fontWeight: 600 }}
+                            style={{ padding: 0, border: 'none', background: 'transparent', boxShadow: 'none', whiteSpace: 'normal', textAlign: 'left' }}
                             onClick={() => onOpenCompany?.(c.id)}
+                            aria-label={`Abrir expediente de ${c.razon || (c as any).name}`}
                           >
                             {c.razon || (c as any).name}
-                          </span>
+                          </Button>
                         </td>
                         <td>{c.nit}</td>
                         <td>
@@ -729,6 +831,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                   </tbody>
                 </DataTable>
               </TableViewport>
+              )}
 
               {onNavigateToEmpresas && (
                 <div style={{ marginTop: 12 }}>
@@ -744,10 +847,10 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
           {activeTab === 'datos' && (
             <div className="grid g3">
               <Surface className="panel">
+                <div className="panel-h">
+                  <h3><Icon name="layers" /> Almacenamiento local</h3>
+                </div>
                 <div className="panel-b">
-                  <div className="strong" style={{ fontSize: '13.5px', marginBottom: 4 }}>
-                    Almacenamiento local
-                  </div>
                   <p className="small muted">
                     Adaptador activo: <b>localStorage</b> · {storageSizeKb} KB · clave «gic_store_v2».
                     <br />
@@ -757,10 +860,10 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
               </Surface>
 
               <Surface className="panel">
+                <div className="panel-h">
+                  <h3><Icon name="download" /> Respaldo JSON</h3>
+                </div>
                 <div className="panel-b">
-                  <div className="strong" style={{ fontSize: '13.5px', marginBottom: 4 }}>
-                    Respaldo JSON
-                  </div>
                   <p className="small muted">
                     Descarga toda la información (incluida la auditoría inmutable) para respaldo o migración.
                   </p>
@@ -771,15 +874,15 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
               </Surface>
 
               <Surface className="panel">
+                <div className="panel-h">
+                  <h3 style={{ color: 'var(--crit-text)' }}><Icon name="trash" /> Restablecer datos de demostración</h3>
+                </div>
                 <div className="panel-b">
-                  <div className="strong" style={{ fontSize: '13.5px', marginBottom: 4, color: 'var(--crit)' }}>
-                    Restablecer datos de demostración
-                  </div>
                   <p className="small muted">
                     Borra los datos locales y recarga el seed inicial de demostración (5 empresas, 10 contratos).
                   </p>
                   <Button className="btn sm dan" onClick={resetDemo} disabled={!isAdmin}>
-                    <Icon name="rotate-ccw" /> Restablecer demo
+                    <Icon name="upload" /> Restablecer demo
                   </Button>
                 </div>
               </Surface>
@@ -804,7 +907,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
             </>
           }
         >
-          <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 12 }}>
+          <FormGrid className="form-grid" style={{ gap: 12 }}>
             <div>
               <label className="form-label">Nombre completo *</label>
               <Input

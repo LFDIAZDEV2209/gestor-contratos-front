@@ -7,8 +7,10 @@ import { money, moneyM, pct, fdate, clamp } from '../../lib/format';
 import { Kpi } from '../ui/Kpi';
 import { Chart } from '../ui/Chart';
 import { Icon } from '../icons';
-import { Badge } from '../ui/Badge';
 import { LEVEL_TXT } from '../../lib/catalog';
+
+// Formato compacto sin cortes de palabra en móvil ("mil M" indivisible).
+const nb = (s: string) => s.replace('mil M', 'mil\u00A0M');
 
 export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (tab: string) => void }) => {
   const c = Store.get('contracts', cid);
@@ -17,10 +19,6 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
   const m = M(c);
   const sc = m.score;
   const col = sc.total >= 85 ? 'var(--ok)' : sc.total >= 65 ? 'var(--warn)' : 'var(--crit)';
-
-  const db = Store.getDB();
-  const alertState = db.alertState || {};
-  const al = (Store.all('audit') || []).filter((a) => a.contractId === c.id);
 
   // Ejecución mensual y acumulada para la gráfica
   const execs = Store.byContract('execs', c.id).sort((a, b) => (a.periodo < b.periodo ? -1 : 1));
@@ -48,7 +46,7 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
         type: 'bar' as const,
         label: 'Ejecución mensual',
         data: mesData,
-        backgroundColor: '#0B6E68',
+        backgroundColor: '#0F8579',
         yAxisID: 'y',
         borderRadius: 4
       }
@@ -67,6 +65,9 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
 
   const reasons = m.razones || [];
 
+  // Jerarquía: KPI base neutro (c-na); los semáforos (ok/risk/crit) solo donde hay alerta.
+  const tone = (sem: string | null | undefined) => sem ?? 'na';
+
   return (
     <div className="tab-resumen-container">
       {/* 1. KPIs FINANCIEROS */}
@@ -74,25 +75,28 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
         <h4 style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>FINANCIERO</h4>
       </div>
       <div className="kpis mb">
-        <Kpi label="Valor inicial" value={moneyM(m.valorInicial)} sub={money(m.valorInicial)} />
+        <Kpi label="Valor inicial" value={nb(moneyM(m.valorInicial))} sub={money(m.valorInicial)} color={tone(null)} />
         <Kpi
           label="Adiciones / reducciones"
-          value={moneyM(Number(c.adiciones || 0) - Number(c.reducciones || 0))}
+          value={nb(moneyM(Number(c.adiciones || 0) - Number(c.reducciones || 0)))}
           sub={`+${money(c.adiciones)} / −${money(c.reducciones)}`}
+          color={tone(null)}
         />
-        <Kpi label="Valor actualizado" value={moneyM(m.valorActual)} sub={money(m.valorActual)} />
+        <Kpi label="Valor actualizado" value={nb(moneyM(m.valorActual))} sub={money(m.valorActual)} color={tone(null)} />
         <Kpi
           label="Valor ejecutado"
-          value={moneyM(m.ejecutado)}
+          value={nb(moneyM(m.ejecutado))}
           sub={`${pct(m.pctFin)} financiero`}
           sem={m.pctFin > 100 ? 'crit' : null}
+          color={m.pctFin > 100 ? undefined : tone(null)}
         />
-        <Kpi label="Valor pagado" value={moneyM(m.pagado)} sub={`${m.pendientePago} pago(s) pendiente(s)`} />
+        <Kpi label="Valor pagado" value={nb(moneyM(m.pagado))} sub={`${m.pendientePago} pago(s) pendiente(s)`} color={m.pendientePago ? undefined : tone(null)} sem={m.pendientePago ? 'warn' : null} />
         <Kpi
           label="Saldo"
-          value={moneyM(m.saldo)}
+          value={nb(moneyM(m.saldo))}
           sub={`${pct(m.pctSaldo)} disponible`}
           sem={m.saldo < 0 ? 'crit' : m.pctSaldo < 15 ? 'risk' : null}
+          color={m.saldo < 0 || m.pctSaldo < 15 ? undefined : tone(null)}
         />
       </div>
 
@@ -101,21 +105,23 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
         <h4 style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>FECHAS</h4>
       </div>
       <div className="kpis mb">
-        <Kpi label="Fecha de firma" value={fdate(c.fechaFirma || c.signDate)} />
-        <Kpi label="Fecha de inicio" value={fdate(c.fechaInicio || c.startDate)} />
+        <Kpi label="Fecha de firma" value={fdate(c.fechaFirma || c.signDate)} color={tone(null)} />
+        <Kpi label="Fecha de inicio" value={fdate(c.fechaInicio || c.startDate)} color={tone(null)} />
         <Kpi
           label="Fecha de terminación"
           value={fdate(c.fechaFin || c.endDate)}
           sub={c.hastaAgotar ? 'o hasta agotar recursos' : ''}
+          color={tone(null)}
         />
-        <Kpi label="Duración" value={`${m.duracion} días`} sub={`${m.meses} meses`} />
+        <Kpi label="Duración" value={`${m.duracion} días`} sub={`${m.meses} meses`} color={tone(null)} />
         <Kpi
           label="Días restantes"
           value={m.restantes == null ? '—' : m.restantes < 0 ? 'Vencido' : m.restantes}
           sub={m.estadoTemporal}
           sem={m.restantes != null && m.restantes <= 5 && m.activo ? 'crit' : m.estado === 'Vencido' ? 'crit' : null}
+          color={m.restantes != null && m.restantes <= 5 && m.activo ? undefined : m.estado === 'Vencido' ? undefined : tone(null)}
         />
-        <Kpi label="% tiempo" value={pct(m.pctTiempo)} sub={`${m.transcurridos} días transcurridos`} />
+        <Kpi label="% tiempo" value={pct(m.pctTiempo)} sub={`${m.transcurridos} días transcurridos`} color={tone(null)} />
       </div>
 
       {/* 3. KPIs CUMPLIMIENTO */}
@@ -128,18 +134,21 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
           value={pct(m.pctFis)}
           sub={`Brecha vs. fin: ${pct(Math.abs(m.pctFin - m.pctFis))}`}
           sem={m.pctFis > 100 ? 'crit' : null}
+          color={m.pctFis > 100 ? undefined : tone(null)}
         />
         <Kpi
           label="Cumplimiento obligaciones"
           value={pct(m.pctCumpl)}
           sub={`${m.oblCumplidas} de ${m.oblTotal} cumplidas`}
           sem={m.oblVencidas ? 'risk' : 'ok'}
+          color={m.oblVencidas ? undefined : tone(null)}
           onClick={() => onTabChange?.('obligaciones')}
         />
         <Kpi
           label="Obligaciones vencidas"
           value={m.oblVencidas}
           sem={m.oblVencidas ? 'crit' : 'ok'}
+          color={m.oblVencidas ? undefined : tone(null)}
           onClick={() => onTabChange?.('obligaciones')}
         />
         <Kpi
@@ -153,12 +162,14 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
               : 'Sin vencimientos'
           }
           sem={m.garVencidas ? 'crit' : null}
+          color={m.garVencidas ? undefined : tone(null)}
           onClick={() => onTabChange?.('garantias')}
         />
         <Kpi
           label="Incumplimientos abiertos"
           value={m.incAbiertos}
           sem={m.incAbiertos ? 'risk' : 'ok'}
+          color={m.incAbiertos ? undefined : tone(null)}
           onClick={() => onTabChange?.('incumplimientos')}
         />
         <Kpi
@@ -166,6 +177,7 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
           value={m.riesgosAltos}
           sub={`${m.riesgosTotal} identificados`}
           sem={m.riesgosAltos ? 'risk' : 'ok'}
+          color={m.riesgosAltos ? undefined : tone(null)}
           onClick={() => onTabChange?.('riesgos')}
         />
       </div>
@@ -216,7 +228,7 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
                     <div className="bar" style={{ flex: 1, height: 8, background: 'var(--line-2)', borderRadius: 4, overflow: 'hidden' }}>
                       <i style={{ display: 'block', width: `${val}%`, height: '100%', background: barColor }} />
                     </div>
-                    <b style={{ minWidth: 28, textAlign: 'right' }}>{Math.round(val)}</b>
+                    <b className="mono" style={{ minWidth: 28, textAlign: 'right' }}>{Math.round(val)}</b>
                   </div>
                 );
               })}

@@ -2,7 +2,9 @@
 import { Select, Input, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid } from '../ui/Workspace';
+import { PageHeader, Surface, FormGrid, EmptyState, Field } from '../ui/Workspace';
+import Link from 'next/link';
+import { contractHref } from '../app/routes';
 
 import React, { useState } from 'react';
 import { Alerts, NotificationService } from '@/lib/alerts';
@@ -21,9 +23,32 @@ interface AlertasViewProps {
   initialNivel?: string;
 }
 
+/* ---------- Presentación local (2ª pasada): badges pill con tokens y pop al montar ---------- */
+const badgePop = { animation: 'pop 250ms var(--ease)' } as const;
+const countPill = {
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase' as const,
+  padding: '2px 8px',
+  borderRadius: 'var(--r-pill)',
+  background: 'rgba(255, 255, 255, 0.18)',
+  color: 'var(--surface)',
+  whiteSpace: 'nowrap' as const
+};
+
+// Desplazamiento suave a un panel de la vista (respeta prefers-reduced-motion)
+const scrollToPanel = (id: string) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+};
+
 export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, initialNivel = '' }) => {
   const [nivelFilter, setNivelFilter] = useState<string>(initialNivel);
   const [estadoFilter, setEstadoFilter] = useState<string>('abiertas');
+  const [visibleCount, setVisibleCount] = useState(20);
   const [tick, setTick] = useState(0);
 
   // Modales
@@ -42,6 +67,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
 
   const allAlerts = Alerts.compute();
   const openAlerts = allAlerts.filter((a) => a.estado !== 'Resuelta');
+  const nuevasCount = allAlerts.filter((a) => a.estado === 'Nueva').length;
   const users: User[] = Store.all('users');
   const db = Store.getDB();
   const tasks: Task[] = (db.tasks || []).slice().sort((a, b) => {
@@ -55,6 +81,18 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
     if (estadoFilter !== 'todas') return a.estado === estadoFilter;
     return true;
   });
+
+  // Paginación incremental de la lista (densidad legible)
+  const visibleAlerts = filteredAlerts.slice(0, visibleCount);
+  const hiddenCount = filteredAlerts.length - visibleAlerts.length;
+
+  const hasFilters = Boolean(nivelFilter || estadoFilter !== 'abiertas');
+
+  const clearFilters = () => {
+    setNivelFilter('');
+    setEstadoFilter('abiertas');
+    setVisibleCount(20);
+  };
 
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv' | 'print') => {
     const cols = [
@@ -178,29 +216,68 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
 
   return (
     <div className="anim-fade-rise">
-      {/* Encabezado */}
-      <PageHeader className="ph">
+      {/* Banner de cabecera con gradiente de marca institucional */}
+      <PageHeader variant="hero" className="ph">
         <div>
-          <h1>Centro de alertas</h1>
-          <p>Alertas automáticas derivadas de plazos, garantías, obligaciones, pagos, ejecución y documentos.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.16)',
+                color: 'var(--surface)',
+                display: 'grid',
+                placeItems: 'center',
+                backdropFilter: 'blur(8px)',
+                flexShrink: 0
+              }}
+            >
+              <Icon name="bell" size={24} />
+            </span>
+            <div>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+                Centro de alertas
+                <span style={countPill}>{openAlerts.length} abiertas</span>
+              </h1>
+              <p style={{ margin: '4px 0 0' }}>
+                Alertas automáticas de plazos, garantías, obligaciones, pagos, ejecución y documentos
+              </p>
+            </div>
+          </div>
+
+          {/* Leyenda institucional de niveles, dentro del hero */}
+          <div className="legend" style={{ marginTop: 16 }}>
+            <span><span className="sem crit" /> Crítica</span>
+            <span><span className="sem risk" /> Riesgo</span>
+            <span><span className="sem warn" /> Próxima</span>
+            <span><span className="sem info" /> Informativa</span>
+            <span><span className="sem na" /> Resuelta</span>
+          </div>
         </div>
+
         <div className="ph-actions">
-          <Button className="btn sm" onClick={markAllRead}>
+          <Button
+            className="btn sm"
+            onClick={markAllRead}
+            disabled={nuevasCount === 0}
+            title={nuevasCount === 0 ? 'No hay alertas nuevas por marcar' : `Marcar ${nuevasCount} alertas nuevas como leídas`}
+          >
             <Icon name="check" /> Marcar todas como leídas
           </Button>
-          <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar Excel">
+          <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
             <Icon name="file-excel" /> Excel
           </Button>
-          <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar PDF">
+          <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
             <Icon name="file-pdf" /> PDF
           </Button>
-          <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar CSV">
-            <Icon name="file-text" /> CSV
+          <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            <Icon name="file-csv" /> CSV
           </Button>
         </div>
       </PageHeader>
 
-      {/* Franja de 6 KPIs */}
+      {/* KPIs canónicos con entrada escalonada; clic filtra por nivel */}
       <div className="kpis mb">
         <Kpi
           icon="alert-circle"
@@ -208,7 +285,11 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
           value={openAlerts.filter((a) => a.nivel === 'critica').length}
           sub="Atención inmediata"
           sem="crit"
-          onClick={() => setNivelFilter(nivelFilter === 'critica' ? '' : 'critica')}
+          className="anim-fade-rise stagger-1 click"
+          onClick={() => {
+            setNivelFilter(nivelFilter === 'critica' ? '' : 'critica');
+            setVisibleCount(20);
+          }}
         />
         <Kpi
           icon="shield-alert"
@@ -216,7 +297,11 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
           value={openAlerts.filter((a) => a.nivel === 'riesgo').length}
           sub="Impacto alto"
           sem="risk"
-          onClick={() => setNivelFilter(nivelFilter === 'riesgo' ? '' : 'riesgo')}
+          className="anim-fade-rise stagger-2 click"
+          onClick={() => {
+            setNivelFilter(nivelFilter === 'riesgo' ? '' : 'riesgo');
+            setVisibleCount(20);
+          }}
         />
         <Kpi
           icon="clock"
@@ -224,21 +309,35 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
           value={openAlerts.filter((a) => a.nivel === 'proxima').length}
           sub="Vencimientos cercanos"
           sem="warn"
-          onClick={() => setNivelFilter(nivelFilter === 'proxima' ? '' : 'proxima')}
+          className="anim-fade-rise stagger-3 click"
+          onClick={() => {
+            setNivelFilter(nivelFilter === 'proxima' ? '' : 'proxima');
+            setVisibleCount(20);
+          }}
         />
         <Kpi
           icon="info"
           label="Informativas"
           value={openAlerts.filter((a) => a.nivel === 'info').length}
           sub="Para seguimiento"
-          sem="ok"
-          onClick={() => setNivelFilter(nivelFilter === 'info' ? '' : 'info')}
+          sem="info"
+          className="anim-fade-rise stagger-4 click"
+          onClick={() => {
+            setNivelFilter(nivelFilter === 'info' ? '' : 'info');
+            setVisibleCount(20);
+          }}
         />
         <Kpi
           icon="check-circle"
           label="Resueltas"
           value={allAlerts.length - openAlerts.length}
           sub="Histórico gestionado"
+          color="ok"
+          className="anim-fade-rise stagger-5 click"
+          onClick={() => {
+            setEstadoFilter(estadoFilter === 'Resuelta' ? 'abiertas' : 'Resuelta');
+            setVisibleCount(20);
+          }}
         />
         <Kpi
           icon="list-check"
@@ -246,6 +345,8 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
           value={tasks.filter((t) => t.estado !== 'Cerrada').length}
           sub="Creadas desde alertas"
           color="info"
+          className="anim-fade-rise stagger-6 click"
+          onClick={() => scrollToPanel('panel-tareas')}
         />
       </div>
 
@@ -264,7 +365,11 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
               <Button
                 key={t.id}
                 className={`tab ${nivelFilter === t.id ? 'on' : ''}`}
-                onClick={() => setNivelFilter(t.id)}
+                onClick={() => {
+                  setNivelFilter(t.id);
+                  setVisibleCount(20);
+                }}
+                aria-pressed={nivelFilter === t.id}
               >
                 {t.label}
                 <span className="n">{t.count}</span>
@@ -275,7 +380,11 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
               className="inp"
               style={{ margin: '6px', width: 'auto', padding: '4px 8px', fontSize: '12px' }}
               value={estadoFilter}
-              onChange={(e) => setEstadoFilter(e.target.value)}
+              onChange={(e) => {
+                setEstadoFilter(e.target.value);
+                setVisibleCount(20);
+              }}
+              aria-label="Filtrar por estado de alerta"
             >
               <option value="abiertas">Abiertas</option>
               <option value="Nueva">Nuevas</option>
@@ -288,124 +397,150 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
 
           <div style={{ padding: '12px' }}>
             {filteredAlerts.length === 0 ? (
-              <div className="empty-state" style={{ padding: '32px 16px', textAlign: 'center' }}>
-                <p className="muted">No hay alertas con estos filtros.</p>
-              </div>
+              <EmptyState
+                title="No hay alertas con estos filtros"
+                description="Las alertas se generan automáticamente por vencimientos, garantías, obligaciones, pagos y documentos."
+                action={
+                  hasFilters ? (
+                    <Button className="btn sm" onClick={clearFilters} style={{ marginTop: 8 }}>
+                      Restablecer filtros
+                    </Button>
+                  ) : undefined
+                }
+              />
             ) : (
-              filteredAlerts.map((a) => (
-                <div
-                  key={a.key}
-                  className={`alert-line lv-${a.nivel} ${a.estado !== 'Nueva' ? 'read' : ''}`}
-                >
-                  <div className="alert-ic">
-                    <Icon name={a.nivel === 'critica' ? 'alert-triangle' : a.nivel === 'riesgo' ? 'alert-circle' : a.nivel === 'proxima' ? 'clock' : 'info'} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="t">
-                      {a.tipo} ·{' '}
-                      {a.contractId ? (
-                        <span
-                          className="link"
-                          style={{ cursor: 'pointer', color: 'var(--brand-2)', fontWeight: 600 }}
-                          onClick={() => {
-                            const sub = a.act?.includes(':') ? a.act.split(':')[2] : undefined;
-                            onSelectContract?.(a.contractId!, sub);
-                          }}
-                        >
-                          {a.numero}
+              <>
+                {visibleAlerts.map((a, idx) => (
+                  <div
+                    key={a.key}
+                    className={`alert-line lv-${a.nivel} ${a.estado !== 'Nueva' ? 'read' : ''} anim-fade-rise`}
+                    style={{ animationDelay: `${Math.min(idx, 12) * 25}ms` }}
+                  >
+                    <div className="alert-ic">
+                      <Icon name={ALV[a.nivel]?.ic || 'info'} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="t">
+                        {a.tipo} ·{' '}
+                        {a.contractId ? (
+                          <Link
+                            className="link mono"
+                            href={contractHref(a.contractId, a.act?.includes(':') ? a.act.split(':')[2] : undefined)}
+                            title="Ver expediente digital"
+                            style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--brand-2)', whiteSpace: 'nowrap' }}
+                          >
+                            {a.numero}
+                          </Link>
+                        ) : (
+                          <span>{a.numero}</span>
+                        )}{' '}
+                        <Badge state={a.estado} style={badgePop} />{' '}
+                        <span className={`badge b-${ALV[a.nivel]?.c || 'na'}`} style={{ ...badgePop, marginLeft: 4 }}>
+                          {ALV[a.nivel]?.t || a.nivel}
                         </span>
-                      ) : (
-                        <span>{a.numero}</span>
-                      )}{' '}
-                      <Badge state={a.estado} />{' '}
-                      <span className="badge" style={{ marginLeft: 4 }}>
-                        {ALV[a.nivel]?.t || a.nivel}
-                      </span>
+                      </div>
+                      <div className="d" style={{ marginTop: 2 }}>{a.descripcion}</div>
+                      <div className="d" style={{ marginTop: 2, fontSize: '11px', color: 'var(--muted)' }}>
+                        {fdate(a.fecha)} · Responsable: <b>{a.responsable || '—'}</b>
+                        {a.gestion && a.gestion.usuario && (
+                          <span> · Última gestión: {a.gestion.usuario} {a.gestion.fechaGestion}</span>
+                        )}
+                        {a.gestion && a.gestion.nota && (
+                          <span> · «{a.gestion.nota}»</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="d" style={{ marginTop: 2 }}>{a.descripcion}</div>
-                    <div className="d" style={{ marginTop: 2, fontSize: '11px', color: 'var(--muted)' }}>
-                      {fdate(a.fecha)} · Responsable: <b>{a.responsable || '—'}</b>
-                      {a.gestion && a.gestion.usuario && (
-                        <span> · Última gestión: {a.gestion.usuario} {a.gestion.fechaGestion}</span>
-                      )}
-                      {a.gestion && a.gestion.nota && (
-                        <span> · «{a.gestion.nota}»</span>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="acts" style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
-                    {a.estado === 'Nueva' && (
-                      <Button
-                        className="icon-btn"
-                        title="Marcar como leída"
-                        onClick={() => handleRead(a)}
-                      >
-                        <Icon name="mail" />
-                      </Button>
-                    )}
-                    {a.estado !== 'Resuelta' ? (
-                      <>
+                    <div className="acts" style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
+                      {a.estado === 'Nueva' && (
                         <Button
                           className="icon-btn"
-                          title="Resolver alerta"
-                          onClick={() => {
-                            setResolveAlert(a);
-                            setResolveNote('');
-                          }}
+                          title="Marcar como leída"
+                          aria-label={`Marcar como leída la alerta ${a.tipo} ${a.numero}`}
+                          onClick={() => handleRead(a)}
                         >
-                          <Icon name="check-circle" />
+                          <Icon name="eye" />
                         </Button>
+                      )}
+                      {a.estado !== 'Resuelta' ? (
+                        <>
+                          <Button
+                            className="icon-btn"
+                            title="Resolver alerta"
+                            aria-label={`Resolver la alerta ${a.tipo} ${a.numero}`}
+                            onClick={() => {
+                              setResolveAlert(a);
+                              setResolveNote('');
+                            }}
+                          >
+                            <Icon name="check-circle" />
+                          </Button>
+                          <Button
+                            className="icon-btn"
+                            title="Delegar"
+                            aria-label={`Delegar la alerta ${a.tipo} ${a.numero}`}
+                            onClick={() => {
+                              setDelegateAlert(a);
+                              setDelegateUser(users[0]?.nombre || '');
+                            }}
+                          >
+                            <Icon name="user" />
+                          </Button>
+                          <Button
+                            className="icon-btn"
+                            title="Crear tarea"
+                            aria-label={`Crear tarea desde la alerta ${a.tipo} ${a.numero}`}
+                            onClick={() => {
+                              setTaskAlert(a);
+                              setTaskTitle(`Gestionar: ${a.tipo.toLowerCase()} ${a.numero}`);
+                              setTaskAssignee(a.responsable || (users[0]?.nombre || ''));
+                              setTaskDueDate(addDays(todayIso(), 3));
+                            }}
+                          >
+                            <Icon name="plus" />
+                          </Button>
+                        </>
+                      ) : (
                         <Button
                           className="icon-btn"
-                          title="Delegar"
-                          onClick={() => {
-                            setDelegateAlert(a);
-                            setDelegateUser(users[0]?.nombre || '');
-                          }}
+                          title="Reabrir alerta"
+                          aria-label={`Reabrir la alerta ${a.tipo} ${a.numero}`}
+                          onClick={() => handleReopen(a)}
                         >
-                          <Icon name="share" />
+                          <Icon name="play" />
                         </Button>
-                        <Button
-                          className="icon-btn"
-                          title="Crear tarea"
-                          onClick={() => {
-                            setTaskAlert(a);
-                            setTaskTitle(`Gestionar: ${a.tipo.toLowerCase()} ${a.numero}`);
-                            setTaskAssignee(a.responsable || (users[0]?.nombre || ''));
-                            setTaskDueDate(addDays(todayIso(), 3));
-                          }}
-                        >
-                          <Icon name="plus" />
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        className="icon-btn"
-                        title="Reabrir alerta"
-                        onClick={() => handleReopen(a)}
-                      >
-                        <Icon name="rotate-ccw" />
-                      </Button>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+
+                {/* Paginación incremental real de la lista */}
+                {hiddenCount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 6px' }}>
+                    <Button className="btn sm ghost" onClick={() => setVisibleCount((v) => v + 20)}>
+                      Mostrar más ({hiddenCount} restantes)
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </Surface>
 
         {/* Panel derecho: Tareas de seguimiento */}
-        <Surface className="panel">
+        <Surface className="panel" id="panel-tareas">
           <div className="panel-h">
-            <h3>Tareas</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="list-check" size={14} /> Tareas
+            </h3>
             <span className="sub">Seguimiento de acciones</span>
           </div>
           <div style={{ padding: '12px' }}>
             {tasks.length === 0 ? (
-              <div className="empty-state" style={{ padding: '24px 8px', textAlign: 'center' }}>
-                <p className="muted small">Crea tareas desde cualquier alerta.</p>
-              </div>
+              <EmptyState
+                title="Sin tareas de seguimiento"
+                description="Crea tareas desde cualquier alerta con la acción «Crear tarea» para dejar registro del compromiso."
+              />
             ) : (
               tasks.map((t) => {
                 const c = t.contractId ? Store.get('contracts', t.contractId) : null;
@@ -422,6 +557,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
                         type="checkbox"
                         checked={t.estado === 'Cerrada'}
                         onChange={() => toggleTask(t.id)}
+                        aria-label={`Marcar la tarea «${t.titulo}» como ${t.estado === 'Cerrada' ? 'abierta' : 'cerrada'}`}
                       />
                     </label>
                     <div style={{ flex: 1 }}>
@@ -435,10 +571,10 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
                       >
                         {t.titulo}
                       </div>
-                      <div className="d" style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                      <div className="d" style={{ fontSize: '11px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                         {c ? `${c.numero} · ` : ''}
                         {t.asignado} · vence {fdate(t.vence)}
-                        {isOverdue && <b style={{ color: 'var(--crit)', marginLeft: 4 }}>(vencida)</b>}
+                        {isOverdue && <span className="badge b-crit">Vencida</span>}
                       </div>
                     </div>
                   </div>
@@ -468,8 +604,8 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
           <p className="small muted" style={{ marginTop: 0 }}>
             {resolveAlert.tipo} · {resolveAlert.numero}: {resolveAlert.descripcion}
           </p>
-          <div className="form-group" style={{ marginTop: 12 }}>
-            <label className="form-label">Gestión realizada / soporte de resolución *</label>
+          <Field className="f" style={{ marginTop: 12 }}>
+            <label>Gestión realizada / soporte de resolución *</label>
             <Textarea
               className="inp"
               rows={3}
@@ -478,7 +614,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
               onChange={(e) => setResolveNote(e.target.value)}
               autoFocus
             />
-          </div>
+          </Field>
         </Modal>
       )}
 
@@ -507,6 +643,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
               className="inp"
               value={delegateUser}
               onChange={(e) => setDelegateUser(e.target.value)}
+              aria-label="Usuario responsable de la alerta"
             >
               {users.map((u) => (
                 <option key={u.id} value={u.nombre}>
@@ -537,7 +674,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
           <p className="small muted" style={{ marginTop: 0 }}>
             {taskAlert.tipo} · {taskAlert.numero}: {taskAlert.descripcion}
           </p>
-          <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 12, marginTop: 12 }}>
+          <FormGrid className="form-grid" style={{ gap: 12, marginTop: 12 }}>
             <div>
               <label className="form-label">Título de la tarea *</label>
               <Input
@@ -553,6 +690,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
                 className="inp"
                 value={taskAssignee}
                 onChange={(e) => setTaskAssignee(e.target.value)}
+                aria-label="Asignar tarea a usuario"
               >
                 {users.map((u) => (
                   <option key={u.id} value={u.nombre}>

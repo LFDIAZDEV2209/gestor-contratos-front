@@ -1,10 +1,12 @@
 'use client';
+import Link from 'next/link';
 import { Button } from '../ui/button';
 import { Surface } from '../ui/Workspace';
 import { Store } from '../../lib/store';
 import { M } from '../../lib/metrics';
 import { deptoNames } from '../../lib/geo';
 import { money, fdate, pct } from '../../lib/format';
+import { companyHref } from '../app/routes';
 import { Badge } from '../ui/Badge';
 import { Icon } from '../icons';
 
@@ -30,12 +32,12 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
           <div className="dl">
             <div>
               <span>Número de contrato</span>
-              <b>{c.numero || c.num}</b>
+              <b className="mono">{c.numero || c.num}</b>
             </div>
             <div>
               <span>Estado</span>
               <b>
-                <Badge text={c.estado || c.status} />
+                <Badge text={c.estado || c.status} color={c.estado === 'Anulado' ? 'na' : undefined} />
               </b>
             </div>
             <div>
@@ -48,11 +50,19 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
             </div>
             <div>
               <span>Empresa contratante</span>
-              <b>{company?.razon || company?.name || '—'}</b>
+              <b>
+                {company ? (
+                  <Link className="link" href={companyHref(company.id)}>
+                    {company.razon || company.name}
+                  </Link>
+                ) : (
+                  '—'
+                )}
+              </b>
             </div>
             <div>
               <span>NIT Contratante</span>
-              <b>{company?.nit || '—'}</b>
+              <b className="mono">{company?.nit || '—'}</b>
             </div>
             <div>
               <span>Contratista</span>
@@ -60,7 +70,7 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
             </div>
             <div>
               <span>NIT Contratista</span>
-              <b>{c.nitContratista || '—'}</b>
+              <b className="mono">{c.nitContratista || '—'}</b>
             </div>
             <div>
               <span>Representante Contratista</span>
@@ -99,35 +109,35 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
             <div className="dl">
               <div>
                 <span>Valor antes de impuestos</span>
-                <b>{money(c.valorBase || c.val)}</b>
+                <b className="mono">{money(c.valorBase || c.val)}</b>
               </div>
               <div>
                 <span>IVA (19%)</span>
-                <b>{money(c.iva)}</b>
+                <b className="mono">{money(c.iva)}</b>
               </div>
               <div>
                 <span>Otros impuestos</span>
-                <b>{money(c.otrosImp)}</b>
+                <b className="mono">{money(c.otrosImp)}</b>
               </div>
               <div>
                 <span>Valor inicial</span>
-                <b>{money(m.valorInicial)}</b>
+                <b className="mono">{money(m.valorInicial)}</b>
               </div>
               <div>
                 <span>Adiciones presupuestales</span>
-                <b>{money(c.adiciones)}</b>
+                <b className="mono">{money(c.adiciones)}</b>
               </div>
               <div>
                 <span>Reducciones</span>
-                <b>{money(c.reducciones)}</b>
+                <b className="mono">{money(c.reducciones)}</b>
               </div>
               <div>
                 <span>Valor contractual actualizado</span>
-                <b>{money(m.valorActual)}</b>
+                <b className="mono">{money(m.valorActual)}</b>
               </div>
               <div>
                 <span>Saldo disponible</span>
-                <b style={{ color: m.saldo < 0 ? 'var(--crit)' : 'var(--brand)' }}>
+                <b className="mono" style={{ color: m.saldo < 0 ? 'var(--crit)' : 'var(--ok-text)' }}>
                   {money(m.saldo)} ({pct(m.pctSaldo)})
                 </b>
               </div>
@@ -185,48 +195,25 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
           <h3>Objeto y Alcance Contractual</h3>
         </div>
         <div className="panel-b">
-          <div className="mb-4">
-            <h5 className="text-xs uppercase text-muted-foreground mb-1 font-semibold">Objeto Contractual</h5>
-            <p className="text-sm bg-neutral-50 dark:bg-neutral-900 p-3 rounded border border-neutral-200 dark:border-neutral-800">
-              {c.objeto || c.obj || '—'}
-            </p>
-          </div>
-
-          {c.descripcion && (
-            <div className="mb-4">
-              <h5 className="text-xs uppercase text-muted-foreground mb-1 font-semibold">Descripción y Forma de Pago</h5>
-              <p className="text-sm bg-neutral-50 dark:bg-neutral-900 p-3 rounded border border-neutral-200 dark:border-neutral-800">
-                {c.descripcion}
-              </p>
-            </div>
-          )}
-
-          {c.alcance && (
-            <div className="mb-4">
-              <h5 className="text-xs uppercase text-muted-foreground mb-1 font-semibold">Alcance de los Servicios</h5>
-              <p className="text-sm bg-neutral-50 dark:bg-neutral-900 p-3 rounded border border-neutral-200 dark:border-neutral-800">
-                {c.alcance}
-              </p>
-            </div>
-          )}
-
-          {c.productos && (
-            <div className="mb-4">
-              <h5 className="text-xs uppercase text-muted-foreground mb-1 font-semibold">Productos y Entregables Esperados</h5>
-              <p className="text-sm bg-neutral-50 dark:bg-neutral-900 p-3 rounded border border-neutral-200 dark:border-neutral-800">
-                {c.productos}
-              </p>
-            </div>
-          )}
-
-          {c.indicadores && (
-            <div>
-              <h5 className="text-xs uppercase text-muted-foreground mb-1 font-semibold">Indicadores y Acuerdos de Nivel de Servicio</h5>
-              <p className="text-sm bg-neutral-50 dark:bg-neutral-900 p-3 rounded border border-neutral-200 dark:border-neutral-800">
-                {c.indicadores}
-              </p>
-            </div>
-          )}
+          {[
+            { t: 'Objeto Contractual', v: c.objeto || c.obj },
+            { t: 'Descripción y Forma de Pago', v: c.descripcion },
+            { t: 'Alcance de los Servicios', v: c.alcance },
+            { t: 'Productos y Entregables Esperados', v: c.productos },
+            { t: 'Indicadores y Acuerdos de Nivel de Servicio', v: c.indicadores }
+          ]
+            .filter((b) => !!b.v)
+            .map((b) => (
+              <div className="mb-4" key={b.t}>
+                <h5 className="text-xs uppercase text-muted-foreground mb-1 font-semibold">{b.t}</h5>
+                <p
+                  className="text-sm p-3 rounded"
+                  style={{ background: 'var(--bg-sub)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}
+                >
+                  {b.v}
+                </p>
+              </div>
+            ))}
         </div>
       </Surface>
     </div>

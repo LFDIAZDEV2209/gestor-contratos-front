@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
-import { useState } from 'react';
+import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid, EmptyState, WorkspaceSkeleton } from '../ui/Workspace';
+import { useState, useEffect } from 'react';
 import type { Payment, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
@@ -16,6 +16,21 @@ import { Kpi } from '../ui/Kpi';
 import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
 
+// Hover lift de filas (mismo patrón que ContratosView)
+const HOVER_LIFT = {
+  onMouseEnter: (e: React.MouseEvent<HTMLTableRowElement>) => {
+    e.currentTarget.style.transform = 'translateY(-2px)';
+    e.currentTarget.style.boxShadow = 'var(--shadow-2)';
+    e.currentTarget.style.position = 'relative';
+    e.currentTarget.style.zIndex = '2';
+  },
+  onMouseLeave: (e: React.MouseEvent<HTMLTableRowElement>) => {
+    e.currentTarget.style.transform = 'none';
+    e.currentTarget.style.boxShadow = 'none';
+    e.currentTarget.style.zIndex = 'auto';
+  }
+};
+
 export const PagosView = ({
   onSelectContract
 }: {
@@ -25,6 +40,15 @@ export const PagosView = ({
   const [filterContract, setFilterContract] = useState('');
   const [q, setQ] = useState('');
   const [showModal, setShowModal] = useState(false);
+  // Paginación real + guardia de hidratación + refresco tras mutaciones
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
+  const [mounted, setMounted] = useState(false);
+  const [tick, setTick] = useState(0);
+  const refresh = () => setTick((t) => t + 1);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [form, setForm] = useState({
     contractId: '',
@@ -38,16 +62,35 @@ export const PagosView = ({
     soporte: ''
   });
 
-  const allPayments = (Store.all('payments') as Payment[]).slice().sort((a, b) =>
+  // Lectura tolerante a fallos del almacenamiento local (manejo de error)
+  let loadError: string | null = null;
+  const readAll = (kind: 'payments' | 'contracts'): any[] => {
+    try {
+      return Store.all(kind) as any[];
+    } catch {
+      loadError = 'No fue posible leer los registros de pago del almacenamiento local.';
+      return [];
+    }
+  };
+
+  const allPayments = (readAll('payments') as Payment[]).slice().sort((a, b) =>
     (a.fecha || '') < (b.fecha || '') ? 1 : -1
   );
-  const allContracts = (Store.all('contracts') as Contract[]).filter((c) => !c.anulado);
+  const allContracts = (readAll('contracts') as Contract[]).filter((c) => !c.anulado);
 
   const pagados = allPayments.filter((p) => p.estado === 'Pagado');
   const pendientes = allPayments.filter((p) => p.estado === 'Pendiente' || p.estado === 'En revisión');
   const totalNetoPagado = sum(pagados, (p) => Number(p.neto) || 0);
   const totalRetenciones = sum(pagados, (p) => Number(p.retenciones) || 0);
   const totalPendiente = sum(pendientes, (p) => Number(p.neto) || 0);
+  // Conteos de las pestañas calculados una sola vez
+  const countByEstado: Record<string, number> = allPayments.reduce(
+    (acc, p) => {
+      acc[(p.estado || '').toLowerCase()] = (acc[(p.estado || '').toLowerCase()] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const filtered = allPayments.filter((p) => {
     if (activeTab !== 'todos' && p.estado.toLowerCase() !== activeTab.toLowerCase()) return false;
@@ -61,6 +104,11 @@ export const PagosView = ({
     }
     return true;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const hasActiveFilters = Boolean(q || filterContract || activeTab !== 'todos');
 
   const handleUpdateStatus = (pay: Payment, newStatus: string) => {
     if (!AuthService.guard('aprobar')) return;
@@ -77,6 +125,7 @@ export const PagosView = ({
       anterior: pay.estado,
       nuevo: newStatus
     });
+    refresh();
   };
 
   const handleCreate = () => {
@@ -111,6 +160,7 @@ export const PagosView = ({
     });
 
     setShowModal(false);
+    refresh();
     setForm({
       contractId: '',
       numero: '',
@@ -151,12 +201,60 @@ export const PagosView = ({
   const calcNeto = Number(form.bruto) + Number(form.iva) - Number(form.retenciones);
 
   return (
-    <div>
-      {/* Page Header */}
-      <PageHeader className="ph">
+    <div className="anim-fade-rise">
+      {!mounted ? (
+        <WorkspaceSkeleton />
+      ) : loadError ? (
+        <div className="feedback-notice" role="alert">
+          <Icon name="triangle-exclamation" />
+          <div>
+            <b>Error al cargar los pagos.</b> {loadError}
+          </div>
+        </div>
+      ) : (
+        <>
+      {/* Page Header (variante hero con gradiente de marca) */}
+      <PageHeader variant="hero" className="ph">
         <div>
-          <h1>Pagos contractuales</h1>
-          <p>Gestión de cuentas, facturas, retenciones tributarias y desembolsos</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.16)',
+                color: 'var(--surface)',
+                display: 'grid',
+                placeItems: 'center',
+                backdropFilter: 'blur(8px)',
+                flexShrink: 0
+              }}
+            >
+              <Icon name="money-check-dollar" size={24} />
+            </span>
+            <div>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+                Pagos contractuales
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--r-pill)',
+                    background: 'rgba(255, 255, 255, 0.18)',
+                    color: 'var(--surface)'
+                  }}
+                >
+                  {filtered.length} {filtered.length === 1 ? 'pago' : 'pagos'}
+                </span>
+              </h1>
+              <p style={{ margin: '4px 0 0' }}>
+                Gestión de cuentas, facturas, retenciones tributarias y desembolsos
+              </p>
+            </div>
+          </div>
         </div>
         <div className="ph-actions">
           <div className="exp-actions">
@@ -176,46 +274,93 @@ export const PagosView = ({
         </div>
       </PageHeader>
 
-      {/* KPI Cards */}
+      {/* KPI Cards: Kpi v2 con icono y tono semántico */}
       <div className="kpis mb">
-        <Kpi label="Total Pagado (Neto)" value={moneyM(totalNetoPagado)} sub={money(totalNetoPagado)} color="ok" />
-        <Kpi label="Pendiente de Pago" value={moneyM(totalPendiente)} sub={`${pendientes.length} pagos en trámite`} color="warn" />
-        <Kpi label="Retenciones Acumuladas" value={moneyM(totalRetenciones)} sub={money(totalRetenciones)} />
-        <Kpi label="Pagos en Trámite" value={pendientes.length} color={pendientes.length > 0 ? 'warn' : 'ok'} />
+        <Kpi
+          label="Total Pagado (Neto)"
+          value={moneyM(totalNetoPagado)}
+          sub={money(totalNetoPagado)}
+          icon="check-circle"
+          color="ok"
+          className="anim-fade-rise stagger-1"
+        />
+        <Kpi
+          label="Pendiente de Pago"
+          value={moneyM(totalPendiente)}
+          sub={`${pendientes.length} pagos en trámite`}
+          icon="hourglass-half"
+          color="warn"
+          className="anim-fade-rise stagger-2"
+        />
+        <Kpi
+          label="Retenciones Acumuladas"
+          value={moneyM(totalRetenciones)}
+          sub={money(totalRetenciones)}
+          icon="scale-balanced"
+          color="info"
+          className="anim-fade-rise stagger-3"
+        />
+        <Kpi
+          label="Pagos en Trámite"
+          value={pendientes.length}
+          icon="clock"
+          color={pendientes.length > 0 ? 'warn' : 'ok'}
+          className="anim-fade-rise stagger-4"
+        />
       </div>
 
       <Surface className="panel">
-        {/* Quick Views */}
+        {/* Quick Views con icono */}
         <div className="tabs" style={{ padding: '0 12px' }}>
           <Button
             className={`tab ${activeTab === 'todos' ? 'on' : ''}`}
-            onClick={() => setActiveTab('todos')}
+            aria-pressed={activeTab === 'todos'}
+            onClick={() => {
+              setActiveTab('todos');
+              setPage(1);
+            }}
           >
-            Todos ({allPayments.length})
+            <Icon name="list-check" size={12} /> Todos ({allPayments.length})
           </Button>
           <Button
             className={`tab ${activeTab === 'pendiente' ? 'on' : ''}`}
-            onClick={() => setActiveTab('pendiente')}
+            aria-pressed={activeTab === 'pendiente'}
+            onClick={() => {
+              setActiveTab('pendiente');
+              setPage(1);
+            }}
           >
-            Pendientes ({allPayments.filter((p) => p.estado === 'Pendiente').length})
+            <Icon name="hourglass-half" size={12} /> Pendientes ({countByEstado['pendiente'] || 0})
           </Button>
           <Button
             className={`tab ${activeTab === 'en revisión' ? 'on' : ''}`}
-            onClick={() => setActiveTab('en revisión')}
+            aria-pressed={activeTab === 'en revisión'}
+            onClick={() => {
+              setActiveTab('en revisión');
+              setPage(1);
+            }}
           >
-            En revisión ({allPayments.filter((p) => p.estado === 'En revisión').length})
+            <Icon name="eye" size={12} /> En revisión ({countByEstado['en revisión'] || 0})
           </Button>
           <Button
             className={`tab ${activeTab === 'aprobado' ? 'on' : ''}`}
-            onClick={() => setActiveTab('aprobado')}
+            aria-pressed={activeTab === 'aprobado'}
+            onClick={() => {
+              setActiveTab('aprobado');
+              setPage(1);
+            }}
           >
-            Aprobados ({allPayments.filter((p) => p.estado === 'Aprobado').length})
+            <Icon name="check" size={12} /> Aprobados ({countByEstado['aprobado'] || 0})
           </Button>
           <Button
             className={`tab ${activeTab === 'pagado' ? 'on' : ''}`}
-            onClick={() => setActiveTab('pagado')}
+            aria-pressed={activeTab === 'pagado'}
+            onClick={() => {
+              setActiveTab('pagado');
+              setPage(1);
+            }}
           >
-            Pagados ({allPayments.filter((p) => p.estado === 'Pagado').length})
+            <Icon name="money-check-dollar" size={12} /> Pagados ({countByEstado['pagado'] || 0})
           </Button>
         </div>
 
@@ -225,7 +370,11 @@ export const PagosView = ({
             <Icon name="search" />
             <Input
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              aria-label="Buscar pagos"
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
               placeholder="Buscar por número, factura o contrato..."
             />
           </div>
@@ -233,7 +382,11 @@ export const PagosView = ({
             <Select
               className="inp sm"
               value={filterContract}
-              onChange={(e) => setFilterContract(e.target.value)}
+              aria-label="Filtrar por contrato"
+              onChange={(e) => {
+                setFilterContract(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">— Todos los contratos —</option>
               {allContracts.map((c) => (
@@ -265,16 +418,22 @@ export const PagosView = ({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((pay) => {
+              {paged.map((pay, idx) => {
                 const c = Store.get('contracts', pay.contractId);
                 return (
-                  <tr key={pay.id}>
+                  <tr
+                    key={pay.id}
+                    className="anim-fade-rise"
+                    style={{ animationDelay: `${idx * 25}ms`, transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
+                    {...HOVER_LIFT}
+                  >
                     <td className="nw">
                       {c ? (
                         <Link
                           className="link font-bold"
                           href={contractHref(c.id, 'pagos')}
                           style={{ cursor: 'pointer' }}
+                          title="Abrir expediente del contrato"
                         >
                           {c.numero}
                         </Link>
@@ -290,7 +449,7 @@ export const PagosView = ({
                     <td className="nw">{pay.periodo ? monthLabel(pay.periodo) : '—'}</td>
                     <td className="nw num">{money(pay.bruto)}</td>
                     <td className="nw num">{money(pay.iva || 0)}</td>
-                    <td className="nw num" style={{ color: 'var(--crit)' }}>
+                    <td className="nw num" style={{ color: 'var(--crit-text)' }}>
                       -{money(pay.retenciones || 0)}
                     </td>
                     <td className="nw num font-semibold">{money(pay.neto)}</td>
@@ -312,11 +471,17 @@ export const PagosView = ({
                     </td>
                     <td className="nw">
                       {pay.soporte ? (
-                        <span className="link" title="Ver soporte de pago">
-                          <Icon name="paperclip" /> {pay.soporte}
+                        <span
+                          className="small"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--ink-2)', fontFamily: 'var(--font-mono)' }}
+                          title={`Soporte registrado: ${pay.soporte}`}
+                        >
+                          <Icon name="file-pdf" size={12} /> {pay.soporte}
                         </span>
                       ) : (
-                        '—'
+                        <span className="badge b-warn" title="Pago sin documento soporte registrado">
+                          Sin soporte
+                        </span>
                       )}
                     </td>
                     <td className="nw">
@@ -342,7 +507,7 @@ export const PagosView = ({
                         {pay.estado === 'Aprobado' && (
                           <Button
                             className="btn sm"
-                            style={{ background: '#2E7D32', color: '#fff' }}
+                            style={{ background: 'var(--ok)', color: 'var(--surface)' }}
                             onClick={() => handleUpdateStatus(pay, 'Pagado')}
                             title="Confirmar desembolso"
                           >
@@ -356,12 +521,71 @@ export const PagosView = ({
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="empty">
-                    No se encontraron pagos con los criterios seleccionados.
+                  <td colSpan={12}>
+                    <EmptyState
+                      title="No se encontraron pagos"
+                      description={
+                        hasActiveFilters
+                          ? 'Ajusta la búsqueda, la pestaña activa o el contrato filtrado para ver más resultados.'
+                          : 'Cuando se registren pagos o cuentas de cobro aparecerán aquí.'
+                      }
+                      action={
+                        hasActiveFilters ? (
+                          <Button
+                            className="btn sm"
+                            style={{ marginTop: 8 }}
+                            onClick={() => {
+                              setQ('');
+                              setFilterContract('');
+                              setActiveTab('todos');
+                              setPage(1);
+                            }}
+                          >
+                            <Icon name="trash" /> Restablecer filtros
+                          </Button>
+                        ) : undefined
+                      }
+                    />
                   </td>
                 </tr>
               )}
             </tbody>
+
+            {filtered.length > 0 && (
+              <tfoot>
+                <tr>
+                  <td colSpan={12}>
+                    <div className="tbl-foot">
+                      <span>
+                        Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} de{' '}
+                        <b>{filtered.length}</b> pagos
+                      </span>
+                      <div className="pager">
+                        <Button
+                          disabled={currentPage <= 1}
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          aria-label="Página anterior"
+                        >
+                          &lt;
+                        </Button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                          <Button key={p} className={p === currentPage ? 'on' : ''} onClick={() => setPage(p)}>
+                            {p}
+                          </Button>
+                        ))}
+                        <Button
+                          disabled={currentPage >= totalPages}
+                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                          aria-label="Página siguiente"
+                        >
+                          &gt;
+                        </Button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </DataTable>
         </TableViewport>
       </Surface>
@@ -483,6 +707,8 @@ export const PagosView = ({
             </div>
           </FormGrid>
         </Modal>
+      )}
+        </>
       )}
     </div>
   );

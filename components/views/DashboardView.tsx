@@ -1,6 +1,6 @@
 'use client';
 import { Button } from '../ui/button';
-import { PageHeader, Surface } from '../ui/Workspace';
+import { PageHeader, Surface, EmptyState } from '../ui/Workspace';
 
 import React from 'react';
 import { Store } from '@/lib/store';
@@ -46,6 +46,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const db = Store.getDB();
   const S = db.settings || { criticalDays: 5, alertDays: [30, 15, 10, 5, 3, 1] };
 
+  // Abreviatura monetaria para ejes de gráficas (coherente con moneyM de lib/format)
+  const moneyShort = (v: unknown): string => {
+    const n = typeof v === 'number' ? v : Number(String(v).replace(/[^0-9.-]/g, ''));
+    if (!isFinite(n) || n === 0) return '0';
+    const abs = Math.abs(n);
+    const f = (x: number, d: number) => x.toLocaleString('es-CO', { maximumFractionDigits: d });
+    if (abs >= 1e12) return `${f(n / 1e12, 1)} B`;
+    if (abs >= 1e9) return `${f(n / 1e9, 1)} mil M`;
+    if (abs >= 1e6) return `${f(n / 1e6, 0)} M`;
+    if (abs >= 1e3) return `${f(n / 1e3, 0)} k`;
+    return f(n, 0);
+  };
+
   // Niveles del semáforo
   const lvKeys = ['ok', 'warn', 'risk', 'crit', 'na'] as const;
   const semDoughnut = {
@@ -83,12 +96,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const estGroups = groupBy(P.cs, (c) => M(c).estado);
   const estKeys = Object.keys(estGroups);
   const stateColorMap: Record<string, string> = {
-    Activo: '#0B6E68',
+    Activo: '#0F8579',
     Vencido: '#BE3A2E',
-    Suspendido: '#C99A06',
+    Suspendido: '#B98B00',
     'En liquidación': '#2F6FA3',
     Liquidado: '#98A4A8',
-    Terminado: '#6B7F86',
+    Terminado: '#5E6E73',
     Borrador: '#CBD4D6'
   };
   const chEstadoConfig = {
@@ -98,7 +111,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       datasets: [
         {
           data: estKeys.map((k) => estGroups[k].length),
-          backgroundColor: estKeys.map((k) => stateColorMap[k] || '#0B6E68')
+          backgroundColor: estKeys.map((k) => stateColorMap[k] || '#0F8579')
         }
       ]
     },
@@ -124,7 +137,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {
           label: 'Contratos',
           data: empKeys.map((k) => byEmp[k].length),
-          backgroundColor: '#0B6E68',
+          backgroundColor: '#0F8579',
           borderRadius: 4
         }
       ]
@@ -141,10 +154,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     ['Hoy', 0, 0, '#BE3A2E'],
     ['1-5 d', 1, 5, '#BE3A2E'],
     ['6-15 d', 6, 15, '#D0691A'],
-    ['16-30 d', 16, 30, '#C99A06'],
-    ['31-60 d', 31, 60, '#0B6E68'],
-    ['Vencidos', -99999, -1, '#6B7F86']
+    ['16-30 d', 16, 30, '#B98B00'],
+    ['31-60 d', 31, 60, '#0F8579'],
+    ['Vencidos', -99999, -1, '#5E6E73']
   ];
+  const bucketCounts = buckets.map(
+    (b) =>
+      P.cs.filter((c) => {
+        const m = M(c);
+        return (
+          (m.activo || m.estado === 'Vencido') &&
+          m.restantes != null &&
+          m.restantes >= b[1] &&
+          m.restantes <= b[2]
+        );
+      }).length
+  );
   const chVencConfig = {
     type: 'bar' as const,
     data: {
@@ -152,18 +177,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       datasets: [
         {
           label: 'Contratos',
-          data: buckets.map(
-            (b) =>
-              P.cs.filter((c) => {
-                const m = M(c);
-                return (
-                  (m.activo || m.estado === 'Vencido') &&
-                  m.restantes != null &&
-                  m.restantes >= b[1] &&
-                  m.restantes <= b[2]
-                );
-              }).length
-          ),
+          data: bucketCounts,
           backgroundColor: buckets.map((b) => b[3]),
           borderRadius: 4
         }
@@ -185,20 +199,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {
           label: 'Valor actualizado',
           data: topContracts.map((c) => M(c).valorActual),
-          backgroundColor: '#C9DCDA',
+          backgroundColor: 'rgba(15, 133, 121, 0.30)',
           borderRadius: 3
         },
         {
           label: 'Ejecutado',
           data: topContracts.map((c) => M(c).ejecutado),
-          backgroundColor: '#0B6E68',
+          backgroundColor: '#0F8579',
           borderRadius: 3
         }
       ]
     },
     options: {
       scales: {
-        y: { type: 'logarithmic' as const }
+        y: { type: 'logarithmic' as const, ticks: { callback: (v: string | number) => moneyShort(v) } }
       }
     }
   };
@@ -213,6 +227,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const exByMonth = groupBy(execsList, (e) => e.periodo);
   const pyByMonth = groupBy(paysList, (p) => monthKey(p.fechaPago || p.fecha));
 
+  // Los meses al final de la serie sin movimientos se anulan (null) para que la
+  // línea no "caiga" a cero en el mes en curso y confunda la lectura.
+  const mesEjec = mk.map((k) => sum(exByMonth[k] || [], (e) => +e.valor || 0));
+  const mesPaga = mk.map((k) => sum(pyByMonth[k] || [], (p) => +p.bruto + (p.iva || 0)));
+  const nullTrailingZeros = (arr: number[]): (number | null)[] => {
+    const out: (number | null)[] = arr.slice();
+    for (let i = out.length - 1; i >= 0 && out[i] === 0; i--) out[i] = null;
+    return out;
+  };
+  const mesHayDatos = mesEjec.some((v) => v > 0) || mesPaga.some((v) => v > 0);
+
   const chMesConfig = {
     type: 'line' as const,
     data: {
@@ -220,22 +245,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       datasets: [
         {
           label: 'Ejecutado',
-          data: mk.map((k) => sum(exByMonth[k] || [], (e) => +e.valor || 0)),
-          borderColor: '#0B6E68',
-          backgroundColor: 'rgba(11,110,104,0.10)',
+          data: nullTrailingZeros(mesEjec),
+          borderColor: '#0F8579',
+          backgroundColor: 'rgba(15,133,121,0.10)',
           fill: true,
           tension: 0.3,
-          pointRadius: 3
+          pointRadius: 3,
+          spanGaps: true
         },
         {
           label: 'Pagado',
-          data: mk.map((k) => sum(pyByMonth[k] || [], (p) => +p.bruto + (p.iva || 0))),
+          data: nullTrailingZeros(mesPaga),
           borderColor: '#2F6FA3',
           borderDash: [5, 4],
           tension: 0.3,
-          pointRadius: 2
+          pointRadius: 2,
+          spanGaps: true
         }
       ]
+    },
+    options: {
+      plugins: { legend: { position: 'bottom' as const } },
+      scales: { y: { ticks: { callback: (v: string | number) => moneyShort(v) } } }
     }
   };
 
@@ -252,7 +283,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           data: rl.map(
             (l) => risksList.filter((r) => riskLevel(r) === l && r.estado === 'Abierto').length
           ),
-          backgroundColor: ['#7FBF93', '#D9C255', '#E49A52', '#D0543F'],
+          backgroundColor: ['#1E8E4E', '#B98B00', '#D0691A', '#BE3A2E'],
           borderRadius: 4
         },
         {
@@ -286,7 +317,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       datasets: [
         {
           data: ol.map((l) => obligationsList.filter((o) => effOblig(o) === l).length),
-          backgroundColor: ['#1E8E4E', '#4E9A8F', '#2F6FA3', '#C99A06', '#D0691A', '#BE3A2E']
+          backgroundColor: ['#1E8E4E', '#17A08F', '#2F6FA3', '#B98B00', '#D0691A', '#BE3A2E']
         }
       ]
     },
@@ -373,9 +404,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div style={{ padding: '8px 12px' }}>
             {T.length === 0 ? (
-              <div className="empty-state" style={{ padding: '24px 12px', textAlign: 'center' }}>
-                <p className="muted">No hay pendientes críticos para hoy.</p>
-              </div>
+              <EmptyState
+                title="Sin frentes de trabajo para hoy"
+                description="Cuando existan vencimientos, alertas o pendientes críticos aparecerán aquí para actuar con un clic."
+                action={
+                  <Button className="btn sm pri" onClick={() => onNavigate?.('agenda')}>
+                    <Icon name="calendar-days" /> Revisar agenda
+                  </Button>
+                }
+              />
             ) : (
               T.map((t, idx) => (
                 <button
@@ -416,8 +453,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </Surface>
 
-        {/* Semáforo contractual */}
-        <Surface className="panel anim-fade-rise" style={{ animationDelay: '80ms' }}>
+        {/* Semáforo contractual (la gráfica estira para llenar el alto del panel) */}
+        <Surface
+          className="panel anim-fade-rise"
+          style={{ animationDelay: '80ms', display: 'flex', flexDirection: 'column' }}
+        >
           <div className="panel-h">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="chart-pie" />
@@ -425,9 +465,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <span className="sub">{P.n} contratos</span>
           </div>
-          <div className="panel-b">
-            <div className="chart-box sm" style={{ height: 210 }}>
-              <Chart config={semDoughnut} />
+          <div className="panel-b" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div className="chart-box sm" style={{ height: 'auto', flex: 1, minHeight: 210 }}>
+              {P.n > 0 ? (
+                <Chart config={semDoughnut} />
+              ) : (
+                <EmptyState
+                  title="Sin contratos en el portafolio"
+                  description="El semáforo contractual se dibujará en cuanto se registre el primer contrato."
+                  action={
+                    <Button className="btn sm pri" onClick={() => onNavigate?.('contratos')}>
+                      <Icon name="folder" /> Ir a contratos
+                    </Button>
+                  }
+                />
+              )}
             </div>
           </div>
         </Surface>
@@ -605,16 +657,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         />
       </div>
 
-      {/* Tarjetas: Contratos próximos a vencer */}
-      {soon.length > 0 && (
-        <Surface className="panel mb anim-fade-rise" style={{ animationDelay: '120ms' }}>
-          <div className="panel-h">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="clock" />
-              <h3 style={{ margin: 0 }}>Contratos próximos a vencer</h3>
-            </div>
-            <span className="sub">Alerta crítica a los {S.criticalDays} días</span>
+      {/* Tarjetas: Contratos próximos a vencer (siempre visibles, con estado vacío) */}
+      <Surface className="panel mb anim-fade-rise" style={{ animationDelay: '120ms' }}>
+        <div className="panel-h">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="clock" />
+            <h3 style={{ margin: 0 }}>Contratos próximos a vencer</h3>
           </div>
+          <span className="sub">Alerta crítica a los {S.criticalDays} días</span>
+        </div>
+        {soon.length === 0 ? (
+          <div className="panel-b">
+            <EmptyState
+              title="Nada crítico en los próximos 15 días"
+              description="Ningún contrato activo vence dentro de los próximos 15 días. Revisa la agenda completa para ver vencimientos más lejanos."
+              action={
+                <Button className="btn sm pri" onClick={() => onNavigate?.('agenda')}>
+                  <Icon name="calendar-days" /> Ver agenda completa
+                </Button>
+              }
+            />
+          </div>
+        ) : (
           <div className="panel-b grid g3">
             {soon.map((c, idx) => {
               const m = M(c);
@@ -650,7 +714,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                   <div className="when" style={{ fontSize: '12px' }}>
                     {r === 0 ? (
-                      <b style={{ color: 'var(--crit)' }}>Vence hoy.</b>
+                      <b style={{ color: 'var(--crit-text)' }}>Vence hoy.</b>
                     ) : (
                       <span>
                         Faltan <b>{r} {r === 1 ? 'día' : 'días'}</b> para la terminación ({fdate(c.fechaFin)}).
@@ -694,8 +758,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               );
             })}
           </div>
-        </Surface>
-      )}
+        )}
+      </Surface>
 
       {/* Fila de 3 gráficas */}
       <div className="grid g3 mb">
@@ -709,7 +773,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="panel-b">
             <div className="chart-box" style={{ height: 210 }}>
-              <Chart config={chEstadoConfig} />
+              {estKeys.length > 0 ? (
+                <Chart config={chEstadoConfig} />
+              ) : (
+                <EmptyState title="Sin contratos" description="Aún no hay contratos clasificados por estado." />
+              )}
             </div>
           </div>
         </Surface>
@@ -724,7 +792,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="panel-b">
             <div className="chart-box" style={{ height: 210 }}>
-              <Chart config={chEmpConfig} />
+              {empKeys.length > 0 ? (
+                <Chart config={chEmpConfig} />
+              ) : (
+                <EmptyState title="Sin empresas asociadas" description="Asocia contratos a una empresa para ver su distribución." />
+              )}
             </div>
           </div>
         </Surface>
@@ -739,7 +811,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="panel-b">
             <div className="chart-box" style={{ height: 210 }}>
-              <Chart config={chVencConfig} />
+              {bucketCounts.some((n) => n > 0) ? (
+                <Chart config={chVencConfig} />
+              ) : (
+                <EmptyState title="Sin vencimientos próximos" description="No hay contratos próximos a vencer ni vencidos sin liquidar." />
+              )}
             </div>
           </div>
         </Surface>
@@ -760,7 +836,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="panel-b">
             <div className="chart-box lg" style={{ height: 250 }}>
-              <Chart config={chCvEConfig} />
+              {topContracts.length > 0 ? (
+                <Chart config={chCvEConfig} />
+              ) : (
+                <EmptyState title="Sin contratos valorados" description="Aparecerá una comparación de valores cuando existan contratos registrados." />
+              )}
             </div>
           </div>
         </Surface>
@@ -778,7 +858,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="panel-b">
             <div className="chart-box lg" style={{ height: 250 }}>
-              <Chart config={chMesConfig} />
+              {mesHayDatos ? (
+                <Chart config={chMesConfig} />
+              ) : (
+                <EmptyState title="Sin movimientos registrados" description="La serie mensual de ejecutado y pagado aparecerá al registrar ejecuciones o pagos." />
+              )}
             </div>
           </div>
         </Surface>
@@ -796,7 +880,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="panel-b">
             <div className="chart-box" style={{ height: 210 }}>
-              <Chart config={chRiesgoConfig} />
+              {risksList.length > 0 ? (
+                <Chart config={chRiesgoConfig} />
+              ) : (
+                <EmptyState title="Sin riesgos abiertos" description="Los riesgos identificados en los contratos se mostrarán aquí por nivel." />
+              )}
             </div>
           </div>
         </Surface>
@@ -811,7 +899,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="panel-b">
             <div className="chart-box" style={{ height: 210 }}>
-              <Chart config={chOblConfig} />
+              {obligationsList.length > 0 ? (
+                <Chart config={chOblConfig} />
+              ) : (
+                <EmptyState title="Sin obligaciones registradas" description="El cumplimiento de obligaciones contractuales se graficará aquí." />
+              )}
             </div>
           </div>
         </Surface>

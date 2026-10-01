@@ -1,9 +1,10 @@
 'use client';
-import { Select, Input, Textarea } from '../ui/Controls';
-import { notify } from '../ui/Feedback';
-import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
+
 import { useState } from 'react';
+import { Select, Input, Textarea } from '../ui/Controls';
+import { notify, confirmAction } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
 import type { Modification, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
@@ -19,11 +20,18 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
 
   const c = Store.get('contracts', cid) as Contract | undefined;
-  if (!c) return <div className="empty">Contrato no encontrado</div>;
+  if (!c) {
+    return (
+      <EmptyState
+        title="Contrato no encontrado"
+        description="No se encontró el contrato especificado para consultar sus modificaciones."
+      />
+    );
+  }
 
   const m = M(c);
   const modifications = (Store.byContract('modifications', cid) as Modification[]).sort((a, b) =>
-    a.fecha < b.fecha ? 1 : -1
+    (a.fecha || '') < (b.fecha || '') ? 1 : -1
   );
 
   const [tipo, setTipo] = useState('Adición');
@@ -36,12 +44,14 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
   const [soporte, setSoporte] = useState('');
 
   const totalAdiciones = modifications
-    .filter((x) => x.tipo === 'Adición')
+    .filter((x) => x.tipo === 'Adición' && !x.anulada)
     .reduce((acc, curr) => acc + (Number(curr.valorNuevo) - Number(curr.valorAnterior || 0)), 0);
+
   const totalReducciones = modifications
-    .filter((x) => x.tipo === 'Reducción')
+    .filter((x) => x.tipo === 'Reducción' && !x.anulada)
     .reduce((acc, curr) => acc + (Number(curr.valorAnterior || 0) - Number(curr.valorNuevo)), 0);
-  const prorrogas = modifications.filter((x) => x.tipo === 'Prórroga');
+
+  const prorrogas = modifications.filter((x) => x.tipo === 'Prórroga' && !x.anulada);
 
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv') => {
     const cols = [
@@ -51,7 +61,8 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
       { l: 'Justificación', k: 'justificacion' },
       { l: 'Valor nuevo', k: 'valorNuevo', r: (r: any) => (r.valorNuevo ? money(r.valorNuevo) : '—') },
       { l: 'Fecha nueva', k: 'fechaNueva', r: (r: any) => (r.fechaNueva ? fdate(r.fechaNueva) : '—') },
-      { l: 'Nuevo valor/texto', k: 'nuevoTexto' }
+      { l: 'Nuevo valor/texto', k: 'nuevoTexto' },
+      { l: 'Estado', k: 'anulada', r: (r: any) => (r.anulada ? 'Anulada' : 'Vigente') }
     ];
     exportRows('Modificaciones - ' + c.numero, cols, modifications, format);
   };
@@ -68,10 +79,11 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
       numero: numero.trim(),
       tipo,
       fecha,
-      justificacion,
-      soporte: soporte || `mod_${numero.trim()}.pdf`,
+      justificacion: justificacion.trim(),
+      soporte: soporte.trim() || `mod_${numero.trim()}.pdf`,
       valorAnterior: m.valorActual,
-      fechaAnterior: c.fechaFin
+      fechaAnterior: c.fechaFin,
+      anulada: false
     };
 
     const contractPatch: Partial<Contract> = {};
@@ -117,24 +129,25 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
     if (Object.keys(contractPatch).length > 0) {
       Store.update('contracts', cid, contractPatch);
       Audit.diff('Modificaciones', cid, before, { ...c, ...contractPatch }, {
-        adiciones: 'Adiciones',
-        reducciones: 'Reducciones',
+        adiciones: 'Adiciones presupuestales',
+        reducciones: 'Reducciones presupuestales',
         fechaFin: 'Fecha de terminación',
-        estado: 'Estado',
-        contratista: 'Contratista',
-        supervisor: 'Supervisor'
+        estado: 'Estado contractual',
+        contratista: 'Cesión de contratista',
+        supervisor: 'Designación de supervisor'
       });
     }
 
     const hasGuarantees = Store.byContract('guarantees', cid).length > 0;
     if (['Adición', 'Prórroga', 'Reinicio'].includes(tipo) && hasGuarantees) {
       setWarningMsg(
-        `Revisa las garantías: la ${tipo.toLowerCase()} puede exigir ajustar valor o vigencia de las pólizas.`
+        `Atención normativa: La ${tipo.toLowerCase()} puede exigir ajustar el valor asegurado o ampliar la vigencia de las pólizas y garantías suscritas.`
       );
     } else {
       setWarningMsg(null);
     }
 
+    notify(`Modificación ${newMod.numero} (${tipo}) aplicada exitosamente`);
     setShowModal(false);
     setNumero('');
     setJustificacion('');
@@ -142,341 +155,471 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
     setSoporte('');
   };
 
+  const handleAnular = async (mItem: Modification) => {
+    if (!AuthService.guard('editar')) return;
+    const ok = await confirmAction(
+      `¿Está seguro de anular la modificación ${mItem.numero} (${mItem.tipo})? Esta acción revertirá los impactos aplicados al contrato.`
+    );
+    if (!ok) return;
+
+    const before = JSON.parse(JSON.stringify(c));
+    const patch: Partial<Contract> = {};
+
+    // Revertir efectos en el contrato
+    if (mItem.tipo === 'Adición' && mItem.valorNuevo && mItem.valorAnterior) {
+      const added = Number(mItem.valorNuevo) - Number(mItem.valorAnterior);
+      patch.adiciones = Math.max(0, (Number(c.adiciones) || 0) - added);
+    } else if (mItem.tipo === 'Reducción' && mItem.valorNuevo && mItem.valorAnterior) {
+      const reduced = Number(mItem.valorAnterior) - Number(mItem.valorNuevo);
+      patch.reducciones = Math.max(0, (Number(c.reducciones) || 0) - reduced);
+    } else if (mItem.tipo === 'Prórroga' && mItem.fechaAnterior) {
+      patch.fechaFin = mItem.fechaAnterior;
+    } else if (mItem.tipo === 'Suspensión') {
+      patch.estado = 'Activo';
+    }
+
+    Store.update('modifications', mItem.id, { anulada: true });
+    if (Object.keys(patch).length > 0) {
+      Store.update('contracts', cid, patch);
+      Audit.diff('Modificaciones', cid, before, { ...c, ...patch }, {
+        adiciones: 'Reversión adición por anulación',
+        reducciones: 'Reversión reducción por anulación',
+        fechaFin: 'Reversión fecha fin por anulación',
+        estado: 'Reversión estado por anulación'
+      });
+    }
+
+    Audit.log({
+      contractId: cid,
+      modulo: 'Modificaciones',
+      accion: 'Anulación',
+      campo: 'Modificación ' + mItem.numero,
+      anterior: 'Vigente',
+      nuevo: 'Anulada'
+    });
+
+    notify(`Modificación ${mItem.numero} anulada y contrato actualizado`);
+  };
+
+  const handleDelete = async (mItem: Modification) => {
+    if (!AuthService.guard('editar')) return;
+    const ok = await confirmAction(
+      `¿Desea eliminar definitivamente el registro de la modificación ${mItem.numero}?`
+    );
+    if (!ok) return;
+
+    const db = Store.getDB();
+    db.modifications = (db.modifications || []).filter((item) => item.id !== mItem.id);
+    Store.persist();
+    Audit.log({
+      contractId: cid,
+      modulo: 'Modificaciones',
+      accion: 'Eliminación',
+      campo: 'Modificación ' + mItem.numero,
+      anterior: mItem.tipo
+    });
+    notify(`Modificación ${mItem.numero} eliminada`);
+  };
+
   return (
-    <Surface className="panel">
-      <div className="panel-h" style={{ borderTop: 0 }}>
+    <div className="tab-modificaciones-container">
+      {/* Encabezado */}
+      <div className="panel-h mb-3 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h3>Modificaciones contractuales</h3>
-          <span className="sub">Cada modificación actualiza automáticamente el contrato</span>
+          <h3 className="text-base font-bold text-[var(--ink)]">Modificaciones y otrosíes contractuales</h3>
+          <span className="sub text-xs text-[var(--muted)]">
+            Adiciones presupuestales, prórrogas de plazo, suspensiones, cesiones y modificaciones de cláusulas
+          </span>
         </div>
         <div className="row-flex">
           <div className="exp-actions">
-            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
               <Icon name="file-excel" /> Excel
             </Button>
-            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
               <Icon name="file-pdf" /> PDF
             </Button>
-            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
+          <Button className="btn sm pri" onClick={() => setShowModal(true)} aria-label="Registrar nueva modificación">
             <Icon name="plus" /> Nueva modificación
           </Button>
         </div>
       </div>
 
-      <div className="p-4" style={{ paddingBottom: '0' }}>
-        <div className="kpis mb">
-          <Kpi title="Total modificaciones" value={modifications.length} />
-          <Kpi
-            title="Total adiciones"
-            value={moneyM(totalAdiciones || Number(c.adiciones) || 0)}
-            sub={money(totalAdiciones || Number(c.adiciones) || 0)}
-            color={totalAdiciones > 0 ? 'ok' : undefined}
-          />
-          <Kpi
-            title="Total reducciones"
-            value={moneyM(totalReducciones || Number(c.reducciones) || 0)}
-            sub={money(totalReducciones || Number(c.reducciones) || 0)}
-            color={totalReducciones > 0 ? 'risk' : undefined}
-          />
-          <Kpi
-            title="Prórrogas"
-            value={prorrogas.length}
-            sub={
-              prorrogas.length > 0 && prorrogas[0].fechaAnterior
-                ? `+${diffDays(prorrogas[0].fechaAnterior, c.fechaFin)} días`
-                : 'Sin prórrogas'
-            }
-          />
-        </div>
+      {/* Tarjetas KPI canónicas Seven Save */}
+      <div className="kpis mb [&_.kpi]:!p-2 sm:[&_.kpi]:!p-[14px_16px] [&_.kpi-ic]:!w-7 [&_.kpi-ic]:!h-7 sm:[&_.kpi-ic]:!w-[34px] sm:[&_.kpi-ic]:!h-[34px] [&_.kpi.kpi-v2]:!gap-2 sm:[&_.kpi.kpi-v2]:!gap-3 [&_.kpi-v]:!whitespace-nowrap [&_.kpi-v]:!text-[13.5px] sm:[&_.kpi-v]:!text-[23px] [&_.kpi-s]:!whitespace-nowrap [&_.kpi-s]:!text-[9.5px] sm:[&_.kpi-s]:!text-[11.5px]">
+        <Kpi
+          label="Total modificaciones"
+          value={modifications.length}
+          sub={`${modifications.filter((m) => m.anulada).length} anulada(s)`}
+          color="brand"
+          icon="file-signature"
+        />
+        <Kpi
+          label="Total adiciones"
+          value={moneyM(totalAdiciones || Number(c.adiciones) || 0).replace(/\s/g, '\u00A0')}
+          sub={money(totalAdiciones || Number(c.adiciones) || 0).replace(/\s/g, '\u00A0')}
+          color={totalAdiciones > 0 ? 'ok' : 'na'}
+          icon="plus-circle"
+        />
+        <Kpi
+          label="Total reducciones"
+          value={moneyM(totalReducciones || Number(c.reducciones) || 0).replace(/\s/g, '\u00A0')}
+          sub={money(totalReducciones || Number(c.reducciones) || 0).replace(/\s/g, '\u00A0')}
+          color={totalReducciones > 0 ? 'risk' : 'na'}
+          icon="minus-circle"
+        />
+        <Kpi
+          label="Prórrogas de plazo"
+          value={prorrogas.length}
+          sub={
+            prorrogas.length > 0 && prorrogas[0].fechaAnterior
+              ? `+${diffDays(prorrogas[0].fechaAnterior, c.fechaFin)} días acumulados`
+              : 'Sin prórrogas'
+          }
+          color={prorrogas.length > 0 ? 'info' : 'na'}
+          icon="calendar-plus"
+        />
       </div>
 
+      {/* Banner de alerta normativa de garantías */}
       {warningMsg && (
         <div
-          className="mx-4 mb-3 p-3"
+          className="mb-4 p-3 rounded flex items-center gap-3 text-sm"
           style={{
-            background: 'var(--warn-s)',
+            background: 'var(--warn-bg)',
             border: '1px solid var(--warn)',
-            borderRadius: '6px',
-            color: 'var(--text)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
+            color: 'var(--warn-text)'
           }}
+          role="status"
         >
           <Icon name="triangle-exclamation" />
-          <span>{warningMsg}</span>
-          <Button className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={() => setWarningMsg(null)}>
+          <span className="flex-1 font-medium">{warningMsg}</span>
+          <Button
+            className="btn ghost sm text-xs"
+            onClick={() => setWarningMsg(null)}
+            aria-label="Cerrar aviso"
+          >
             Entendido
           </Button>
         </div>
       )}
 
-      <TableViewport className="tbl-wrap">
-        <DataTable className="tbl">
-          <thead>
-            <tr>
-              <th className="nw">Número</th>
-              <th>Tipo</th>
-              <th className="nw">Fecha</th>
-              <th>Justificación / Impacto</th>
-              <th className="nw">Cambio de valor</th>
-              <th className="nw">Cambio de plazo</th>
-              <th>Nuevo texto</th>
-              <th className="nw">Soporte</th>
-            </tr>
-          </thead>
-          <tbody>
-            {modifications.map((mItem) => {
-              const diffVal =
-                mItem.valorNuevo && mItem.valorAnterior
-                  ? Number(mItem.valorNuevo) - Number(mItem.valorAnterior)
-                  : null;
-              const daysExt =
-                mItem.fechaNueva && mItem.fechaAnterior
-                  ? diffDays(mItem.fechaAnterior, mItem.fechaNueva)
-                  : null;
-              return (
-                <tr key={mItem.id}>
-                  <td className="nw">
-                    <b>{mItem.numero}</b>
-                  </td>
-                  <td>
-                    <Badge
-                      text={mItem.tipo}
-                      color={
-                        mItem.tipo === 'Adición'
-                          ? 'ok'
-                          : mItem.tipo === 'Reducción'
-                          ? 'warn'
-                          : mItem.tipo === 'Suspensión'
-                          ? 'crit'
-                          : mItem.tipo === 'Reinicio'
-                          ? 'brand'
-                          : 'default'
-                      }
-                    />
-                  </td>
-                  <td className="nw">{fdate(mItem.fecha)}</td>
-                  <td className="clip" style={{ maxWidth: '300px' }} title={mItem.justificacion}>
-                    {mItem.justificacion}
-                    {mItem.impacto && <div className="small muted">{mItem.impacto}</div>}
-                  </td>
-                  <td className="nw">
-                    {mItem.valorNuevo ? (
-                      <div>
-                        <div>{money(mItem.valorNuevo)}</div>
-                        {diffVal != null && (
-                          <div
-                            className="small"
-                            style={{ color: diffVal > 0 ? 'var(--ok)' : 'var(--crit)' }}
-                          >
-                            {diffVal > 0 ? '+' : ''}
-                            {money(diffVal)}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td className="nw">
-                    {mItem.fechaNueva ? (
-                      <div>
-                        <div>{fdate(mItem.fechaNueva)}</div>
-                        {daysExt != null && daysExt !== 0 && (
-                          <div className="small muted">+{daysExt} días</div>
-                        )}
-                      </div>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td className="clip" style={{ maxWidth: '180px' }}>
-                    {mItem.nuevoTexto || '—'}
-                  </td>
-                  <td className="nw">
-                    {mItem.soporte ? (
-                      <span className="link" title="Ver documento soporte">
-                        <Icon name="paperclip" /> {mItem.soporte}
-                      </span>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {modifications.length === 0 && (
-              <tr>
-                <td colSpan={8} className="empty">
-                  El contrato no registra modificaciones.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </DataTable>
-      </TableViewport>
+      {/* Tabla detallada de Modificaciones */}
+      <Surface className="panel">
+        <div className="panel-h flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-sm">Historial de actos modificatorios</h3>
+            <span className="sub text-xs text-[var(--muted)]">{modifications.length} modificación(es)</span>
+          </div>
+        </div>
 
+        {modifications.length === 0 ? (
+          <EmptyState
+            title="Sin modificaciones registradas"
+            description="El contrato se mantiene con las condiciones y plazos pactados inicialmente."
+            action={
+              <Button className="btn pri sm" onClick={() => setShowModal(true)}>
+                <Icon name="plus" /> Registrar primer otrosí o modificación
+              </Button>
+            }
+          />
+        ) : (
+          <TableViewport className="tbl-wrap">
+            <DataTable className="tbl">
+              <thead>
+                <tr>
+                  <th className="nw">Número</th>
+                  <th>Tipo</th>
+                  <th className="nw">Fecha trámite</th>
+                  <th>Justificación / Impacto</th>
+                  <th className="nw">Impacto económico</th>
+                  <th className="nw">Impacto plazo</th>
+                  <th>Detalle / Sujeto</th>
+                  <th className="nw">Soporte</th>
+                  <th className="nw text-right" style={{ width: '110px' }}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {modifications.map((mItem) => {
+                  const diffVal =
+                    mItem.valorNuevo && mItem.valorAnterior
+                      ? Number(mItem.valorNuevo) - Number(mItem.valorAnterior)
+                      : null;
+                  const daysExt =
+                    mItem.fechaNueva && mItem.fechaAnterior
+                      ? diffDays(mItem.fechaAnterior, mItem.fechaNueva)
+                      : null;
+                  return (
+                    <tr
+                      key={mItem.id}
+                      className={`hover:bg-[var(--surface-2)] transition-colors ${mItem.anulada ? 'opacity-60 line-through' : ''}`}
+                    >
+                      <td className="nw">
+                        <b className="text-[var(--ink)]">{mItem.numero}</b>
+                        {mItem.anulada && (
+                          <span className="ml-2 badge b-crit text-[10px]">ANULADA</span>
+                        )}
+                      </td>
+                      <td className="nw">
+                        <Badge
+                          text={mItem.tipo}
+                          color={
+                            mItem.anulada
+                              ? 'na'
+                              : mItem.tipo === 'Adición'
+                              ? 'ok'
+                              : mItem.tipo === 'Reducción'
+                              ? 'warn'
+                              : mItem.tipo === 'Suspensión'
+                              ? 'crit'
+                              : mItem.tipo === 'Reinicio'
+                              ? 'brand'
+                              : 'info'
+                          }
+                        />
+                      </td>
+                      <td className="nw text-xs text-[var(--muted)]">{fdate(mItem.fecha)}</td>
+                      <td className="clip" style={{ maxWidth: '300px' }} title={mItem.justificacion}>
+                        <span className="text-xs text-[var(--ink)]">{mItem.justificacion}</span>
+                        {mItem.impacto && <div className="small text-[var(--muted)]">{mItem.impacto}</div>}
+                      </td>
+                      <td className="nw">
+                        {mItem.valorNuevo ? (
+                          <div>
+                            <div className="font-semibold text-xs text-[var(--ink)]">{money(mItem.valorNuevo)}</div>
+                            {diffVal != null && (
+                              <div
+                                className="small font-medium"
+                                style={{ color: diffVal > 0 ? 'var(--ok-text)' : 'var(--crit-text)' }}
+                              >
+                                {diffVal > 0 ? '+' : ''}
+                                {money(diffVal)}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[var(--muted)]">—</span>
+                        )}
+                      </td>
+                      <td className="nw">
+                        {mItem.fechaNueva ? (
+                          <div>
+                            <div className="font-medium text-xs text-[var(--ink)]">{fdate(mItem.fechaNueva)}</div>
+                            {daysExt != null && daysExt !== 0 && (
+                              <div className="small text-[var(--muted)] font-mono">+{daysExt} días</div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[var(--muted)]">—</span>
+                        )}
+                      </td>
+                      <td className="clip text-xs text-[var(--ink-2)]" style={{ maxWidth: '180px' }}>
+                        {mItem.nuevoTexto || '—'}
+                      </td>
+                      <td className="nw">
+                        {mItem.soporte ? (
+                          <span className="link inline-flex items-center gap-1 text-xs" title="Ver documento adjunto">
+                            <Icon name="paperclip" size={12} /> {mItem.soporte}
+                          </span>
+                        ) : (
+                          <span className="text-[var(--muted)]">—</span>
+                        )}
+                      </td>
+                      <td className="nw text-right">
+                        <div className="inline-flex items-center gap-1 justify-end">
+                          {!mItem.anulada && (
+                            <Button
+                              className="btn ghost xs text-[var(--warn-text)] hover:bg-[var(--warn-bg)]"
+                              onClick={() => handleAnular(mItem)}
+                              title="Anular modificación"
+                              aria-label={`Anular modificación ${mItem.numero}`}
+                            >
+                              <Icon name="ban" size={13} />
+                            </Button>
+                          )}
+                          <Button
+                            className="btn ghost xs text-[var(--crit)] hover:bg-[var(--crit-bg)]"
+                            onClick={() => handleDelete(mItem)}
+                            title="Eliminar modificación"
+                            aria-label={`Eliminar modificación ${mItem.numero}`}
+                          >
+                            <Icon name="trash" size={13} />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </DataTable>
+          </TableViewport>
+        )}
+      </Surface>
+
+      {/* Modal Nueva Modificación */}
       {showModal && (
         <Modal
-          title="Nueva modificación contractual"
+          title="Nueva modificación contractual (Otrosí)"
           onClose={() => setShowModal(false)}
           size="lg"
           footer={
-            <>
-              <Button className="btn" onClick={() => setShowModal(false)}>
+            <div className="flex gap-2 justify-end w-full">
+              <Button className="btn ghost" onClick={() => setShowModal(false)}>
                 Cancelar
               </Button>
               <Button className="btn pri" onClick={handleCreate}>
-                <Icon name="save" /> Aplicar modificación
+                <Icon name="check" /> Aplicar modificación
               </Button>
-            </>
+            </div>
           }
         >
-          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
-            <div>
-              <label className="lbl required">Tipo de modificación</label>
+          <FormGrid className="form-grid">
+            <Field className="f">
+              <label className="req font-medium text-xs">Tipo de modificación</label>
               <Select
-                className="inp"
                 value={tipo}
                 onChange={(e) => {
-                  setTipo(e.target.value);
-                  if (e.target.value === 'Adición' || e.target.value === 'Reducción') {
+                  const t = e.target.value;
+                  setTipo(t);
+                  if (t === 'Adición' || t === 'Reducción') {
                     setValorNuevo(m.valorActual);
                   }
-                  if (e.target.value === 'Prórroga' || e.target.value === 'Reinicio') {
+                  if (t === 'Prórroga' || t === 'Reinicio') {
                     setFechaNueva(c.fechaFin || todayIso());
                   }
                 }}
               >
-                <option value="Adición">Adición (aumentar valor)</option>
-                <option value="Reducción">Reducción (disminuir valor)</option>
-                <option value="Prórroga">Prórroga (ampliar plazo)</option>
-                <option value="Suspensión">Suspensión de ejecución</option>
+                <option value="Adición">Adición (aumento de valor)</option>
+                <option value="Reducción">Reducción (disminución de valor)</option>
+                <option value="Prórroga">Prórroga (ampliación de plazo)</option>
+                <option value="Suspensión">Suspensión temporal de ejecución</option>
                 <option value="Reinicio">Reinicio de ejecución</option>
                 <option value="Cesión">Cesión contractual (cambio de contratista)</option>
                 <option value="Modificación de supervisor">Modificación de supervisor</option>
-                <option value="Terminación anticipada">Terminación anticipada</option>
-                <option value="Modificación de cláusula">Modificación de cláusula</option>
+                <option value="Terminación anticipada">Terminación anticipada por mutuo acuerdo</option>
+                <option value="Modificación de cláusula">Aclaración o modificación de cláusula</option>
               </Select>
-            </div>
-            <div>
-              <label className="lbl required">Número / Referencia</label>
+            </Field>
+
+            <Field className="f">
+              <label className="req font-medium text-xs">Número o radicado del Otrosí</label>
               <Input
-                className="inp"
                 value={numero}
-                placeholder="Ej. MOD-01 u OTROSI-01"
+                placeholder="Ej. OTROSI-01 o MOD-2026-01"
                 onChange={(e) => setNumero(e.target.value)}
+                required
               />
-            </div>
-            <div>
-              <label className="lbl required">Fecha</label>
+            </Field>
+
+            <Field className="f">
+              <label className="req font-medium text-xs">Fecha de suscripción</label>
               <Input
                 type="date"
-                className="inp"
                 value={fecha}
                 onChange={(e) => setFecha(e.target.value)}
+                required
               />
-            </div>
+            </Field>
 
             {(tipo === 'Adición' || tipo === 'Reducción') && (
               <>
-                <div>
-                  <label className="lbl">Valor actual del contrato</label>
-                  <Input className="inp" value={money(m.valorActual)} disabled readOnly />
-                </div>
-                <div>
-                  <label className="lbl required">
-                    {tipo === 'Adición' ? 'Nuevo valor total (incluyendo adición)' : 'Nuevo valor total reducido'}
+                <Field className="f">
+                  <label className="font-medium text-xs">Valor actual del contrato</label>
+                  <Input value={money(m.valorActual)} disabled readOnly />
+                </Field>
+                <Field className="f">
+                  <label className="req font-medium text-xs">
+                    {tipo === 'Adición' ? 'Nuevo valor total actualizado (con adición)' : 'Nuevo valor total reducido'}
                   </label>
                   <Input
                     type="number"
-                    className="inp"
+                    min="0"
+                    step="1000"
                     value={valorNuevo}
                     onChange={(e) => setValorNuevo(Number(e.target.value))}
+                    required
                   />
-                  <div className="small muted mt-1">
+                  <div className="small text-[var(--muted)] mt-1">
                     Diferencia: {tipo === 'Adición' ? '+' : '-'}
                     {money(Math.abs(Number(valorNuevo) - m.valorActual))}
                   </div>
-                </div>
+                </Field>
               </>
             )}
 
             {(tipo === 'Prórroga' || tipo === 'Reinicio' || tipo === 'Terminación anticipada') && (
               <>
-                <div>
-                  <label className="lbl">Fecha de terminación actual</label>
-                  <Input className="inp" value={fdate(c.fechaFin)} disabled readOnly />
-                </div>
-                <div>
-                  <label className="lbl required">Nueva fecha de terminación</label>
+                <Field className="f">
+                  <label className="font-medium text-xs">Fecha de terminación contractual actual</label>
+                  <Input value={fdate(c.fechaFin)} disabled readOnly />
+                </Field>
+                <Field className="f">
+                  <label className="req font-medium text-xs">Nueva fecha de terminación</label>
                   <Input
                     type="date"
-                    className="inp"
                     value={fechaNueva}
                     onChange={(e) => setFechaNueva(e.target.value)}
+                    required
                   />
                   {tipo === 'Prórroga' && fechaNueva && (
-                    <div className="small muted mt-1">
-                      Días adicionales: +{diffDays(c.fechaFin, fechaNueva)} días
+                    <div className="small text-[var(--muted)] mt-1">
+                      Días adicionales calculados: +{diffDays(c.fechaFin, fechaNueva)} días
                     </div>
                   )}
-                </div>
+                </Field>
               </>
             )}
 
             {tipo === 'Cesión' && (
-              <div style={{ gridColumn: 'span 2' }}>
-                <label className="lbl required">Nuevo contratista (Razón social y NIT)</label>
+              <Field className="f span2">
+                <label className="req font-medium text-xs">Nuevo contratista cesionario (Razón Social y NIT)</label>
                 <Input
-                  className="inp"
                   value={nuevoTexto}
-                  placeholder="Ej. INGENIERÍA Y CONSTRUCCIONES SAS - NIT 900.123.456-7"
+                  placeholder="Ej. INGENIERÍA INTEGRAL S.A.S. - NIT 900.123.456-7"
                   onChange={(e) => setNuevoTexto(e.target.value)}
+                  required
                 />
-              </div>
+              </Field>
             )}
 
             {tipo === 'Modificación de supervisor' && (
-              <div style={{ gridColumn: 'span 2' }}>
-                <label className="lbl required">Nuevo supervisor</label>
+              <Field className="f span2">
+                <label className="req font-medium text-xs">Nuevo supervisor asignado (Nombre y cargo)</label>
                 <Input
-                  className="inp"
                   value={nuevoTexto}
-                  placeholder="Nombre y cargo del nuevo supervisor"
+                  placeholder="Ej. Ing. Carlos Martínez - Supervisor de Contratos"
                   onChange={(e) => setNuevoTexto(e.target.value)}
+                  required
                 />
-              </div>
+              </Field>
             )}
 
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="lbl required">Justificación</label>
+            <Field className="f span2">
+              <label className="req font-medium text-xs">Justificación técnica y jurídica</label>
               <Textarea
-                className="inp"
                 rows={3}
                 value={justificacion}
-                placeholder="Motivo y sustento técnico, jurídico o financiero de la modificación..."
+                placeholder="Motivo y justificación detallada de la modificación suscrita..."
                 onChange={(e) => setJustificacion(e.target.value)}
+                required
               />
-            </div>
+            </Field>
 
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="lbl">Documento soporte (archivo)</label>
+            <Field className="f span2">
+              <label className="font-medium text-xs">Documento soporte (archivo radicado)</label>
               <Input
-                className="inp"
                 value={soporte}
-                placeholder="Nombre del archivo adjunto (ej. otrosi_01_firmado.pdf)"
+                placeholder="Ej. otrosi_01_firmado.pdf"
                 onChange={(e) => setSoporte(e.target.value)}
               />
-            </div>
+            </Field>
           </FormGrid>
         </Modal>
       )}
-    </Surface>
+    </div>
   );
 };

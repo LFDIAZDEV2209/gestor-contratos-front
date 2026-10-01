@@ -2,9 +2,11 @@
 import { Select, Textarea, Input } from '../ui/Controls';
 import { notify, requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, MetricCard, Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
+import { PageHeader, Surface, TableViewport, DataTable, FormGrid, EmptyState, Field } from '../ui/Workspace';
+import { Kpi } from '../ui/Kpi';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Store, AuthService, Audit } from '@/lib/store';
 import { riskLevel, activeContracts } from '@/lib/metrics';
 import { exportRows } from '@/lib/export';
@@ -15,16 +17,57 @@ import { Modal } from '../ui/Modal';
 import { Chart } from '../ui/Chart';
 import { RiskMatrix } from '../ui/RiskMatrix';
 import { riskPresentation, riskScore } from '../ui/presentation';
+import { contractHref } from '../app/routes';
 import type { Risk, Contract } from '@/lib/types';
 
 interface RiesgosViewProps {
   onSelectContract?: (contractId: string, tab?: string) => void;
 }
 
+/* ---------- Presentación local (2ª pasada): hover lift en filas y badges pill con pop ---------- */
+const rowLift = (e: React.MouseEvent<HTMLTableRowElement>) => {
+  const el = e.currentTarget;
+  el.style.animation = 'none'; // libera el transform final del fadeRise para permitir el lift
+  el.style.transform = 'translateY(-2px)';
+  el.style.boxShadow = 'var(--shadow-2)';
+  el.style.position = 'relative';
+  el.style.zIndex = '2';
+};
+const rowReset = (e: React.MouseEvent<HTMLTableRowElement>) => {
+  const el = e.currentTarget;
+  el.style.transform = 'none';
+  el.style.boxShadow = 'none';
+  el.style.zIndex = 'auto';
+};
+const badgePop = { animation: 'pop 250ms var(--ease)' } as const;
+const countPill = {
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase' as const,
+  padding: '2px 8px',
+  borderRadius: 'var(--r-pill)',
+  background: 'rgba(255, 255, 255, 0.18)',
+  color: 'var(--surface)',
+  whiteSpace: 'nowrap' as const
+};
+
+// Semáforo institucional de severidad -> clase de badge con tokens AA
+const nivelBadge: Record<string, string> = {
+  Extremo: 'b-crit',
+  Alto: 'b-risk',
+  Moderado: 'b-warn',
+  Bajo: 'b-ok'
+};
+
 export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) => {
   const [tick, setTick] = useState(0);
+  const [q, setQ] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [filterEstado, setFilterEstado] = useState('');
+  const [filterSev, setFilterSev] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
   const [heatmapCell, setHeatmapCell] = useState<{ p: number; i: number } | null>(null);
 
   // Modal Nuevo / Editar
@@ -62,11 +105,42 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
   const filteredRisks = allRisks.filter((r) => {
     if (filterCat && r.categoria !== filterCat) return false;
     if (filterEstado && r.estado !== filterEstado) return false;
+    if (filterSev === 'Sin mitigación') {
+      if (r.mitigacion) return false;
+    } else if (filterSev && riskLevel(r) !== filterSev) {
+      return false;
+    }
     if (heatmapCell && (Number(r.probabilidad) !== heatmapCell.p || Number(r.impacto) !== heatmapCell.i)) {
       return false;
     }
+    if (q) {
+      const ql = q.toLowerCase();
+      const c = Store.get('contracts', r.contractId);
+      const match =
+        (r.descripcion || '').toLowerCase().includes(ql) ||
+        (r.categoria || '').toLowerCase().includes(ql) ||
+        (r.mitigacion || '').toLowerCase().includes(ql) ||
+        (c?.numero || '').toLowerCase().includes(ql);
+      if (!match) return false;
+    }
     return true;
   });
+
+  // Paginación real de la tabla
+  const totalPages = Math.max(1, Math.ceil(filteredRisks.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedRisks = filteredRisks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const hasFilters = Boolean(q || filterCat || filterEstado || filterSev || heatmapCell);
+
+  const clearFilters = () => {
+    setQ('');
+    setFilterCat('');
+    setFilterEstado('');
+    setFilterSev('');
+    setHeatmapCell(null);
+    setPage(1);
+  };
 
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv' | 'print') => {
     const cols = [
@@ -209,68 +283,125 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
     }
   };
 
+  const toggleSev = (sev: string) => {
+    setFilterSev(filterSev === sev ? '' : sev);
+    setPage(1);
+  };
+
   return (
-    <div className="view-content">
-      {/* Header */}
-      <PageHeader className="page-h">
+    <div className="anim-fade-rise">
+      {/* Banner de cabecera con gradiente de marca institucional */}
+      <PageHeader variant="hero" className="ph">
         <div>
-          <h1>Riesgos</h1>
-          <p className="sub">Matriz de riesgos contractuales: probabilidad × impacto.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.16)',
+                color: 'var(--surface)',
+                display: 'grid',
+                placeItems: 'center',
+                backdropFilter: 'blur(8px)',
+                flexShrink: 0
+              }}
+            >
+              <Icon name="triangle-exclamation" size={24} />
+            </span>
+            <div>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+                Riesgos
+                <span style={countPill}>{openRisks.length} abiertos</span>
+              </h1>
+              <p style={{ margin: '4px 0 0' }}>
+                Matriz de riesgos contractuales: probabilidad × impacto, plan de mitigación y responsable de seguimiento
+              </p>
+            </div>
+          </div>
+
+          {/* Leyenda institucional de severidad, dentro del hero */}
+          <div className="legend" style={{ marginTop: 16 }}>
+            <span><span className="sem ok" /> Bajo</span>
+            <span><span className="sem warn" /> Moderado</span>
+            <span><span className="sem risk" /> Alto</span>
+            <span><span className="sem crit" /> Extremo</span>
+          </div>
         </div>
-        <div className="row-flex">
-          <Button className="btn sm xs" onClick={() => handleExport('xlsx')}>
-            <Icon name="file-spreadsheet" /> Excel
+
+        <div className="ph-actions">
+          <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Icon name="file-excel" /> Excel
           </Button>
-          <Button className="btn sm xs" onClick={() => handleExport('pdf')}>
-            <Icon name="file-text" /> PDF
+          <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            <Icon name="file-pdf" /> PDF
           </Button>
-          <Button className="btn sm xs" onClick={() => handleExport('csv')}>
-            <Icon name="file-text" /> CSV
+          <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            <Icon name="file-csv" /> CSV
           </Button>
-          <Button className="btn sm xs" onClick={() => handleExport('print')}>
-            <Icon name="printer" /> Imprimir
+          <Button className="btn sm" onClick={() => handleExport('print')} title="Imprimir matriz">
+            <Icon name="print" /> Imprimir
           </Button>
-          <Button className="btn pri sm" onClick={openNewModal}>
+          <Button className="btn sm pri" onClick={openNewModal}>
             <Icon name="plus" /> Nuevo riesgo
           </Button>
         </div>
       </PageHeader>
 
-      {/* KPIs */}
+      {/* KPIs canónicos con entrada escalonada; clic aplica el filtro correspondiente */}
       <div className="kpis mb">
-        <MetricCard className="kpi-card">
-          <div className="kpi-t">Riesgos identificados</div>
-          <div className="kpi-v">{totalR}</div>
-          <div className="kpi-s">En contratos activos</div>
-        </MetricCard>
-        <MetricCard className="kpi-card">
-          <div className="kpi-t">Abiertos</div>
-          <div className="kpi-v" style={{ color: 'var(--risk)' }}>
-            {abiertosR}
-          </div>
-          <div className="kpi-s">Requieren control</div>
-        </MetricCard>
-        <MetricCard className="kpi-card">
-          <div className="kpi-t">Extremos</div>
-          <div className="kpi-v" style={{ color: 'var(--crit)' }}>
-            {extremosR}
-          </div>
-          <div className="kpi-s">Prioridad crítica</div>
-        </MetricCard>
-        <MetricCard className="kpi-card">
-          <div className="kpi-t">Altos</div>
-          <div className="kpi-v" style={{ color: 'var(--risk)' }}>
-            {altosR}
-          </div>
-          <div className="kpi-s">Seguimiento continuo</div>
-        </MetricCard>
-        <MetricCard className="kpi-card">
-          <div className="kpi-t">Sin mitigación</div>
-          <div className="kpi-v" style={{ color: sinMitigacionR > 0 ? 'var(--warn)' : 'var(--ok)' }}>
-            {sinMitigacionR}
-          </div>
-          <div className="kpi-s">Sin plan de acción</div>
-        </MetricCard>
+        <Kpi
+          label="Riesgos identificados"
+          value={totalR}
+          sub="En contratos activos"
+          icon="list-check"
+          color="na"
+          className="anim-fade-rise stagger-1 click"
+          onClick={() => {
+            setFilterSev('');
+            setFilterEstado('');
+            setPage(1);
+          }}
+        />
+        <Kpi
+          label="Abiertos"
+          value={abiertosR}
+          sub="Requieren control"
+          icon="alert-circle"
+          color="risk"
+          className="anim-fade-rise stagger-2 click"
+          onClick={() => {
+            setFilterEstado(filterEstado === 'Abierto' ? '' : 'Abierto');
+            setPage(1);
+          }}
+        />
+        <Kpi
+          label="Extremos"
+          value={extremosR}
+          sub="Prioridad crítica"
+          icon="triangle-exclamation"
+          color="crit"
+          className="anim-fade-rise stagger-3 click"
+          onClick={() => toggleSev('Extremo')}
+        />
+        <Kpi
+          label="Altos"
+          value={altosR}
+          sub="Seguimiento continuo"
+          icon="fire"
+          color="risk"
+          className="anim-fade-rise stagger-4 click"
+          onClick={() => toggleSev('Alto')}
+        />
+        <Kpi
+          label="Sin mitigación"
+          value={sinMitigacionR}
+          sub="Sin plan de acción"
+          icon="shield-alert"
+          color={sinMitigacionR > 0 ? 'warn' : 'ok'}
+          className="anim-fade-rise stagger-5 click"
+          onClick={() => toggleSev('Sin mitigación')}
+        />
       </div>
 
       {/* Grid: Heatmap + Categorías */}
@@ -278,35 +409,63 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
         {/* Heatmap */}
         <Surface className="panel">
           <div className="panel-h">
-            <h3>Mapa de calor</h3>
-            <span className="sub">
-              Riesgos no cerrados · Haz clic en una celda para filtrar la tabla
-              {heatmapCell && (
-                <Button
-                  className="btn xs"
-                  style={{ marginLeft: 8 }}
-                  onClick={() => setHeatmapCell(null)}
-                >
-                  Limpiar celda (P:{heatmapCell.p} × I:{heatmapCell.i})
-                </Button>
-              )}
-            </span>
+            <div>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="map" size={14} /> Mapa de calor
+              </h3>
+              <span className="sub">Riesgos no cerrados · Haz clic en una celda para filtrar la tabla</span>
+            </div>
+            {heatmapCell && (
+              <Button className="btn xs" onClick={() => setHeatmapCell(null)}>
+                <Icon name="xmark" /> Limpiar celda (P:{heatmapCell.p} × I:{heatmapCell.i})
+              </Button>
+            )}
           </div>
           <div className="panel-b" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <RiskMatrix risks={openRisks} selected={heatmapCell} onSelect={setHeatmapCell} />
+            {openRisks.length === 0 ? (
+              <EmptyState
+                title="Sin riesgos abiertos"
+                description="No hay riesgos sin cerrar para pintar en el mapa de calor."
+                action={
+                  <Button className="btn sm" onClick={openNewModal} style={{ marginTop: 8 }}>
+                    <Icon name="plus" /> Registrar riesgo
+                  </Button>
+                }
+              />
+            ) : (
+              <RiskMatrix
+                risks={openRisks}
+                selected={heatmapCell}
+                onSelect={(cell) => {
+                  setHeatmapCell(cell);
+                  setPage(1);
+                }}
+              />
+            )}
           </div>
         </Surface>
 
         {/* Gráfica por categoría */}
         <Surface className="panel">
           <div className="panel-h">
-            <h3>Riesgos por categoría</h3>
-            <span className="sub">Distribución por severidad</span>
+            <div>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="chart-pie" size={14} /> Riesgos por categoría
+              </h3>
+              <span className="sub">Distribución por severidad</span>
+            </div>
           </div>
           <div className="panel-b">
-            <div className="chart-box" style={{ height: 240 }}>
-              <Chart config={chartConfig} />
-            </div>
+            {catData.length === 0 ? (
+              <EmptyState
+                title="Sin riesgos abiertos"
+                description="La distribución por categoría aparecerá cuando existan riesgos registrados."
+              />
+            ) : (
+              <div className="chart-box" style={{ height: 240 }}>
+                <Chart config={chartConfig} />
+              </div>
+            )}
           </div>
         </Surface>
       </div>
@@ -314,13 +473,36 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
       {/* Tabla completa de riesgos */}
       <Surface className="panel">
         <div className="panel-h">
-          <h3>Matriz de riesgos ({filteredRisks.length})</h3>
-          <div className="row-flex">
+          <div>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="list-check" size={14} /> Matriz de riesgos
+              <span className="badge b-na">{filteredRisks.length}</span>
+            </h3>
+            <span className="sub">Registro completo con nivel calculado (P × I)</span>
+          </div>
+        </div>
+
+        <div className="filters">
+          <div className="gsearch" style={{ minWidth: 240 }}>
+            <Icon name="search" />
+            <Input
+              aria-label="Buscar riesgos por descripción, categoría o contrato"
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Buscar por descripción, categoría o contrato..."
+            />
+          </div>
+          <Field className="f">
+            <label>Categoría</label>
             <Select
-              className="inp"
-              style={{ width: 'auto', padding: '4px 8px', fontSize: '12px' }}
               value={filterCat}
-              onChange={(e) => setFilterCat(e.target.value)}
+              onChange={(e) => {
+                setFilterCat(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">Todas las categorías</option>
               {categories.map((c) => (
@@ -329,18 +511,44 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                 </option>
               ))}
             </Select>
+          </Field>
+          <Field className="f">
+            <label>Estado</label>
             <Select
-              className="inp"
-              style={{ width: 'auto', padding: '4px 8px', fontSize: '12px' }}
               value={filterEstado}
-              onChange={(e) => setFilterEstado(e.target.value)}
+              onChange={(e) => {
+                setFilterEstado(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">Todos los estados</option>
               <option value="Abierto">Abierto</option>
               <option value="Mitigado">Mitigado</option>
               <option value="Cerrado">Cerrado</option>
             </Select>
-          </div>
+          </Field>
+          <Field className="f">
+            <label>Severidad</label>
+            <Select
+              value={filterSev}
+              onChange={(e) => {
+                setFilterSev(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">Todos los niveles</option>
+              <option value="Bajo">Bajo</option>
+              <option value="Moderado">Moderado</option>
+              <option value="Alto">Alto</option>
+              <option value="Extremo">Extremo</option>
+              <option value="Sin mitigación">Sin mitigación</option>
+            </Select>
+          </Field>
+          {hasFilters && (
+            <Button className="btn sm ghost" onClick={clearFilters} style={{ alignSelf: 'flex-end', height: 38 }}>
+              <Icon name="trash" /> Limpiar filtros
+            </Button>
+          )}
         </div>
 
         <TableViewport className="tbl-wrap">
@@ -361,88 +569,133 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
               </tr>
             </thead>
             <tbody>
-              {filteredRisks.length === 0 ? (
-                <tr>
-                  <td colSpan={11} className="empty">
-                    No se encontraron riesgos con los filtros actuales.
-                  </td>
-                </tr>
-              ) : (
-                filteredRisks.map((r) => {
-                  const c = Store.get('contracts', r.contractId);
-                  const level = riskLevel(r);
-                  const levelColor =
-                    level === 'Extremo'
-                      ? 'var(--crit)'
-                      : level === 'Alto'
-                      ? 'var(--risk)'
-                      : level === 'Moderado'
-                      ? 'var(--warn)'
-                      : 'var(--ok)';
-                  return (
-                    <tr key={r.id}>
-                      <td className="strong">{r.id}</td>
-                      <td>
-                        {c ? (
-                          <span
-                            className="link"
-                            style={{ cursor: 'pointer', color: 'var(--brand-2)', fontWeight: 600 }}
-                            onClick={() => onSelectContract?.(c.id, 'riesgos')}
-                          >
-                            {c.numero}
-                          </span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td>
-                        <span className="badge b-info">{r.categoria}</span>
-                      </td>
-                      <td style={{ maxWidth: 260 }}>{r.descripcion}</td>
-                      <td className="num">{r.probabilidad}</td>
-                      <td className="num">{r.impacto}</td>
-                      <td>
-                        <span
-                          className="badge"
-                          style={{
-                            backgroundColor: levelColor,
-                            color: '#fff',
-                            fontWeight: 600
-                          }}
+              {pagedRisks.map((r, idx) => {
+                const c = Store.get('contracts', r.contractId);
+                const level = riskLevel(r);
+                const score = riskScore(r);
+                return (
+                  <tr
+                    key={r.id}
+                    className="anim-fade-rise"
+                    style={{ animationDelay: `${Math.min(idx, 12) * 25}ms`, transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
+                    onMouseEnter={rowLift}
+                    onMouseLeave={rowReset}
+                  >
+                    <td className="strong mono">{r.id}</td>
+                    <td>
+                      {c ? (
+                        <Link
+                          className="link mono"
+                          href={contractHref(c.id, 'riesgos')}
+                          title="Ver expediente digital"
+                          style={{ fontWeight: 700, whiteSpace: 'nowrap' }}
                         >
-                          {level} ({riskScore(r) ?? 'Sin evaluar'})
-                        </span>
-                      </td>
-                      <td style={{ maxWidth: 200 }} className="clip">
-                        {r.mitigacion || <span className="muted">Sin mitigación</span>}
-                      </td>
-                      <td>{r.responsable || '—'}</td>
-                      <td>
-                        <Badge state={r.estado} />
-                      </td>
-                      <td className="acts">
+                          {c.numero}
+                        </Link>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td>
+                      <span className="badge b-info">{r.categoria}</span>
+                    </td>
+                    <td style={{ maxWidth: 260 }}>{r.descripcion}</td>
+                    <td className="num">{r.probabilidad}</td>
+                    <td className="num">{r.impacto}</td>
+                    <td>
+                      <span className={`badge ${nivelBadge[level] || 'b-na'}`} style={badgePop}>
+                        {level} ({score ?? 'Sin evaluar'})
+                      </span>
+                    </td>
+                    <td style={{ maxWidth: 200 }} className="clip">
+                      {r.mitigacion || <span className="muted">Sin mitigación</span>}
+                    </td>
+                    <td>{r.responsable || '—'}</td>
+                    <td>
+                      <Badge state={r.estado} style={badgePop} />
+                    </td>
+                    <td className="acts">
+                      <Button
+                        className="icon-btn"
+                        title="Editar riesgo"
+                        aria-label={`Editar riesgo ${r.id}`}
+                        onClick={() => openEditModal(r)}
+                      >
+                        <Icon name="edit" />
+                      </Button>
+                      {r.estado !== 'Cerrado' && (
                         <Button
                           className="icon-btn"
-                          title="Editar riesgo"
-                          onClick={() => openEditModal(r)}
+                          title="Cerrar / Anular riesgo"
+                          aria-label={`Cerrar riesgo ${r.id}`}
+                          onClick={() => handleAnular(r)}
                         >
-                          <Icon name="edit" />
+                          <Icon name="xmark" />
                         </Button>
-                        {r.estado !== 'Cerrado' && (
-                          <Button
-                            className="icon-btn"
-                            title="Cerrar / Anular riesgo"
-                            onClick={() => handleAnular(r)}
-                          >
-                            <Icon name="x" />
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {filteredRisks.length === 0 && (
+                <tr>
+                  <td colSpan={11}>
+                    <EmptyState
+                      title="No se encontraron riesgos"
+                      description="Ajusta los filtros, la severidad o la celda seleccionada en el mapa de calor."
+                      action={
+                        hasFilters ? (
+                          <Button className="btn sm" onClick={clearFilters} style={{ marginTop: 8 }}>
+                            Limpiar filtros
                           </Button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
+                        ) : (
+                          <Button className="btn sm pri" onClick={openNewModal} style={{ marginTop: 8 }}>
+                            <Icon name="plus" /> Registrar riesgo
+                          </Button>
+                        )
+                      }
+                    />
+                  </td>
+                </tr>
               )}
             </tbody>
+
+            {filteredRisks.length > 0 && (
+              <tfoot>
+                <tr>
+                  <td colSpan={11}>
+                    <div className="tbl-foot">
+                      <span>
+                        Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredRisks.length)} de{' '}
+                        <b>{filteredRisks.length}</b> riesgos
+                      </span>
+                      <div className="pager">
+                        <Button
+                          disabled={currentPage <= 1}
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          aria-label="Página anterior"
+                        >
+                          &lt;
+                        </Button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                          <Button key={p} className={p === currentPage ? 'on' : ''} onClick={() => setPage(p)}>
+                            {p}
+                          </Button>
+                        ))}
+                        <Button
+                          disabled={currentPage >= totalPages}
+                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                          aria-label="Página siguiente"
+                        >
+                          &gt;
+                        </Button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </DataTable>
         </TableViewport>
       </Surface>
@@ -463,7 +716,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
             </>
           }
         >
-          <FormGrid className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <FormGrid className="form-grid" style={{ gap: 12 }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Contrato *</label>
               <Select

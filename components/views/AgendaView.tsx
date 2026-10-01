@@ -3,7 +3,7 @@ import { contractHref } from '../app/routes';
 import Link from 'next/link';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, TableViewport, DataTable } from '../ui/Workspace';
-import { useState } from 'react';
+import { useRef } from 'react';
 import type { Contract } from '../../lib/types';
 import { Store } from '../../lib/store';
 import { M, activeContracts, companyName } from '../../lib/metrics';
@@ -85,25 +85,45 @@ export const AgendaView = ({
     exportRows('Agenda Contractual', cols, allRows, format);
   };
 
+  const exportDdRef = useRef<HTMLDetailsElement>(null);
+
+  const runExport = (format: 'xlsx' | 'pdf' | 'csv') => {
+    handleExport(format);
+    // Cierra el desplegable tras elegir formato (no-op en escritorio)
+    exportDdRef.current?.removeAttribute('open');
+  };
+
   return (
     <div>
+      {/* Conmutación botones directos (≥1024px) ↔ desplegable Exportar (<1024px).
+          Reglas locales: el hero recorta con overflow:clip cualquier menú absoluto,
+          por eso el desplegable se expande en flujo y no se usa .action-disclosure-content. */}
+      <style>
+        {`
+          @media (min-width: 1024px) { .agx-dd { display: none !important; } }
+          @media (max-width: 1023.98px) { .agx-inline { display: none !important; } }
+          .agx-chev { transition: transform var(--t-fast, 160ms) var(--ease, ease); }
+          .agx-dd[open] .agx-chev { transform: rotate(180deg); }
+        `}
+      </style>
       {/* Page Header */}
       <PageHeader variant="hero" className="page-h">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--r, 12px)',
                 display: 'inline-grid',
                 placeItems: 'center',
                 background: 'rgba(255, 255, 255, 0.16)',
-                backdropFilter: 'blur(6px)',
+                color: 'var(--surface)',
+                backdropFilter: 'blur(8px)',
                 flexShrink: 0
               }}
             >
-              <Icon name="calendar-days" size={22} style={{ color: 'var(--color-primary-foreground, white)' }} />
+              <Icon name="calendar-days" size={24} style={{ color: 'var(--color-primary-foreground, white)' }} />
             </span>
             <div>
               <h1 style={{ margin: 0 }}>Agenda contractual</h1>
@@ -115,15 +135,52 @@ export const AgendaView = ({
           </div>
         </div>
         <div className="ph-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
-            <Icon name="file-excel" /> Excel
-          </Button>
-          <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
-            <Icon name="file-pdf" /> PDF
-          </Button>
-          <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
-            <Icon name="file-csv" /> CSV
-          </Button>
+          {/* ≥1024px: accesos directos, como en el resto del sistema */}
+          <div className="agx-inline" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+              <Icon name="file-excel" /> Excel
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+              <Icon name="file-pdf" /> PDF
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+              <Icon name="file-csv" /> CSV
+            </Button>
+          </div>
+          {/* <1024px: un solo botón desplegable; se expande en flujo dentro del hero */}
+          <details ref={exportDdRef} className="agx-dd">
+            <summary
+              className="btn sm"
+              title="Exportar agenda"
+              aria-label="Exportar agenda"
+              style={{ listStyle: 'none' }}
+            >
+              <Icon name="download" /> Exportar <Icon name="chevron-down" size={14} className="agx-chev" />
+            </summary>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                flexWrap: 'wrap',
+                marginTop: 8,
+                padding: 8,
+                border: '1px solid rgba(255, 255, 255, 0.28)',
+                borderRadius: 'var(--r, 12px)',
+                background: 'rgba(255, 255, 255, 0.08)'
+              }}
+            >
+              <Button className="btn sm" onClick={() => runExport('xlsx')} title="Exportar a Excel">
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm" onClick={() => runExport('pdf')} title="Exportar a PDF">
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm" onClick={() => runExport('csv')} title="Exportar a CSV">
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </div>
+          </details>
         </div>
       </PageHeader>
 

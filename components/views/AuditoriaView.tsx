@@ -1,13 +1,16 @@
 'use client';
 import { Select, Input } from '../ui/Controls';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, MetricCard, Field, TableViewport, DataTable } from '../ui/Workspace';
+import { PageHeader, Surface, Field, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
+import { Kpi } from '../ui/Kpi';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Store, AuthService, Audit } from '@/lib/store';
 import { fdate, todayIso } from '@/lib/format';
 import { exportRows } from '@/lib/export';
 import { Icon } from '../icons';
+import { contractHref } from '../app/routes';
 import type { AuditEntry, Contract } from '@/lib/types';
 
 interface AuditoriaViewProps {
@@ -15,8 +18,42 @@ interface AuditoriaViewProps {
   onOpenUserSwitcher?: () => void;
 }
 
+/* ---------- Presentación local (2ª pasada): hover lift en filas y badges pill con pop ---------- */
+const rowLift = (e: React.MouseEvent<HTMLTableRowElement>) => {
+  const el = e.currentTarget;
+  el.style.animation = 'none'; // libera el transform final del fadeRise para permitir el lift
+  el.style.transform = 'translateY(-2px)';
+  el.style.boxShadow = 'var(--shadow-2)';
+  el.style.position = 'relative';
+  el.style.zIndex = '2';
+};
+const rowReset = (e: React.MouseEvent<HTMLTableRowElement>) => {
+  const el = e.currentTarget;
+  el.style.transform = 'none';
+  el.style.boxShadow = 'none';
+  el.style.zIndex = 'auto';
+};
+const badgePop = { animation: 'pop 250ms var(--ease)' } as const;
+const countPill = {
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase' as const,
+  padding: '2px 8px',
+  borderRadius: 'var(--r-pill)',
+  background: 'rgba(255, 255, 255, 0.18)',
+  color: 'var(--surface)',
+  whiteSpace: 'nowrap' as const
+};
+
+// Semáforo institucional por tipo de acción -> clase de badge con tokens AA
+const accionBadge = (act?: string) =>
+  act === 'Anulación' ? 'b-crit' : act === 'Creación' ? 'b-ok' : act === 'Modificación' ? 'b-info' : 'b-na';
+
 export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, onOpenUserSwitcher }) => {
   const [modo, setModo] = useState<'tabla' | 'timeline'>('tabla');
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
   const [filterUser, setFilterUser] = useState('');
   const [filterContract, setFilterContract] = useState('');
   const [filterDesde, setFilterDesde] = useState('');
@@ -30,29 +67,27 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
 
   if (!canAudit) {
     return (
-      <div className="view-content">
-        <PageHeader className="page-h">
+      <div className="anim-fade-rise">
+        <PageHeader className="ph">
           <div>
             <h1>Auditoría</h1>
             <p className="sub">Bitácora automática de todos los cambios.</p>
           </div>
         </PageHeader>
         <Surface className="panel">
-          <div className="empty-state" style={{ padding: '48px 16px', textAlign: 'center' }}>
-            <div style={{ fontSize: '36px', color: 'var(--crit)', marginBottom: '12px' }}>
+          <div className="empty-state" style={{ padding: '48px 16px' }}>
+            <span className="empty-state-icon" style={{ background: 'var(--crit-bg)', color: 'var(--crit-text)' }}>
               <Icon name="lock" />
-            </div>
-            <h3>Acceso restringido</h3>
-            <p className="muted" style={{ maxWidth: 460, margin: '8px auto' }}>
+            </span>
+            <strong>Acceso restringido</strong>
+            <p style={{ maxWidth: 460 }}>
               Tu rol ({curUser ? curUser.rol : 'Sin rol'}) no tiene permiso de auditoría. Cambia a un
               usuario ADMINISTRADOR o AUDITOR desde el menú superior.
             </p>
             {onOpenUserSwitcher && (
-              <div style={{ marginTop: '16px' }}>
-                <Button className="btn sm pri" onClick={onOpenUserSwitcher}>
-                  Cambiar usuario
-                </Button>
-              </div>
+              <Button className="btn sm pri" onClick={onOpenUserSwitcher} style={{ marginTop: 8 }}>
+                Cambiar usuario
+              </Button>
             )}
           </div>
         </Surface>
@@ -94,6 +129,26 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
     })
     .reverse(); // Más recientes primero
 
+  // Paginación real de la vista tabla
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const hasFilters = Boolean(
+    filterUser || filterContract || filterDesde || filterHasta || filterAccion || filterModulo || filterCampo
+  );
+
+  const clearFilters = () => {
+    setFilterUser('');
+    setFilterContract('');
+    setFilterDesde('');
+    setFilterHasta('');
+    setFilterAccion('');
+    setFilterModulo('');
+    setFilterCampo('');
+    setPage(1);
+  };
+
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv' | 'print') => {
     const cols = [
       { l: 'Fecha', x: (a: AuditEntry) => `${fdate(a.fecha)} ${a.hora}` },
@@ -126,79 +181,152 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
   const sortedDates = Object.keys(timelineGroups).sort().reverse();
 
   return (
-    <div className="view-content">
-      {/* Header */}
-      <PageHeader className="page-h">
+    <div className="anim-fade-rise">
+      {/* Banner de cabecera con gradiente de marca institucional */}
+      <PageHeader variant="hero" className="ph">
         <div>
-          <h1>Auditoría contractual</h1>
-          <p className="sub">Bitácora automática e inmutable de todas las acciones. No puede editarse desde la interfaz.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.16)',
+                color: 'var(--surface)',
+                display: 'grid',
+                placeItems: 'center',
+                backdropFilter: 'blur(8px)',
+                flexShrink: 0
+              }}
+            >
+              <Icon name="fingerprint" size={24} />
+            </span>
+            <div>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+                Auditoría contractual
+                <span style={countPill}>{filteredRows.length} registros</span>
+              </h1>
+              <p style={{ margin: '4px 0 0' }}>
+                Bitácora automática e inmutable de todas las acciones · Registro append-only, no editable desde la
+                interfaz
+              </p>
+            </div>
+          </div>
+
+          {/* Conmutador de vista: tabla detallada o línea de tiempo */}
+          <div className="row-flex" style={{ marginTop: 16 }}>
+            <Button
+              className={`btn sm ${modo === 'tabla' ? 'pri' : 'ghost'}`}
+              onClick={() => setModo('tabla')}
+              aria-pressed={modo === 'tabla'}
+            >
+              <Icon name="list-check" /> Tabla
+            </Button>
+            <Button
+              className={`btn sm ${modo === 'timeline' ? 'pri' : 'ghost'}`}
+              onClick={() => setModo('timeline')}
+              aria-pressed={modo === 'timeline'}
+            >
+              <Icon name="clock" /> Timeline
+            </Button>
+          </div>
         </div>
-        <div className="row-flex">
-          <Button className="btn sm xs" onClick={() => handleExport('xlsx')}>
-            <Icon name="file-spreadsheet" /> Excel
+
+        <div className="ph-actions">
+          <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+            <Icon name="file-excel" /> Excel
           </Button>
-          <Button className="btn sm xs" onClick={() => handleExport('pdf')}>
-            <Icon name="file-text" /> PDF
+          <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+            <Icon name="file-pdf" /> PDF
           </Button>
-          <Button className="btn sm xs" onClick={() => handleExport('csv')}>
-            <Icon name="file-text" /> CSV
+          <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+            <Icon name="file-csv" /> CSV
           </Button>
-          <Button className="btn sm xs" onClick={() => handleExport('print')}>
-            <Icon name="printer" /> Imprimir
+          <Button className="btn sm" onClick={() => handleExport('print')} title="Imprimir bitácora">
+            <Icon name="print" /> Imprimir
           </Button>
         </div>
       </PageHeader>
 
-      {/* KPIs */}
+      {/* KPIs canónicos con entrada escalonada */}
       <div className="kpis mb">
-        <MetricCard className="kpi-card">
-          <div className="kpi-t">Registros totales</div>
-          <div className="kpi-v">{totalAudit}</div>
-          <div className="kpi-s">Histórico inmutable</div>
-        </MetricCard>
-        <MetricCard className="kpi-card">
-          <div className="kpi-t">Registros de hoy</div>
-          <div className="kpi-v" style={{ color: 'var(--brand-2)' }}>
-            {todayCount}
-          </div>
-          <div className="kpi-s">{fdate(todayIso())}</div>
-        </MetricCard>
-        <MetricCard className="kpi-card">
-          <div className="kpi-t">Usuarios con actividad</div>
-          <div className="kpi-v">{usersWithActivity}</div>
-          <div className="kpi-s">En el registro</div>
-        </MetricCard>
-        <MetricCard className="kpi-card">
-          <div className="kpi-t">Modificaciones</div>
-          <div className="kpi-v">{modifCount}</div>
-          <div className="kpi-s">Cambios de campo</div>
-        </MetricCard>
-        <MetricCard className="kpi-card">
-          <div className="kpi-t">Anulaciones</div>
-          <div className="kpi-v" style={{ color: 'var(--crit)' }}>
-            {anulaCount}
-          </div>
-          <div className="kpi-s">Registros anulados</div>
-        </MetricCard>
+        <Kpi
+          label="Registros totales"
+          value={totalAudit}
+          sub="Histórico inmutable"
+          icon="list-check"
+          color="na"
+          className="anim-fade-rise stagger-1"
+        />
+        <Kpi
+          label="Registros de hoy"
+          value={todayCount}
+          sub={fdate(todayIso())}
+          icon="clock"
+          color="info"
+          className="anim-fade-rise stagger-2"
+        />
+        <Kpi
+          label="Usuarios con actividad"
+          value={usersWithActivity}
+          sub="En el registro"
+          icon="user"
+          color="na"
+          className="anim-fade-rise stagger-3"
+        />
+        <Kpi
+          label="Modificaciones"
+          value={modifCount}
+          sub="Cambios de campo"
+          icon="edit"
+          color="info"
+          className="anim-fade-rise stagger-4"
+        />
+        <Kpi
+          label="Anulaciones"
+          value={anulaCount}
+          sub="Registros anulados"
+          icon="xmark"
+          color={anulaCount > 0 ? 'crit' : 'ok'}
+          className="anim-fade-rise stagger-5"
+        />
       </div>
 
       {/* Panel principal con filtros y tabla/timeline */}
       <Surface className="panel">
-        <div className="readonly-note" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', backgroundColor: 'var(--bg-soft, #f7f9fa)', borderBottom: '1px solid var(--border)', fontSize: '12px' }}>
-          <Icon name="lock" />
+        <div
+          className="readonly-note"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 16px',
+            backgroundColor: 'var(--surface-2)',
+            borderBottom: '1px solid var(--line)',
+            fontSize: '12px',
+            color: 'var(--muted)'
+          }}
+        >
+          <span style={{ color: 'var(--brand-2)', display: 'inline-flex', flexShrink: 0 }}>
+            <Icon name="lock" />
+          </span>
           <span>
-            <b>Registro append-only:</b> cada entrada queda congelada al crearse (Object.freeze). IP de sesión simulada.
+            <b style={{ color: 'var(--ink-2)' }}>Registro append-only:</b> cada entrada queda congelada al crearse
+            (Object.freeze). IP de sesión simulada.
           </span>
         </div>
 
         {/* Barra de Filtros */}
-        <div className="filters" style={{ padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', borderBottom: '1px solid var(--border)' }}>
+        <div className="filters">
           <Field className="f" style={{ minWidth: 140 }}>
-            <label className="small muted">Usuario</label>
+            <label>Usuario</label>
             <Select
               className="inp"
               value={filterUser}
-              onChange={(e) => setFilterUser(e.target.value)}
+              onChange={(e) => {
+                setFilterUser(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">Todos los usuarios</option>
               {uniqueUsers.map((u) => (
@@ -209,12 +337,15 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
             </Select>
           </Field>
 
-          <Field className="f" style={{ minWidth: 180 }}>
-            <label className="small muted">Contrato</label>
+          <Field className="f" style={{ minWidth: 160 }}>
+            <label>Contrato</label>
             <Select
               className="inp"
               value={filterContract}
-              onChange={(e) => setFilterContract(e.target.value)}
+              onChange={(e) => {
+                setFilterContract(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">Todos los contratos</option>
               {contracts.map((c) => (
@@ -226,31 +357,40 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
           </Field>
 
           <Field className="f" style={{ width: 130 }}>
-            <label className="small muted">Desde</label>
+            <label>Desde</label>
             <Input
               type="date"
               className="inp"
               value={filterDesde}
-              onChange={(e) => setFilterDesde(e.target.value)}
+              onChange={(e) => {
+                setFilterDesde(e.target.value);
+                setPage(1);
+              }}
             />
           </Field>
 
           <Field className="f" style={{ width: 130 }}>
-            <label className="small muted">Hasta</label>
+            <label>Hasta</label>
             <Input
               type="date"
               className="inp"
               value={filterHasta}
-              onChange={(e) => setFilterHasta(e.target.value)}
+              onChange={(e) => {
+                setFilterHasta(e.target.value);
+                setPage(1);
+              }}
             />
           </Field>
 
           <Field className="f" style={{ width: 140 }}>
-            <label className="small muted">Acción</label>
+            <label>Acción</label>
             <Select
               className="inp"
               value={filterAccion}
-              onChange={(e) => setFilterAccion(e.target.value)}
+              onChange={(e) => {
+                setFilterAccion(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">Todas las acciones</option>
               {uniqueAcciones.map((a) => (
@@ -262,11 +402,14 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
           </Field>
 
           <Field className="f" style={{ width: 140 }}>
-            <label className="small muted">Módulo</label>
+            <label>Módulo</label>
             <Select
               className="inp"
               value={filterModulo}
-              onChange={(e) => setFilterModulo(e.target.value)}
+              onChange={(e) => {
+                setFilterModulo(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">Todos los módulos</option>
               {uniqueModulos.map((m) => (
@@ -278,34 +421,26 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
           </Field>
 
           <Field className="f" style={{ width: 150 }}>
-            <label className="small muted">Campo</label>
+            <label>Campo</label>
             <Input
               className="inp"
               placeholder="Ej.: fecha, valor"
               value={filterCampo}
-              onChange={(e) => setFilterCampo(e.target.value)}
+              onChange={(e) => {
+                setFilterCampo(e.target.value);
+                setPage(1);
+              }}
             />
           </Field>
 
-          <span className="sp" style={{ flex: 1 }} />
-
-          <div className="row-flex" style={{ gap: 4 }}>
-            <Button
-              className={`btn sm ${modo === 'tabla' ? 'pri' : ''}`}
-              onClick={() => setModo('tabla')}
-            >
-              <Icon name="table" /> Tabla
+          {hasFilters && (
+            <Button className="btn sm ghost" onClick={clearFilters} style={{ alignSelf: 'flex-end', height: 38 }}>
+              <Icon name="trash" /> Limpiar filtros
             </Button>
-            <Button
-              className={`btn sm ${modo === 'timeline' ? 'pri' : ''}`}
-              onClick={() => setModo('timeline')}
-            >
-              <Icon name="clock" /> Timeline
-            </Button>
-          </div>
+          )}
         </div>
 
-        {/* Vista Tabla o Timeline */}
+        {/* Vista Tabla */}
         {modo === 'tabla' ? (
           <TableViewport className="tbl-wrap">
             <DataTable className="tbl">
@@ -324,87 +459,136 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.length === 0 ? (
+                {pagedRows.map((a, idx) => {
+                  const c = a.contractId ? Store.get('contracts', a.contractId) : null;
+                  const act = a.accion || (a as any).action;
+                  const mod = a.modulo || (a as any).module;
+                  const field = a.campo || (a as any).field;
+                  return (
+                    <tr
+                      key={a.id}
+                      className="anim-fade-rise"
+                      style={{ animationDelay: `${Math.min(idx, 12) * 25}ms`, transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
+                      onMouseEnter={rowLift}
+                      onMouseLeave={rowReset}
+                    >
+                      <td style={{ whiteSpace: 'nowrap' }} className="small mono">
+                        {fdate(a.fecha)} {a.hora}
+                      </td>
+                      <td className="strong">{a.usuario}</td>
+                      <td>
+                        <span className="badge b-info">{a.rol}</span>
+                      </td>
+                      <td>{mod}</td>
+                      <td>
+                        <span className={`badge ${accionBadge(act)}`} style={badgePop}>
+                          {act}
+                        </span>
+                      </td>
+                      <td>
+                        {c ? (
+                          <Link
+                            className="link mono"
+                            href={contractHref(c.id, 'auditoria')}
+                            title="Ver expediente digital"
+                            style={{ fontWeight: 700, whiteSpace: 'nowrap' }}
+                          >
+                            {c.numero}
+                          </Link>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="strong">{field || '—'}</td>
+                      <td style={{ maxWidth: 160 }} className="clip small muted">
+                        {a.anterior || '—'}
+                      </td>
+                      <td style={{ maxWidth: 160 }} className="clip small strong">
+                        {a.nuevo || '—'}
+                      </td>
+                      <td style={{ maxWidth: 200 }} className="clip small">
+                        {a.obs || '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {filteredRows.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="empty">
-                      No se encontraron registros de auditoría con los filtros seleccionados.
+                    <td colSpan={10}>
+                      <EmptyState
+                        title="No se encontraron registros de auditoría"
+                        description="La bitácora registra automáticamente cada cambio; ajusta los filtros para acotar la búsqueda."
+                        action={
+                          hasFilters ? (
+                            <Button className="btn sm" onClick={clearFilters} style={{ marginTop: 8 }}>
+                              Limpiar filtros
+                            </Button>
+                          ) : undefined
+                        }
+                      />
                     </td>
                   </tr>
-                ) : (
-                  filteredRows.map((a) => {
-                    const c = a.contractId ? Store.get('contracts', a.contractId) : null;
-                    const act = a.accion || (a as any).action;
-                    const mod = a.modulo || (a as any).module;
-                    const field = a.campo || (a as any).field;
-                    return (
-                      <tr key={a.id}>
-                        <td style={{ whiteSpace: 'nowrap' }} className="small">
-                          {fdate(a.fecha)} {a.hora}
-                        </td>
-                        <td className="strong">{a.usuario}</td>
-                        <td>
-                          <span className="badge b-info">{a.rol}</span>
-                        </td>
-                        <td>{mod}</td>
-                        <td>
-                          <span
-                            className="badge"
-                            style={{
-                              backgroundColor:
-                                act === 'Anulación'
-                                  ? 'var(--crit)'
-                                  : act === 'Creación'
-                                  ? 'var(--ok)'
-                                  : act === 'Modificación'
-                                  ? 'var(--info)'
-                                  : 'var(--na)',
-                              color: '#fff'
-                            }}
-                          >
-                            {act}
-                          </span>
-                        </td>
-                        <td>
-                          {c ? (
-                            <span
-                              className="link"
-                              style={{ cursor: 'pointer', color: 'var(--brand-2)', fontWeight: 600 }}
-                              onClick={() => onSelectContract?.(c.id, 'auditoria')}
-                            >
-                              {c.numero}
-                            </span>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
-                        <td className="strong">{field || '—'}</td>
-                        <td style={{ maxWidth: 160 }} className="clip small muted">
-                          {a.anterior || '—'}
-                        </td>
-                        <td style={{ maxWidth: 160 }} className="clip small strong">
-                          {a.nuevo || '—'}
-                        </td>
-                        <td style={{ maxWidth: 200 }} className="clip small">
-                          {a.obs || '—'}
-                        </td>
-                      </tr>
-                    );
-                  })
                 )}
               </tbody>
+
+              {filteredRows.length > 0 && (
+                <tfoot>
+                  <tr>
+                    <td colSpan={10}>
+                      <div className="tbl-foot">
+                        <span>
+                          Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredRows.length)} de{' '}
+                          <b>{filteredRows.length}</b> registros
+                        </span>
+                        <div className="pager">
+                          <Button
+                            disabled={currentPage <= 1}
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            aria-label="Página anterior"
+                          >
+                            &lt;
+                          </Button>
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                            <Button key={p} className={p === currentPage ? 'on' : ''} onClick={() => setPage(p)}>
+                              {p}
+                            </Button>
+                          ))}
+                          <Button
+                            disabled={currentPage >= totalPages}
+                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                            aria-label="Página siguiente"
+                          >
+                            &gt;
+                          </Button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
             </DataTable>
           </TableViewport>
         ) : (
+          /* Vista Timeline */
           <div className="panel-b" style={{ padding: '16px' }}>
             {filteredRows.length === 0 ? (
-              <div className="empty-state" style={{ padding: '32px 16px', textAlign: 'center' }}>
-                <p className="muted">Sin registros para estos filtros.</p>
-              </div>
+              <EmptyState
+                title="Sin registros para estos filtros"
+                description="La línea de tiempo agrupa la bitácora por fecha, del evento más reciente al más antiguo."
+                action={
+                  hasFilters ? (
+                    <Button className="btn sm" onClick={clearFilters} style={{ marginTop: 8 }}>
+                      Limpiar filtros
+                    </Button>
+                  ) : undefined
+                }
+              />
             ) : (
               <div>
                 {sortedDates.map((d) => (
                   <div key={d} style={{ marginBottom: '20px' }}>
-                    <h4 style={{ fontSize: '13px', color: 'var(--muted)', margin: '6px 0 10px', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>
+                    <h4 style={{ fontSize: '13px', color: 'var(--muted)', margin: '6px 0 10px', borderBottom: '1px solid var(--line)', paddingBottom: '4px' }}>
                       {fdate(d)}
                     </h4>
                     <div className="tl">
@@ -419,31 +603,36 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
                             : act === 'Modificación'
                             ? 'var(--info)'
                             : 'var(--na)';
-                        return (
-                          <div
-                            key={a.id}
-                            className="tl-i"
-                            style={{
-                              borderLeft: `3px solid ${cc}`,
-                              paddingLeft: '12px',
-                              marginBottom: '12px',
-                              cursor: a.contractId ? 'pointer' : 'default'
-                            }}
-                            onClick={() => {
-                              if (a.contractId) onSelectContract?.(a.contractId, 'auditoria');
-                            }}
-                          >
-                            <div className="tl-d" style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                        // Contenido compartido entre el ítem enlazable y el ítem informativo
+                        const body = (
+                          <>
+                            <div className="tl-d">
                               {fdate(a.fecha)} {a.hora} — <b>{a.rol}</b> · {mod}
                             </div>
-                            <div className="tl-x" style={{ fontSize: '13px', marginTop: 2 }}>
+                            <div className="tl-x tl-t" style={{ marginTop: 2 }}>
                               {Audit.sentence(a)}
                             </div>
                             {a.obs && (
-                              <div className="tl-d" style={{ fontSize: '11.5px', color: 'var(--muted)', marginTop: 2 }}>
+                              <div className="tl-d" style={{ marginTop: 2 }}>
                                 Observación: «{a.obs}»
                               </div>
                             )}
+                          </>
+                        );
+                        const tlc = { '--tlc': cc } as React.CSSProperties;
+                        return a.contractId ? (
+                          <Link
+                            key={a.id}
+                            className="tl-i"
+                            href={contractHref(a.contractId, 'auditoria')}
+                            title="Ver expediente digital"
+                            style={tlc}
+                          >
+                            {body}
+                          </Link>
+                        ) : (
+                          <div key={a.id} className="tl-i" style={{ ...tlc, cursor: 'default' }}>
+                            {body}
                           </div>
                         );
                       })}

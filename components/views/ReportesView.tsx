@@ -146,7 +146,7 @@ export const ReportesView: React.FC = () => {
     {
       k: 'r_estado',
       t: 'Contratos por estado',
-      ic: 'traffic-light',
+      ic: 'chart-pie',
       d: 'Distribución del portafolio por estado efectivo.',
       b: () => groupReport((c) => M(c).estado, 'Estado')
     },
@@ -230,7 +230,7 @@ export const ReportesView: React.FC = () => {
     {
       k: 'r_pagos',
       t: 'Pagos',
-      ic: 'credit-card',
+      ic: 'chart-line',
       d: 'Pagos con factura, bruto, IVA, retenciones, neto y estado.',
       b: () => ({
         cols: [
@@ -313,7 +313,7 @@ export const ReportesView: React.FC = () => {
     {
       k: 'r_rg',
       t: 'Riesgos',
-      ic: 'shield-alert',
+      ic: 'scale-balanced',
       d: 'Matriz de riesgos con nivel P × I y tratamiento.',
       b: () => ({
         cols: [
@@ -522,20 +522,53 @@ export const ReportesView: React.FC = () => {
     {
       k: 'r_sup',
       t: 'Contratos por supervisor',
-      ic: 'user-check',
+      ic: 'eye',
       d: 'Carga y estado por supervisor.',
       b: () => groupReport((c) => c.supervisor || 'Sin supervisor', 'Supervisor')
     }
   ];
 
+  // Exportación real del índice de la biblioteca: cada reporte con su descripción.
+  const handleExportCatalog = (format: 'xlsx' | 'csv' | 'print') => {
+    try {
+      exportRows(
+        'Catálogo de reportes',
+        [
+          { k: 't', l: 'Reporte' },
+          { k: 'd', l: 'Descripción' },
+          { k: 'f', l: 'Formatos disponibles' }
+        ],
+        reports.map((r) => ({ t: r.t, d: r.d, f: 'Excel · PDF · CSV · Impresión' })),
+        format
+      );
+    } catch (e) {
+      console.error('Error exportando el catálogo de reportes:', e);
+      notify('No se pudo exportar el catálogo. Intenta de nuevo.');
+    }
+  };
+
   const handleExportDirect = (r: ReportDef, format: 'xlsx' | 'pdf' | 'csv' | 'print') => {
-    const data = r.b();
-    if (!data) return;
-    exportRows(r.t, data.cols, data.rows, format);
+    try {
+      const data = r.b();
+      if (!data) return;
+      exportRows(r.t, data.cols, data.rows, format);
+    } catch (e) {
+      console.error('Error generando el reporte:', e);
+      notify('No se pudo generar el reporte. Intenta de nuevo.');
+    }
   };
 
   const previewReport = previewKey ? reports.find((x) => x.k === previewKey) : null;
-  const previewData = previewReport ? previewReport.b() : null;
+  // Construcción protegida: si el builder del reporte falla, se muestra error y no un crash.
+  let previewData: { cols: ReportCol[]; rows: any[] } | null = null;
+  if (previewReport) {
+    try {
+      previewData = previewReport.b();
+    } catch (e) {
+      console.error('Error preparando la vista previa:', e);
+      previewData = null;
+    }
+  }
 
   const totalPages = previewData ? Math.ceil(previewData.rows.length / pageSize) : 1;
   const pagedRows = previewData
@@ -544,132 +577,198 @@ export const ReportesView: React.FC = () => {
 
   return (
     <div className="view-content">
-      {/* Header */}
-      <PageHeader className="page-h">
+      {/* Banner de cabecera con gradiente de marca institucional */}
+      <PageHeader variant="hero" className="ph">
         <div>
-          <h1>Reportes</h1>
-          <p className="sub">{reports.length} reportes exportables a Excel, PDF o impresión. Los datos se calculan al momento de generar.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span
+              aria-hidden="true"
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.16)',
+                color: 'var(--surface)',
+                display: 'grid',
+                placeItems: 'center',
+                backdropFilter: 'blur(8px)',
+                flexShrink: 0
+              }}
+            >
+              <Icon name="file-chart" size={24} />
+            </span>
+            <div>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+                Reportes
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--r-pill)',
+                    background: 'rgba(255, 255, 255, 0.18)',
+                    color: 'var(--surface)'
+                  }}
+                >
+                  {reports.length} disponibles
+                </span>
+              </h1>
+              <p style={{ margin: '4px 0 0' }}>
+                Biblioteca de {reports.length} reportes exportables a Excel, PDF, CSV o impresión. Los datos se calculan al momento de generar.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Acciones reales del módulo alineadas a la derecha */}
+        <div className="ph-actions">
+          <Button className="btn" onClick={() => handleExportCatalog('xlsx')} title="Descargar el índice de reportes como Excel">
+            <Icon name="file-excel" /> Exportar catálogo
+          </Button>
+          <Button className="btn" onClick={() => handleExportCatalog('print')} title="Imprimir el índice de reportes">
+            <Icon name="printer" /> Imprimir índice
+          </Button>
         </div>
       </PageHeader>
 
-      <div className="filter-bar mb"><label htmlFor="report-query" className="strong">Biblioteca de reportes</label><Input id="report-query" className="inp" type="search" placeholder="Buscar por nombre o contenido…" value={query} onChange={e=>setQuery(e.target.value)} /><span className="muted small">{reports.filter(r=>(r.t+' '+r.d).toLocaleLowerCase().includes(query.toLocaleLowerCase())).length} disponibles</span></div>
+      <div className="filter-bar mb">
+        <label htmlFor="report-query" className="strong">Biblioteca de reportes</label>
+        <Input id="report-query" className="inp" type="search" placeholder="Buscar por nombre o contenido…" value={query} onChange={e=>setQuery(e.target.value)} />
+        <span className="muted small" aria-live="polite">{reports.filter(r=>(r.t+' '+r.d).toLocaleLowerCase().includes(query.toLocaleLowerCase())).length} disponibles</span>
+      </div>
       <div className="resource-list">
         {reports.filter(r=>(r.t+' '+r.d).toLocaleLowerCase().includes(query.toLocaleLowerCase())).map(r=><ResourceCard key={r.k} title={r.t} description={r.d} icon={r.ic} onOpen={()=>{setPreviewKey(r.k);setCurrentPage(1);}} actions={<>{(['xlsx','pdf','csv','print'] as const).map(format=><Button key={format} onClick={()=>handleExportDirect(r,format)}>{format==='print'?'Imprimir':format.toUpperCase()}</Button>)}</>} />)}
         {!reports.some(r=>(r.t+' '+r.d).toLocaleLowerCase().includes(query.toLocaleLowerCase())) && <EmptyState title="Ningún reporte coincide" description="Prueba otro término o limpia la búsqueda." action={<Button onClick={()=>setQuery('')}>Limpiar búsqueda</Button>} />}
       </div>
 
       {/* Modal Vista Previa */}
-      {previewReport && previewData && (
+      {previewReport && (
         <Modal
           title={previewReport.t}
           size="xl"
           onClose={() => setPreviewKey(null)}
           footer={
-            <>
-              <Button
-                className="btn sm"
-                onClick={() => handleExportDirect(previewReport, 'xlsx')}
-              >
-                <Icon name="file-spreadsheet" /> Excel
-              </Button>
-              <Button
-                className="btn sm"
-                onClick={() => handleExportDirect(previewReport, 'pdf')}
-              >
-                <Icon name="file-text" /> PDF
-              </Button>
-              <Button
-                className="btn sm"
-                onClick={() => handleExportDirect(previewReport, 'csv')}
-              >
-                <Icon name="file-text" /> CSV
-              </Button>
-              <Button
-                className="btn sm"
-                onClick={() => handleExportDirect(previewReport, 'print')}
-              >
-                <Icon name="printer" /> Imprimir
-              </Button>
-              <span className="sp" style={{ flex: 1 }} />
+            previewData ? (
+              <>
+                <Button
+                  className="btn sm"
+                  onClick={() => handleExportDirect(previewReport, 'xlsx')}
+                >
+                  <Icon name="file-spreadsheet" /> Excel
+                </Button>
+                <Button
+                  className="btn sm"
+                  onClick={() => handleExportDirect(previewReport, 'pdf')}
+                >
+                  <Icon name="file-pdf" /> PDF
+                </Button>
+                <Button
+                  className="btn sm"
+                  onClick={() => handleExportDirect(previewReport, 'csv')}
+                >
+                  <Icon name="file-csv" /> CSV
+                </Button>
+                <Button
+                  className="btn sm"
+                  onClick={() => handleExportDirect(previewReport, 'print')}
+                >
+                  <Icon name="printer" /> Imprimir
+                </Button>
+                <span className="sp" style={{ flex: 1 }} />
+                <Button className="btn pri sm" onClick={() => setPreviewKey(null)}>
+                  Cerrar
+                </Button>
+              </>
+            ) : (
               <Button className="btn pri sm" onClick={() => setPreviewKey(null)}>
                 Cerrar
               </Button>
-            </>
+            )
           }
         >
-          <div style={{ marginBottom: 12 }}>
-            <span className="small muted">
-              Total registros: <b>{previewData.rows.length}</b> · Mostrando página {currentPage} de{' '}
-              {totalPages || 1}
-            </span>
-          </div>
+          {!previewData ? (
+            <EmptyState
+              title="No se pudo preparar el reporte"
+              description="Ocurrió un error al calcular los datos del reporte. Cierra esta vista y vuelve a intentarlo."
+              action={<Button onClick={() => setPreviewKey(null)}>Cerrar vista previa</Button>}
+            />
+          ) : previewData.rows.length === 0 ? (
+            <EmptyState
+              title="Sin registros para este reporte"
+              description="Cuando existan datos del tipo que cubre este reporte, la vista previa y las exportaciones los incluirán."
+              action={<Button onClick={() => setPreviewKey(null)}>Cerrar vista previa</Button>}
+            />
+          ) : (
+            <>
+              <div style={{ marginBottom: 12 }}>
+                <span className="small muted" aria-live="polite">
+                  Total registros: <b>{previewData.rows.length}</b> · Mostrando página {currentPage} de{' '}
+                  {totalPages || 1}
+                </span>
+              </div>
 
-          <TableViewport className="tbl-wrap" style={{ maxHeight: '55vh', overflow: 'auto' }}>
-            <DataTable layout="readable">
-              <thead>
-                <tr>
-                  {previewData.cols.map((col, idx) => (
-                    <th key={idx} className={col.num ? 'num' : ''}>
-                      {col.l}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pagedRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={previewData.cols.length} className="empty">
-                      No hay registros en este reporte.
-                    </td>
-                  </tr>
-                ) : (
-                  pagedRows.map((row, rIdx) => (
-                    <tr key={rIdx}>
-                      {previewData.cols.map((col, cIdx) => {
-                        let val = '';
-                        if (col.r) {
-                          val = col.r(row);
-                        } else if (col.x) {
-                          val = col.x(row);
-                        } else if (col.k) {
-                          val = row[col.k];
-                        }
-                        return (
-                          <td key={cIdx} className={col.num ? 'num' : ''}>
-                            {val != null ? String(val) : '—'}
-                          </td>
-                        );
-                      })}
+              <TableViewport className="tbl-wrap" style={{ maxHeight: '55vh', overflow: 'auto' }}>
+                <DataTable layout="readable">
+                  <thead>
+                    <tr>
+                      {previewData.cols.map((col, idx) => (
+                        <th key={idx} className={col.num ? 'num' : ''}>
+                          {col.l}
+                        </th>
+                      ))}
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </DataTable>
-          </TableViewport>
+                  </thead>
+                  <tbody>
+                    {pagedRows.map((row, rIdx) => (
+                      <tr key={rIdx}>
+                        {previewData!.cols.map((col, cIdx) => {
+                          let val = '';
+                          if (col.r) {
+                            val = col.r(row);
+                          } else if (col.x) {
+                            val = col.x(row);
+                          } else if (col.k) {
+                            val = row[col.k];
+                          }
+                          return (
+                            <td key={cIdx} className={col.num ? 'num' : ''}>
+                              {val != null ? String(val) : '—'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </DataTable>
+              </TableViewport>
 
-          {totalPages > 1 && (
-            <div
-              className="row-flex"
-              style={{ justifyContent: 'center', marginTop: 14, gap: 10 }}
-            >
-              <Button
-                className="btn sm xs"
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage((p) => p - 1)}
-              >
-                Anterior
-              </Button>
-              <span className="small muted">
-                Página {currentPage} de {totalPages}
-              </span>
-              <Button
-                className="btn sm xs"
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => p + 1)}
-              >
-                Siguiente
-              </Button>
-            </div>
+              {totalPages > 1 && (
+                <div
+                  className="row-flex"
+                  style={{ justifyContent: 'center', marginTop: 14, gap: 10 }}
+                >
+                  <Button
+                    className="btn sm xs"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => p - 1)}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="small muted" aria-live="polite">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <Button
+                    className="btn sm xs"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </Modal>
       )}

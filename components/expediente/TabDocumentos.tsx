@@ -2,11 +2,13 @@
 import { Select, Input } from '../ui/Controls';
 import { notify, requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Field, Surface, TableViewport, DataTable, FormGrid } from '../ui/Workspace';
+import { Field, Surface, TableViewport, DataTable, FormGrid, EmptyState } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Document } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
+import { M } from '../../lib/metrics';
 import { fdate, nowStamp, uid } from '../../lib/format';
+import { CAT } from '../../lib/catalog';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
@@ -18,22 +20,9 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
   const [newDoc, setNewDoc] = useState({ nombre: '', categoria: 'Informes', archivo: '' });
 
   const docs = Store.byContract('documents', cid) as Document[];
-  const db = Store.getDB();
-  const cats = db.settings?.catalogs?.categoriasDoc || [
-    'Contrato',
-    'Estudios previos',
-    'Propuesta',
-    'Garantías',
-    'Actas',
-    'Facturas',
-    'Informes',
-    'Evidencias',
-    'Modificaciones',
-    'Prórrogas',
-    'Suspensiones',
-    'Liquidación',
-    'Otros'
-  ];
+  const cats = CAT('categoriasDoc');
+  const c = Store.get('contracts', cid);
+  const m = M(c);
 
   const filtered = docs.filter((d) => !catFilter || d.categoria === catFilter);
 
@@ -73,9 +62,10 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
 
   const handleAnular = async (docId: string, docName: string) => {
     if (!AuthService.guard('anular')) return;
-    const mot = await requestReason(`Motivo de anulación para «${docName}»:`);
+    const mot = await requestReason(`Motivo de anulación para «${docName}»:`, 'Documento duplicado en el expediente');
     if (mot) {
       Store.anular('documents', docId, mot);
+      notify(`Documento «${docName}» anulado (versiones conservadas)`);
     }
   };
 
@@ -106,6 +96,31 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
           </Select>
         </Field>
       </div>
+
+      {/* Documentos requeridos pendientes: atajo para completar el expediente */}
+      {m.docsFaltantes.length > 0 && (
+        <div className="alert-box warn mb">
+          <Icon name="triangle-exclamation" />
+          <div>
+            Faltan documentos requeridos del expediente:{' '}
+            {m.docsFaltantes.map((doc: string, i: number) => (
+              <Button
+                key={i}
+                className="btn xs ghost"
+                onClick={() => {
+                  if (!AuthService.guard('crear')) return;
+                  setNewDoc({ nombre: '', categoria: doc, archivo: '' });
+                  setShowNewModal(true);
+                }}
+                style={{ margin: '2px 2px 0', color: 'var(--warn-text)' }}
+                title={`Cargar documento de ${doc}`}
+              >
+                <Icon name="upload" /> {doc}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Surface className="panel">
         <TableViewport className="tbl-wrap">
@@ -158,9 +173,10 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                           <Button
                             className="icon-btn"
                             onClick={() => handleAnular(d.id, d.nombre)}
-                            title="Anular documento"
+                            title="Anular documento (conserva todas las versiones)"
+                            aria-label={`Anular documento ${d.nombre}`}
                           >
-                            <Icon name="trash" />
+                            <Icon name="circle-xmark" />
                           </Button>
                         )}
                       </div>
