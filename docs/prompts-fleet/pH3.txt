@@ -1,7 +1,0 @@
-[Seven Save · OLA 2.5 · Fix a11y de TU lote (Sistema)]
-
-La auditoría estática de accesibilidad (codex) halló un control sin etiqueta en TU archivo. Aplica EXACTAMENTE este fix:
-
-- A04 · components/views/ConfiguracionView.tsx:578 — "Nuevo valor de catálogo" identificado solo por placeholder: añade aria-label dinámico "Nuevo valor para [nombre del catálogo]" o label asociado.
-
-Solo ConfiguracionView.tsx (ReportesView no lo toques). Al final: npx tsc --noEmit. Sin commits. Reporta el fix aplicado.

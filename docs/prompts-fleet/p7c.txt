@@ -1,8 +1,0 @@
-[Seven Save · Verificación TS de la OLA 2.5]
-
-Trabajas en C:\Users\Luis\Documents\Nexo\Repos\gestor-contratos-front. La OLA 2.5 aplicó fixes de aria-label en 10 archivos de componentes. TAREAS (no toques components/views/AgendaView.tsx — un agente sigue trabajando ahí):
-
-1. npx tsc --noEmit — si hay errores en archivos DE OTROS agentes (distintos de AgendaView), corrígelos tú MISMO con el fix mínimo (los dueños ya terminaron; autoridad de verificación eres tú). Si el error está en AgendaView.tsx, NO lo toques: repórtalo.
-2. NO ejecutes pnpm build todavía (el dev server está corriendo y la captura final de QA lo necesita). Solo tsc.
-3. Verifica que NO queden regresiones de branding: grep -i "nexo\b" y "gestor integral" en app/ y components/ (excluye node_modules/.next/scratch) — debe dar cero coincidencias visibles.
-4. Reporta: resultado tsc, fixes aplicados (si los hubo), resultado del grep.
