@@ -108,7 +108,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
       {/* Encabezado */}
       <div className="panel-h mb-3 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h3 className="text-base font-bold text-[var(--ink)]">Gestión de incumplimientos y planes de mejoramiento</h3>
+          <h3 className="text-base font-bold text-[var(--ink)] flex items-center gap-2"><Icon name="alert-triangle" size={16} /> Gestión de incumplimientos y planes de mejoramiento</h3>
           <span className="sub text-xs text-[var(--muted)]">
             Registro formal de faltas contractuales, medidas administrativas, requerimientos y compromisos
           </span>
@@ -174,7 +174,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
       <Surface className="panel mb-4">
         <div className="panel-h flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-sm">Registro de faltas contractuales e infracciones</h3>
+            <h3 className="font-semibold text-sm flex items-center gap-2"><Icon name="alert-circle" size={15} /> Registro de faltas contractuales e infracciones</h3>
             <span className="sub text-xs text-[var(--muted)]">{totalBreaches} caso(s) registrado(s)</span>
           </div>
         </div>
@@ -290,7 +290,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
       <Surface className="panel">
         <div className="panel-h flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-sm">Planes de mejoramiento y compromisos suscritos</h3>
+            <h3 className="font-semibold text-sm flex items-center gap-2"><Icon name="list-check" size={15} /> Planes de mejoramiento y compromisos suscritos</h3>
             <span className="sub text-xs text-[var(--muted)]">{totalPlanes} plan(es) formalizado(s)</span>
           </div>
           <div className="row-flex">

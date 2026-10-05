@@ -36,6 +36,9 @@ scripts/verify-*.mjs
 scripts/inspect-*.mjs
 scripts/check-*.mjs
 
+# ——— Índice CodeGraph (cache local del agente) ———
+.codegraph/daemon.pid
+
 # ─── Editor / sistema operativo ────────────────────────────────
 .vscode/*
 !.vscode/settings.json

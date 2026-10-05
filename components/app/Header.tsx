@@ -407,28 +407,35 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Dropdown de cambio de usuario */}
         {showUserDropdown && (
-          <div className="dropdown" style={{ width: 300, right: 0 }}>
-            <div className="dd-h">
+          <div className="dropdown" style={{ width: 300, right: 0, maxHeight: 'calc(100vh - 96px)', display: 'flex', flexDirection: 'column' }}>
+            <div className="dd-h" style={{ flexShrink: 0 }}>
               <span>Cambiar usuario</span>
               <span className="badge b-info" style={{ fontSize: '9.5px' }}>
                 Simulación
               </span>
             </div>
 
-            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+            <div style={{ overflowY: 'auto', minHeight: 0 }} role="menu" aria-label="Cambiar usuario de la sesión">
               {allUsers.map((u) => {
                 const isCurrent = u.id === currentUser?.id;
                 return (
                   <div
                     key={u.id}
                     className="dd-i"
+                    role="menuitemradio"
+                    aria-checked={isCurrent}
+                    tabIndex={0}
                     style={{
                       display: 'flex',
                       gap: 10,
                       alignItems: 'center',
+                      cursor: 'pointer',
                       backgroundColor: isCurrent ? 'var(--surface-hover)' : '#FFFFFF'
                     }}
                     onClick={() => handleSwitchUser(u.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSwitchUser(u.id); }
+                    }}
                   >
                     <div
                       className="avatar"
@@ -472,7 +479,12 @@ export const Header: React.FC<HeaderProps> = ({
                 fontSize: '12.5px',
                 color: 'var(--crit-text)',
                 borderTop: '1px solid var(--line)',
-                marginTop: 4
+                marginTop: 4,
+                flexShrink: 0,
+                position: 'sticky',
+                bottom: 0,
+                background: '#FFFFFF',
+                cursor: 'pointer'
               }}
             >
               <Icon name="close" style={{ width: 13, height: 13 }} />

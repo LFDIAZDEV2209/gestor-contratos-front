@@ -8,6 +8,7 @@ import {
   TableViewport,
   DataTable,
   EmptyState,
+  FormGrid,
 } from "@/components/ui/Workspace";
 import { Icon } from "@/components/icons";
 import { construirReporte, exportReporte, type ReportDef } from "./catalogo";
@@ -169,6 +170,18 @@ export const ReporteVista = ({
       </PageHeader>
 
       <Surface className="panel mb" key={reintento}>
+        <div className="panel-h">
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <Icon name={report.ic} size={16} /> Contexto del reporte
+          </h2>
+        </div>
+        <div className="panel-b" style={{ paddingBottom: 0 }}>
+          <FormGrid role="group" aria-label="Contexto del reporte">
+            <div><span className="small muted">Cobertura</span><b>{report.d}</b></div>
+            <div><span className="small muted">Registros disponibles</span><b aria-live="polite">{data ? total : '—'}</b></div>
+            <div><span className="small muted">Actualización</span><b>Al generar</b></div>
+          </FormGrid>
+        </div>
         {!data ? (
           <div className="panel-b np">
             <EmptyState

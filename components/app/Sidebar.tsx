@@ -118,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <nav className="nav" style={{ padding: isCollapsed ? '10px 6px' : '10px 10px 20px' }}>
           {navSections.map((section) => (
             <div key={section.group}>
-              {!isCollapsed && <div className="nav-g">{section.group}</div>}
+              {!isCollapsed && <h2 className="nav-g" style={{ margin: 0, font: 'inherit', color: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit' }}>{section.group}</h2>}
               {isCollapsed && <div style={{ height: 1, background: 'var(--side-line)', margin: '8px 4px' }} />}
 
               {section.items.map((item) => {

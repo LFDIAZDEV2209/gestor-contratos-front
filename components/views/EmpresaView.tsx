@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { PageHeader, Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
+import { PageHeader, Surface, TableViewport, DataTable, EmptyState, FormGrid } from '../ui/Workspace';
 import { Button } from '../ui/button';
 import type { Company } from '../../lib/types';
 import { M } from '../../lib/metrics';
@@ -173,7 +173,7 @@ export const EmpresaView = ({ id, onBack }: { id: string; onBack: () => void }) 
       </div>
 
       {/* Distribución en 2 columnas: Ficha General y Distribución de Valor */}
-      <div className="grid g2 mb">
+      <div className="grid g2 mb" style={{ gap: 'var(--sp-4, 20px)' }}>
         {/* Panel 1: Información General */}
         <Surface className="panel anim-fade-rise stagger-2">
           <div className="panel-h">
@@ -182,8 +182,8 @@ export const EmpresaView = ({ id, onBack }: { id: string; onBack: () => void }) 
             </h3>
             <span className="sub">Datos de registro</span>
           </div>
-          <div className="panel-b np">
-            <div className="dl">
+          <div className="panel-b">
+            <FormGrid role="group" aria-label="Datos institucionales de la empresa">
               <div>
                 <span>Razón Social / Nombre</span>
                 <b>{nombre}</b>
@@ -226,7 +226,7 @@ export const EmpresaView = ({ id, onBack }: { id: string; onBack: () => void }) 
                 <span>Correo Electrónico</span>
                 <b>{company.email || 'No registrado'}</b>
               </div>
-            </div>
+            </FormGrid>
           </div>
         </Surface>
 
@@ -290,7 +290,7 @@ export const EmpresaView = ({ id, onBack }: { id: string; onBack: () => void }) 
       </div>
 
       {/* Panel 3: Lista de Expedientes de Contratos */}
-      <Surface className="panel anim-fade-rise stagger-4">
+      <Surface className="panel anim-fade-rise stagger-4" style={{ marginTop: 4 }}>
         <div className="panel-h">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="file-contract" size={16} /> Expedientes Contractuales Vinculados

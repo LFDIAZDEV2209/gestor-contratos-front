@@ -59,7 +59,7 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
     <div>
       <div className="panel-h mb-3">
         <div>
-          <h3>Obligaciones contractuales</h3>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="list-check" size={16} /> Obligaciones contractuales</h3>
           <span className="sub">{obligations.length} obligaciones pactadas</span>
         </div>
         <div className="row-flex">

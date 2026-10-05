@@ -106,7 +106,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
       {/* Encabezado */}
       <div className="panel-h mb-3 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h3 className="text-base font-bold text-[var(--ink)]">Matriz y mapa de calor de riesgos</h3>
+          <h3 className="text-base font-bold text-[var(--ink)] flex items-center gap-2"><Icon name="scale-balanced" size={16} /> Matriz y mapa de calor de riesgos</h3>
           <span className="sub text-xs text-[var(--muted)]">
             Identificación, evaluación de severidad (probabilidad × impacto) y planes de mitigación
           </span>
@@ -173,7 +173,8 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
         {/* Columna Mapa de Calor (4 cols) */}
         <Surface className="panel lg:col-span-4 p-4">
           <div className="mb-3">
-            <h4 className="font-semibold text-sm text-[var(--ink)]">
+            <h4 className="font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+              <Icon name="chart-pie" size={15} />
               Mapa de calor de severidad ({activeRisks.length} activos)
             </h4>
             <span className="text-xs text-[var(--muted)]">Haga clic en una celda para filtrar</span>
@@ -222,7 +223,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
         <Surface className="panel lg:col-span-8">
           <div className="panel-h flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-sm">Inventario de riesgos evaluados</h3>
+              <h3 className="font-semibold text-sm flex items-center gap-2"><Icon name="list-check" size={15} /> Inventario de riesgos evaluados</h3>
               <span className="sub text-xs text-[var(--muted)]">
                 {filteredRisks.length} riesgo(s) {selectedCell ? 'filtrado(s)' : 'registrado(s)'}
               </span>

@@ -81,7 +81,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
       {/* Encabezado */}
       <div className="panel-h mb-3 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h3 className="text-base font-bold text-[var(--ink)]">Estructura de subcontratación y delegación</h3>
+          <h3 className="text-base font-bold text-[var(--ink)] flex items-center gap-2"><Icon name="diagram-project" size={16} /> Estructura de subcontratación y delegación</h3>
           <span className="sub text-xs text-[var(--muted)]">
             Registro de subcontratos derivados, autorizaciones de delegación y porcentaje de tercerización
           </span>
@@ -146,7 +146,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
       {/* Árbol Jerárquico Visual */}
       <Surface className="panel mb-4 overflow-hidden">
         <div className="panel-h">
-          <h3 className="font-semibold text-sm">Cadena de contratación y delegación</h3>
+          <h3 className="font-semibold text-sm flex items-center gap-2"><Icon name="diagram-project" size={15} /> Cadena de contratación y delegación</h3>
         </div>
         <div className="p-4" style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--line)' }}>
           <div className="tree">
@@ -199,7 +199,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
       <Surface className="panel">
         <div className="panel-h flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-sm">Registro detallado de subcontratistas</h3>
+            <h3 className="font-semibold text-sm flex items-center gap-2"><Icon name="list" size={15} /> Registro detallado de subcontratistas</h3>
             <span className="sub text-xs text-[var(--muted)]">{totalSubs} subcontrato(s)</span>
           </div>
         </div>

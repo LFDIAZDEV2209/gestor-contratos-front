@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, EmptyState, WorkspaceSkeleton, Field } from '../ui/Workspace';
+import { PageHeader, Surface, EmptyState, WorkspaceSkeleton, Field, FormGrid } from '../ui/Workspace';
 import { PBar } from '../ui/PBar';
 import { Badge } from '../ui/Badge';
 import { Icon } from '../icons';
@@ -258,7 +258,7 @@ const ObligacionFichaContent = ({
           </div>
         </div>
 
-        <div className="g4 mb">
+        <FormGrid className="mb" role="group" aria-label="Datos principales de la obligación">
           <div>
             <span className="small muted">Tipo</span>
             <div><span className="badge b-info">{ob.tipo}</span></div>
@@ -286,10 +286,15 @@ const ObligacionFichaContent = ({
               ) : undefined}
             </div>
           </div>
-        </div>
+        </FormGrid>
 
-        <div style={{ marginTop: 4 }}>
-          <span className="small muted">Cumplimiento del compromiso</span>
+        <div role="group" aria-label="Cumplimiento del compromiso" style={{ marginTop: 8, padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--bg-sub)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
+            <span className="small muted">Cumplimiento del compromiso</span>
+            <span className="small muted" aria-live="polite" aria-atomic="true">
+              {pct(cumplimiento, 0)} · {diasRestantes >= 0 ? `${diasRestantes} día${diasRestantes === 1 ? '' : 's'} restantes` : 'Fecha límite superada'}
+            </span>
+          </div>
           <PBar
             value={cumplimiento}
             color={cumplimiento >= 100 ? 'var(--ok)' : cumplimiento >= 50 ? 'var(--warn)' : vencidaEff ? 'var(--crit)' : 'var(--brand)'}
@@ -326,7 +331,9 @@ const ObligacionFichaContent = ({
                 padding: '8px 12px',
                 border: '1px solid var(--line)',
                 borderRadius: '4px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease)',
+                background: chk.listo ? 'var(--ok-bg)' : 'var(--surface)'
               }}
             >
               <Input
@@ -334,8 +341,10 @@ const ObligacionFichaContent = ({
                 disabled={!AuthService.can('editar')}
                 checked={chk.listo}
                 onChange={() => handleToggleChecklist(chk.id)}
+                aria-pressed={chk.listo}
+                aria-label={`${chk.texto}: ${chk.listo ? 'Completado' : 'No completado'}`}
               />
-              <span style={{ textDecoration: chk.listo ? 'line-through' : 'none' }}>{chk.texto}</span>
+              <span style={{ textDecoration: chk.listo ? 'line-through' : 'none', transition: 'color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease)', transform: chk.listo ? 'scale(0.99)' : 'none' }}>{chk.texto}</span>
             </label>
           ))}
           {(!ob.checklist || ob.checklist.length === 0) && (
