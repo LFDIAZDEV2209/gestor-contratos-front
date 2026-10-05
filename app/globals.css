@@ -613,7 +613,7 @@ h2 {
   border: 1px solid var(--border-control);
   background: var(--surface-2);
   border-radius: var(--r-pill);
-  padding: 0 74px 0 36px;
+  padding: 0 92px 0 36px;
   font-size: 13px;
   color: var(--ink);
   transition: all var(--t-fast) var(--ease);
@@ -762,13 +762,15 @@ h2 {
 .dropdown {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  inset-inline-start: 0;
+  right: auto;
   background: #FFFFFF;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-3);
   z-index: 60;
   min-width: 320px;
+  max-width: calc(100vw - 16px);
   max-height: 75vh;
   overflow: auto;
   animation: modalScale 180ms var(--ease);

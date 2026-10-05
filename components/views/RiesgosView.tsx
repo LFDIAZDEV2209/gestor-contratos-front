@@ -449,22 +449,19 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
         </div>
 
         <div className="filters">
-          <Field className="f" style={{ flex: 1, minWidth: 240 }}>
-            <label>Buscar</label>
-            <div className="gsearch">
-              <Icon name="search" />
-              <Input
-                aria-label="Buscar riesgos por descripción, categoría o contrato"
-                value={q}
-                onChange={(e) => {
-                  setQ(e.target.value);
-                  setPage(1);
-                }}
-                placeholder="Descripción, categoría o contrato..."
-              />
-            </div>
+          <Field className="f" style={{ flex: '2 1 240px', minWidth: 200 }}>
+            <label>Buscador</label>
+            <Input
+              aria-label="Buscar riesgos por descripción, categoría o contrato"
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Descripción, categoría o contrato..."
+            />
           </Field>
-          <Field className="f">
+          <Field className="f" style={{ flex: '1 1 160px', minWidth: 140 }}>
             <label>Categoría</label>
             <Select
               value={filterCat}
@@ -481,7 +478,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
               ))}
             </Select>
           </Field>
-          <Field className="f">
+          <Field className="f" style={{ flex: '1 1 140px', minWidth: 130 }}>
             <label>Estado</label>
             <Select
               value={filterEstado}
@@ -496,7 +493,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
               <option value="Cerrado">Cerrado</option>
             </Select>
           </Field>
-          <Field className="f">
+          <Field className="f" style={{ flex: '1 1 140px', minWidth: 130 }}>
             <label>Severidad</label>
             <Select
               value={filterSev}
@@ -514,7 +511,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
             </Select>
           </Field>
           {hasFilters && (
-            <Button className="btn sm ghost" onClick={clearFilters} style={{ alignSelf: 'flex-end', height: 38 }}>
+            <Button className="btn sm ghost" onClick={clearFilters} style={{ alignSelf: 'flex-end', height: 38, whiteSpace: 'nowrap' }}>
               <Icon name="trash" /> Limpiar filtros
             </Button>
           )}

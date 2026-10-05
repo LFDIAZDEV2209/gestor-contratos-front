@@ -223,7 +223,7 @@ export const Header: React.FC<HeaderProps> = ({
         <Input
           ref={searchInputRef}
           type="search"
-          placeholder="Buscar contrato, NIT, contratista, póliza, factura, acta... (Ctrl+K)"
+          placeholder="Buscar contrato, NIT, póliza o factura..."
           autoComplete="off"
           aria-label="Buscador global"
           value={searchQuery}

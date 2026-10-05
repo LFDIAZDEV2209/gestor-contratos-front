@@ -99,13 +99,13 @@ export const TareaForm = ({ alert, onDone }: { alert: Alert; onDone: (id: string
 
       {/* Contexto de la alerta origen (solo lectura) */}
       <Surface className="panel mb">
-        <div className="panel-h">
+        <div className="panel-h" style={{ padding: '14px 16px' }}>
           <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="bell" size={16} /> Alerta de origen
           </h2>
           <span className="sub">Solo lectura</span>
         </div>
-        <div style={{ display: 'grid', gap: 8, fontSize: 13.5 }}>
+        <div className="panel-b" style={{ display: 'grid', gap: 8, fontSize: 13.5, padding: '14px 16px' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             <b>{alert.tipo}</b>
             {alert.contractId ? (

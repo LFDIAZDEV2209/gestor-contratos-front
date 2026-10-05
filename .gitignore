@@ -28,6 +28,14 @@ qa/
 qa-*.png
 pass4-*.png
 
+# ——— Scripts QA ad-hoc de sesiones (no durables, no montar) ———
+scripts/qa-modals*.mjs
+scripts/qa-lote10-*.mjs
+scripts/test-*.mjs
+scripts/verify-*.mjs
+scripts/inspect-*.mjs
+scripts/check-*.mjs
+
 # ─── Editor / sistema operativo ────────────────────────────────
 .vscode/*
 !.vscode/settings.json
