@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -24,6 +26,7 @@ export const EmpresaForm = ({
   initial?: Partial<Company>;
   onDone: (savedId: string) => void;
 }) => {
+  const cancelar = useFormCancel("/empresas");
   const isEdit = Boolean(initial?.id);
   const [form, setForm] = useState<Partial<Company>>(() => initial ?? { estado: 'Activa' });
   const [intentado, setIntentado] = useState(false);
@@ -38,15 +41,15 @@ export const EmpresaForm = ({
   const razon = (form.razon || form.name || '').trim();
   const nit = (form.nit || '').trim();
   const email = (form.email || '').trim();
-  const errores: string[] = [];
-  if (!nit) errores.push('El NIT / identificación tributaria es obligatorio.');
-  if (!razon) errores.push('La razón social es obligatoria.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!nit) addError("nit", 'El NIT / identificación tributaria es obligatorio.');
+  if (!razon) addError("razon", 'La razón social es obligatoria.');
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    errores.push('El correo electrónico no tiene un formato válido.');
+    addError("email", 'El correo electrónico no tiene un formato válido.');
   const duplicado = nit
     ? empresas.find((c) => (c.nit || '').trim() === nit && c.id !== form.id)
     : undefined;
-  if (duplicado) errores.push(`El NIT ya está registrado por «${duplicado.razon || duplicado.name}».`);
+  if (duplicado) addError("nit", `El NIT ya está registrado por «${duplicado.razon || duplicado.name}».`);
 
   const guardar = () => {
     setIntentado(true);
@@ -105,14 +108,14 @@ export const EmpresaForm = ({
   };
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/empresas">Empresas</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>{isEdit ? 'Editar ficha' : 'Nueva empresa'}</span>
-          </div>
+            <span aria-current="page">{isEdit ? 'Editar ficha' : 'Nueva empresa'}</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             {isEdit ? 'Editar Empresa' : 'Nueva Empresa'}
           </h1>
@@ -128,7 +131,7 @@ export const EmpresaForm = ({
         <FormGrid className="form-grid">
           <Field className="f">
             <label className="req">NIT / Identificación Tributaria</label>
-            <Input
+            <Input name="nit"
               value={form.nit || ''}
               onChange={(e) => set({ nit: e.target.value })}
               placeholder="Ej. 900.876.543-1"
@@ -137,7 +140,7 @@ export const EmpresaForm = ({
 
           <Field className="f">
             <label>Estado de Actividad</label>
-            <Select
+            <Select name="estado"
               value={form.estado || form.status || 'Activa'}
               onChange={(e) => set({ estado: e.target.value, status: e.target.value })}
             >
@@ -148,7 +151,7 @@ export const EmpresaForm = ({
 
           <Field className="f span3">
             <label className="req">Razón Social o Nombre Legal</label>
-            <Input
+            <Input name="razon"
               value={form.razon || form.name || ''}
               onChange={(e) => set({ razon: e.target.value, name: e.target.value })}
               placeholder="Nombre comercial o personería jurídica"
@@ -157,7 +160,7 @@ export const EmpresaForm = ({
 
           <Field className="f">
             <label>Representante Legal</label>
-            <Input
+            <Input name="rep"
               value={form.rep || ''}
               onChange={(e) => set({ rep: e.target.value })}
               placeholder="Nombre del representante legal"
@@ -166,7 +169,7 @@ export const EmpresaForm = ({
 
           <Field className="f">
             <label>Naturaleza / Sector</label>
-            <Select
+            <Select name="tipo"
               value={form.tipo || form.type || ''}
               onChange={(e) => set({ tipo: e.target.value, type: e.target.value })}
             >
@@ -181,7 +184,7 @@ export const EmpresaForm = ({
 
           <Field className="f">
             <label>Teléfono de Contacto</label>
-            <Input
+            <Input name="tel"
               value={form.tel || ''}
               onChange={(e) => set({ tel: e.target.value })}
               placeholder="Ej. 605 385 2210"
@@ -190,7 +193,7 @@ export const EmpresaForm = ({
 
           <Field className="f">
             <label>Correo Electrónico</label>
-            <Input
+            <Input name="email"
               type="email"
               value={form.email || ''}
               onChange={(e) => set({ email: e.target.value })}
@@ -200,7 +203,7 @@ export const EmpresaForm = ({
 
           <Field className="f span3">
             <label>Dirección y Ciudad</label>
-            <Input
+            <Input name="direccion"
               value={form.direccion || ''}
               onChange={(e) => set({ direccion: e.target.value })}
               placeholder="Ej. Cra 54 # 72-80, Barranquilla"
@@ -209,27 +212,16 @@ export const EmpresaForm = ({
         </FormGrid>
       </Surface>
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="check" /> {isEdit ? 'Guardar Cambios' : 'Guardar Empresa'}
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

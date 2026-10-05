@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -38,6 +40,7 @@ export const RiesgoForm = ({
   initial?: Partial<Risk>;
   onDone: (savedId: string) => void;
 }) => {
+  const cancelar = useFormCancel("/riesgos");
   const isEdit = Boolean(initial?.id);
   const [form, setForm] = useState<Partial<Risk>>(() =>
     initial ? { ...initial } : { ...FORM_DEFAULT }
@@ -63,25 +66,25 @@ export const RiesgoForm = ({
   const impacto = Number(form.impacto) || 0;
 
   const errCampo: Record<string, string> = {};
-  const errores: string[] = [];
+  const { errores, fieldErrors, addError } = createFieldValidation();
   if (!contractId) {
     errCampo.contractId = 'Selecciona el contrato al que se vincula el riesgo.';
-    errores.push('Seleccione el contrato al que se vincula el riesgo.');
+    addError("contractId", 'Seleccione el contrato al que se vincula el riesgo.');
   } else if (!contrato) {
     errCampo.contractId = 'El contrato seleccionado ya no existe en el portafolio.';
-    errores.push('El contrato seleccionado ya no existe en el portafolio.');
+    addError("contractId", 'El contrato seleccionado ya no existe en el portafolio.');
   }
   if (!descripcion) {
     errCampo.descripcion = 'La descripción del riesgo es obligatoria.';
-    errores.push('La descripción del riesgo es obligatoria.');
+    addError("descripcion", 'La descripción del riesgo es obligatoria.');
   }
   if (probabilidad < 1 || probabilidad > 5) {
     errCampo.probabilidad = 'La probabilidad debe estar entre 1 y 5.';
-    errores.push('La probabilidad debe estar entre 1 y 5.');
+    addError("probabilidad", 'La probabilidad debe estar entre 1 y 5.');
   }
   if (impacto < 1 || impacto > 5) {
     errCampo.impacto = 'El impacto debe estar entre 1 y 5.';
-    errores.push('El impacto debe estar entre 1 y 5.');
+    addError("impacto", 'El impacto debe estar entre 1 y 5.');
   }
 
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
@@ -144,14 +147,14 @@ export const RiesgoForm = ({
   };
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/riesgos">Riesgos</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>{isEdit ? 'Editar riesgo' : 'Nuevo riesgo'}</span>
-          </div>
+            <span aria-current="page">{isEdit ? 'Editar riesgo' : 'Nuevo riesgo'}</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             {isEdit ? 'Editar Riesgo' : 'Nuevo Riesgo'}
           </h1>
@@ -166,16 +169,16 @@ export const RiesgoForm = ({
       {/* Vínculo contractual */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="file-contract" size={16} /> Vínculo contractual
-          </h3>
+          </h2>
           <span className="sub">{contracts.length} contratos vigentes en el portafolio</span>
         </div>
 
         <FormGrid className="form-grid">
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
-            <Select
+            <Select name="contractId"
               value={contractId}
               aria-invalid={err('contractId') ? true : undefined}
               aria-describedby={err('contractId') ? 'err-rcontrato' : undefined}
@@ -206,16 +209,16 @@ export const RiesgoForm = ({
       {/* Evaluación del riesgo */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="triangle-exclamation" size={16} /> Evaluación del riesgo
-          </h3>
+          </h2>
           <span className="sub">Los campos con * son obligatorios</span>
         </div>
 
         <FormGrid className="form-grid">
           <Field className="f">
             <label className="req">Categoría</label>
-            <Select
+            <Select name="categoria"
               value={form.categoria || ''}
               onChange={(e) => set({ categoria: e.target.value })}
             >
@@ -230,7 +233,7 @@ export const RiesgoForm = ({
 
           <Field className="f">
             <label>Estado</label>
-            <Select value={form.estado || 'Abierto'} onChange={(e) => set({ estado: e.target.value })}>
+            <Select name="estado" value={form.estado || 'Abierto'} onChange={(e) => set({ estado: e.target.value })}>
               {ESTADOS.map((e) => (
                 <option key={e} value={e}>
                   {e}
@@ -241,7 +244,7 @@ export const RiesgoForm = ({
 
           <Field className={`f${err('probabilidad') ? ' err' : ''}`}>
             <label className="req">Probabilidad (1 a 5)</label>
-            <Input
+            <Input name="probabilidad"
               type="number"
               min={1}
               max={5}
@@ -261,7 +264,7 @@ export const RiesgoForm = ({
 
           <Field className={`f${err('impacto') ? ' err' : ''}`}>
             <label className="req">Impacto (1 a 5)</label>
-            <Input
+            <Input name="impacto"
               type="number"
               min={1}
               max={5}
@@ -281,7 +284,7 @@ export const RiesgoForm = ({
 
           <Field className={`f${err('descripcion') ? ' err' : ''}`}>
             <label className="req">Descripción del riesgo</label>
-            <Textarea
+            <Textarea name="descripcion"
               rows={3}
               value={form.descripcion || ''}
               aria-invalid={err('descripcion') ? true : undefined}
@@ -301,9 +304,9 @@ export const RiesgoForm = ({
       {/* Mitigación y seguimiento */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="shield-check" size={16} /> Mitigación y seguimiento
-          </h3>
+          </h2>
           <span className="sub">
             Nivel calculado: P{probabilidad || '—'} × I{impacto || '—'} ={' '}
             <b style={{ color: 'var(--ink-2)' }}>{nivelCalc}</b> ({nivelSev})
@@ -313,7 +316,7 @@ export const RiesgoForm = ({
         <FormGrid className="form-grid">
           <Field className="f span3">
             <label>Medidas de mitigación</label>
-            <Textarea
+            <Textarea name="mitigacion"
               rows={3}
               value={form.mitigacion || ''}
               placeholder="Acciones preventivas o correctivas implementadas"
@@ -323,7 +326,7 @@ export const RiesgoForm = ({
 
           <Field className="f span3">
             <label>Responsable del monitoreo</label>
-            <Input
+            <Input name="responsable"
               value={form.responsable || ''}
               placeholder="Nombre del responsable"
               onChange={(e) => set({ responsable: e.target.value })}
@@ -332,27 +335,16 @@ export const RiesgoForm = ({
         </FormGrid>
       </Surface>
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="check" /> {isEdit ? 'Guardar Cambios' : 'Guardar Riesgo'}
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

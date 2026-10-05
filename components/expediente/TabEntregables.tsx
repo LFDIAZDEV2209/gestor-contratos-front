@@ -317,7 +317,7 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Entregables del contrato">
               <thead>
                 <tr>
                   <th>Entregable / Criterio</th>

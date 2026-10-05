@@ -521,7 +521,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
         </div>
 
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Matriz de riesgos contractuales">
             <thead>
               <tr>
                 <th>ID</th>
@@ -641,7 +641,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                         Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredRisks.length)} de{' '}
                         <b>{filteredRisks.length}</b> riesgos
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de matriz de riesgos">
                         <Button
                           disabled={currentPage <= 1}
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -650,7 +650,13 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                           &lt;
                         </Button>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                          <Button key={p} className={p === currentPage ? 'on' : ''} onClick={() => setPage(p)}>
+                          <Button
+                            key={p}
+                            className={p === currentPage ? 'on' : ''}
+                            aria-current={p === currentPage ? 'page' : undefined}
+                            onClick={() => setPage(p)}
+                            aria-label={`Ir a la página ${p}`}
+                          >
                             {p}
                           </Button>
                         ))}

@@ -1,9 +1,9 @@
 'use client';
 
 import { use } from 'react';
-import { useRouter } from 'next/navigation';
+import { notFound,  useRouter } from 'next/navigation';
 import { Store, AuthService } from '@/lib/store';
-import { EmptyState } from '@/components/ui/Workspace';
+import { RouteState as EmptyState } from '@/components/expediente/forms/RouteState';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { PlanForm } from '@/components/forms/PlanForm';
@@ -17,6 +17,7 @@ export default function Page({ params }: { params: Promise<{ planId: string }> }
   // can() es puro: sin efectos en render (guard() alerta y se reserva a handlers)
   const permitido = AuthService.can('editar');
 
+  if (permitido && !plan) notFound();
   if (!plan || !permitido) {
     return (
       <div className="anim-fade-rise" style={{ padding: '40px 20px', textAlign: 'center' }}>

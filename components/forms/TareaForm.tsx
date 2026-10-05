@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -20,6 +22,7 @@ import { Icon } from '../icons';
  * pasa a «Leída» (mismo comportamiento del modal original).
  */
 export const TareaForm = ({ alert, onDone }: { alert: Alert; onDone: (id: string) => void }) => {
+  const cancelar = useFormCancel("/alertas");
   const [form, setForm] = useState(() => ({
     titulo: `Gestionar: ${alert.tipo.toLowerCase()} ${alert.numero}`,
     asignado: alert.responsable || (Store.all('users')[0]?.nombre as string) || '',
@@ -35,9 +38,9 @@ export const TareaForm = ({ alert, onDone }: { alert: Alert; onDone: (id: string
   // Validación en bloque (regla del handler original: título obligatorio trim)
   const titulo = (form.titulo || '').trim();
   const vence = form.vence || '';
-  const errores: string[] = [];
-  if (!titulo) errores.push('El título de la tarea es obligatorio.');
-  if (!vence) errores.push('La fecha límite es obligatoria.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!titulo) addError("titulo", 'El título de la tarea es obligatorio.');
+  if (!vence) addError("vence", 'La fecha límite es obligatoria.');
 
   const guardar = () => {
     setIntentado(true);
@@ -76,14 +79,14 @@ export const TareaForm = ({ alert, onDone }: { alert: Alert; onDone: (id: string
   };
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/alertas">Alertas</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>Crear tarea</span>
-          </div>
+            <span aria-current="page">Crear tarea</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             Crear tarea desde alerta
           </h1>
@@ -97,9 +100,9 @@ export const TareaForm = ({ alert, onDone }: { alert: Alert; onDone: (id: string
       {/* Contexto de la alerta origen (solo lectura) */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="bell" size={16} /> Alerta de origen
-          </h3>
+          </h2>
           <span className="sub">Solo lectura</span>
         </div>
         <div style={{ display: 'grid', gap: 8, fontSize: 13.5 }}>
@@ -128,16 +131,16 @@ export const TareaForm = ({ alert, onDone }: { alert: Alert; onDone: (id: string
       {/* Datos de la tarea */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="list-check" size={16} /> Datos de la tarea
-          </h3>
+          </h2>
           <span className="sub">Los campos con * son obligatorios</span>
         </div>
 
         <FormGrid className="form-grid">
           <Field className="f span3">
             <label className="req">Título de la tarea</label>
-            <Input
+            <Input name="titulo"
               value={form.titulo}
               placeholder="Descripción de la tarea"
               onChange={(e) => set({ titulo: e.target.value })}
@@ -146,7 +149,7 @@ export const TareaForm = ({ alert, onDone }: { alert: Alert; onDone: (id: string
 
           <Field className="f">
             <label>Asignar a</label>
-            <Select value={form.asignado} onChange={(e) => set({ asignado: e.target.value })}>
+            <Select name="asignado" value={form.asignado} onChange={(e) => set({ asignado: e.target.value })}>
               {users.map((u) => (
                 <option key={u.id} value={u.nombre}>
                   {u.nombre} ({u.rol})
@@ -160,7 +163,7 @@ export const TareaForm = ({ alert, onDone }: { alert: Alert; onDone: (id: string
 
           <Field className="f">
             <label className="req">Fecha límite</label>
-            <Input
+            <Input name="vence"
               type="date"
               value={vence}
               onChange={(e) => set({ vence: e.target.value })}
@@ -174,27 +177,16 @@ export const TareaForm = ({ alert, onDone }: { alert: Alert; onDone: (id: string
         </FormGrid>
       </Surface>
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="check" /> Crear tarea
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

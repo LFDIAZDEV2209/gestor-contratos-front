@@ -302,7 +302,7 @@ export const EmpresaView = ({ id, onBack }: { id: string; onBack: () => void }) 
 
         {contracts.length > 0 ? (
           <TableViewport className="tbl-wrap" aria-label="Contratos vinculados a la empresa">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Contratos vinculados a la empresa">
               <thead>
                 <tr>
                   <th style={{ width: 140 }}>Número</th>

@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, use } from 'react';
+import { WorkspaceSkeleton } from '@/components/ui/Workspace';
 import { useSearchParams } from 'next/navigation';
 import { ExpedienteRoute } from '@/components/expediente/forms/ExpedienteRoute';
 import { DocumentoForm } from '@/components/expediente/forms/DocumentoForm';
@@ -20,7 +21,7 @@ function Contenido({ id }: { id: string }) {
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<WorkspaceSkeleton />}>
       <Contenido id={id} />
     </Suspense>
   );

@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 import { PageHeader, Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { Badge } from '../ui/Badge';
 import { Icon } from '../icons';
-import { Store, Audit } from '../../lib/store';
+import { Store, Audit, AuthService } from '../../lib/store';
 import { Validator } from '../../lib/validator';
 import { exportRows } from '../../lib/export';
 import { nowStamp, fdate } from '../../lib/format';
@@ -22,11 +22,12 @@ export const ValidacionView = ({ cid }: { cid: string }) => {
   const [exportado, setExportado] = useState<'xlsx' | 'pdf' | null>(null);
   const logeado = useRef(false);
 
-  const res = useMemo(() => (c ? Validator.contract(c) : null), [c]);
+  const canView = AuthService.can('ver');
+  const res = useMemo(() => (c && canView ? Validator.contract(c) : null), [c, canView]);
 
   // El modal original auditaba al abrirse; aquí se audita una sola vez por visita.
   useEffect(() => {
-    if (!c || !res || logeado.current) return;
+    if (!c || !res || !canView || logeado.current) return;
     logeado.current = true;
     Audit.log({
       contractId: c.id,
@@ -35,7 +36,23 @@ export const ValidacionView = ({ cid }: { cid: string }) => {
       campo: 'Resultado',
       nuevo: res.issues.length ? `${res.issues.length} inconsistencias` : 'Validado correctamente'
     });
-  }, [c, res]);
+  }, [c, res, canView]);
+
+  if (!canView) {
+    return (
+      <div className="anim-fade-rise" style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <EmptyState
+          title="Acceso restringido"
+          description="Tu rol no tiene permiso para consultar el validador contractual."
+          action={
+            <Link className="btn pri" href="/contratos" style={{ marginTop: 12 }}>
+              <Icon name="chevron-left" /> Volver a Contratos
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
 
   if (!c || !res) {
     return (
@@ -146,7 +163,7 @@ export const ValidacionView = ({ cid }: { cid: string }) => {
         <Surface className="panel mb">
           <div className="panel-h">
             <div>
-              <h3>Inconsistencias detectadas</h3>
+              <h2 style={{ fontSize: '15px', margin: 0, fontWeight: 600 }}>Inconsistencias detectadas</h2>
               <span className="sub">{res.issues.length} hallazgos ordenados por severidad</span>
             </div>
             <div className="row-flex">
@@ -160,7 +177,7 @@ export const ValidacionView = ({ cid }: { cid: string }) => {
           </div>
 
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Listado de inconsistencias contractuales">
               <thead>
                 <tr>
                   <th className="nw">Severidad</th>

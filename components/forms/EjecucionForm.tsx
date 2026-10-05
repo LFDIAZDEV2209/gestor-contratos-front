@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -21,6 +23,7 @@ import { Icon } from '../icons';
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
+  const cancelar = useFormCancel("/ejecucion");
   const [intentado, setIntentado] = useState(false);
   const [form, setForm] = useState({
     contractId: '',
@@ -38,18 +41,18 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
   const mSel = seleccion ? M(seleccion) : null;
 
   const errCampo: Record<string, string> = {};
-  const errores: string[] = [];
+  const { errores, fieldErrors, addError } = createFieldValidation();
   if (!form.contractId) {
     errCampo.contractId = 'Selecciona el contrato al que se imputa la ejecución.';
-    errores.push('El contrato es obligatorio.');
+    addError("contractId", 'El contrato es obligatorio.');
   }
   if (!form.periodo) {
     errCampo.periodo = 'Indica el periodo (año-mes) del informe.';
-    errores.push('El periodo es obligatorio.');
+    addError("periodo", 'El periodo es obligatorio.');
   }
   if (!form.valor) {
     errCampo.valor = 'Registra el valor facturado o ejecutado en el periodo.';
-    errores.push('El valor ejecutado es obligatorio.');
+    addError("valor", 'El valor ejecutado es obligatorio.');
   }
 
   const guardar = () => {
@@ -91,14 +94,14 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/ejecucion">Ejecución</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>Nueva ejecución</span>
-          </div>
+            <span aria-current="page">Nueva ejecución</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             Registrar avance de ejecución
           </h1>
@@ -112,9 +115,9 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="chart-line" /> Informe del periodo
-            </h3>
+            </h2>
             <span className="sub small muted">Contrato, periodo y valores ejecutados</span>
           </div>
         </div>
@@ -122,7 +125,7 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
         <FormGrid className="form-grid">
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
-            <Select
+            <Select name="contractId"
               value={form.contractId}
               onChange={(e) => set({ contractId: e.target.value })}
               aria-describedby={err('contractId') ? 'err-econtrato' : undefined}
@@ -144,7 +147,7 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
           <Field className={`f${err('periodo') ? ' err' : ''}`}>
             <label className="req">Periodo (Año - Mes)</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              <Select
+              <Select name="periodo"
                 value={String(Number(form.periodo.split('-')[1] || '1') - 1)}
                 onChange={(e) =>
                   set({ periodo: `${form.periodo.split('-')[0]}-${String(Number(e.target.value) + 1).padStart(2, '0')}` })
@@ -158,7 +161,7 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
                   </option>
                 ))}
               </Select>
-              <Select
+              <Select name="periodo"
                 value={form.periodo.split('-')[0]}
                 onChange={(e) => set({ periodo: `${e.target.value}-${form.periodo.split('-')[1]}` })}
                 aria-label="Año del informe"
@@ -179,7 +182,7 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
 
           <Field className={`f${err('valor') ? ' err' : ''}`}>
             <label className="req">Valor ejecutado / facturado en el periodo</label>
-            <Input
+            <Input name="valor"
               type="number"
               value={form.valor}
               placeholder="Ej. 45000000"
@@ -197,7 +200,7 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
 
           <Field className="f">
             <label>% Avance físico acumulado</label>
-            <Input
+            <Input name="avanceFisico"
               type="number"
               min={0}
               max={100}
@@ -209,7 +212,7 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
 
           <Field className="f span3">
             <label>Observaciones</label>
-            <Textarea
+            <Textarea name="obs"
               rows={3}
               value={form.obs}
               placeholder="Hitos o actividades ejecutadas en este periodo..."
@@ -223,9 +226,9 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
         <Surface className="panel mb">
           <div className="panel-h">
             <div>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
                 <Icon name="file-signature" /> Contexto del contrato
-              </h3>
+              </h2>
               <span className="sub small muted">
                 {seleccion.numero} · {seleccion.contratista}
               </span>
@@ -263,27 +266,16 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
         </Surface>
       )}
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="check" /> Guardar registro
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

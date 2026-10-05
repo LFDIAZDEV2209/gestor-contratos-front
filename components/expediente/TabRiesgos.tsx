@@ -251,7 +251,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
             />
           ) : (
             <TableViewport className="tbl-wrap">
-              <DataTable className="tbl">
+              <DataTable className="tbl" aria-label="Matriz de riesgos del contrato">
                 <thead>
                   <tr>
                     <th>Evento de riesgo</th>

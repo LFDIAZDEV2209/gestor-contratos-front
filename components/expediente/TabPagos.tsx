@@ -117,7 +117,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
 
       <Surface className="panel" style={{ paddingTop: 0 }}>
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Órdenes de pago y facturación del contrato">
             <thead>
               <tr>
                 <th>Pago / Factura</th>

@@ -340,7 +340,7 @@ export const DocumentosView = ({
 
         {/* Tabla de documentos con rail de estado y hover lift */}
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Expediente documental">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -500,7 +500,7 @@ export const DocumentosView = ({
                         Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} de{' '}
                         <b>{filtered.length}</b> documentos
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de documentos">
                         <Button
                           disabled={currentPage <= 1}
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -509,7 +509,7 @@ export const DocumentosView = ({
                           &lt;
                         </Button>
                         {Array.from({ length: totalPages }, (_, p) => p + 1).map((p) => (
-                          <Button key={p} className={p === currentPage ? 'on' : ''} aria-current={p === currentPage ? 'page' : undefined} onClick={() => setPage(p)}>
+                          <Button key={p} className={p === currentPage ? 'on' : ''} aria-current={p === currentPage ? 'page' : undefined} aria-label={`Ir a la página ${p}`} onClick={() => setPage(p)}>
                             {p}
                           </Button>
                         ))}
@@ -548,7 +548,7 @@ export const DocumentosView = ({
               <b>{selectedDocHistory.versions?.length || 1}</b>
             </p>
             <TableViewport className="tbl-wrap">
-              <DataTable className="tbl">
+              <DataTable className="tbl" aria-label="Historial de versiones del documento">
                 <thead>
                   <tr>
                     <th className="nw">Versión</th>

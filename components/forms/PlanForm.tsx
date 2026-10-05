@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -39,6 +41,7 @@ export const PlanForm = ({
   initial?: Partial<Plan>;
   onDone: (savedId: string) => void;
 }) => {
+  const cancelar = useFormCancel("/incumplimientos");
   const isEdit = Boolean(initial?.id);
   const [form, setForm] = useState<Partial<Plan>>(() =>
     initial ? { ...initial } : { ...FORM_DEFAULT }
@@ -64,13 +67,13 @@ export const PlanForm = ({
   const fechaInicio = form.fechaInicio || '';
   const fechaFin = form.fechaFin || '';
 
-  const errores: string[] = [];
-  if (!contractId) errores.push('Seleccione el contrato al que se vincula el plan.');
-  else if (!contrato) errores.push('El contrato seleccionado ya no existe en el portafolio.');
-  if (!accion) errores.push('La acción o compromiso del plan es obligatoria.');
-  if (avance < 0 || avance > 100) errores.push('El avance debe estar entre 0 y 100.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!contractId) addError("contractId", 'Seleccione el contrato al que se vincula el plan.');
+  else if (!contrato) addError("contractId", 'El contrato seleccionado ya no existe en el portafolio.');
+  if (!accion) addError("accion", 'La acción o compromiso del plan es obligatoria.');
+  if (avance < 0 || avance > 100) addError("avance", 'El avance debe estar entre 0 y 100.');
   if (fechaFin && fechaInicio && fechaFin < fechaInicio)
-    errores.push('La fecha límite no puede ser anterior a la fecha de inicio.');
+    addError("fechaFin", 'La fecha límite no puede ser anterior a la fecha de inicio.');
 
   // El estado del tab puede ser un valor de trámite distinto («Abierto» / «En ejecución»):
   // se ofrece como opción extra para no perderlo al editar desde el módulo global.
@@ -128,14 +131,14 @@ export const PlanForm = ({
   };
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/incumplimientos">Incumplimientos</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>{isEdit ? 'Editar plan' : 'Nuevo plan de mejoramiento'}</span>
-          </div>
+            <span aria-current="page">{isEdit ? 'Editar plan' : 'Nuevo plan de mejoramiento'}</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             {isEdit ? 'Editar Plan de Mejoramiento' : 'Nuevo Plan de Mejoramiento'}
           </h1>
@@ -150,16 +153,16 @@ export const PlanForm = ({
       {/* Vínculo contractual */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="file-contract" size={16} /> Vínculo contractual
-          </h3>
+          </h2>
           <span className="sub">{contracts.length} contratos vigentes en el portafolio</span>
         </div>
 
         <FormGrid className="form-grid">
           <Field className="f span3">
             <label className="req">Contrato</label>
-            <Select value={contractId} onChange={(e) => set({ contractId: e.target.value })}>
+            <Select name="contractId" value={contractId} onChange={(e) => set({ contractId: e.target.value })}>
               <option value="">— Seleccione contrato —</option>
               {opciones.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -179,16 +182,16 @@ export const PlanForm = ({
       {/* Compromiso */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="clipboard-check" size={16} /> Compromiso de mejora
-          </h3>
+          </h2>
           <span className="sub">Los campos con * son obligatorios</span>
         </div>
 
         <FormGrid className="form-grid">
           <Field className="f span3">
             <label className="req">Acción / Compromiso</label>
-            <Textarea
+            <Textarea name="accion"
               rows={3}
               value={form.accion || ''}
               placeholder="Descripción del compromiso de mejora o plan de choque"
@@ -198,7 +201,7 @@ export const PlanForm = ({
 
           <Field className="f">
             <label className="req">Responsable</label>
-            <Input
+            <Input name="responsable"
               value={form.responsable || ''}
               placeholder="Nombre del responsable"
               onChange={(e) => set({ responsable: e.target.value })}
@@ -207,7 +210,7 @@ export const PlanForm = ({
 
           <Field className="f">
             <label>Fecha de inicio</label>
-            <Input
+            <Input name="fechaInicio"
               type="date"
               value={fechaInicio}
               onChange={(e) => set({ fechaInicio: e.target.value })}
@@ -216,7 +219,7 @@ export const PlanForm = ({
 
           <Field className="f">
             <label>Fecha límite / compromiso</label>
-            <Input
+            <Input name="fechaFin"
               type="date"
               value={fechaFin}
               onChange={(e) => set({ fechaFin: e.target.value })}
@@ -228,16 +231,16 @@ export const PlanForm = ({
       {/* Avance y estado */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="chart-pie" size={16} /> Avance y estado
-          </h3>
+          </h2>
           <span className="sub">Seguimiento de implementación</span>
         </div>
 
         <FormGrid className="form-grid">
           <Field className="f">
             <label>% de Avance (0 a 100)</label>
-            <Input
+            <Input name="avance"
               type="number"
               min={0}
               max={100}
@@ -251,7 +254,7 @@ export const PlanForm = ({
 
           <Field className="f">
             <label>Estado</label>
-            <Select value={form.estado || 'En curso'} onChange={(e) => set({ estado: e.target.value })}>
+            <Select name="estado" value={form.estado || 'En curso'} onChange={(e) => set({ estado: e.target.value })}>
               {Array.from(estados).map((e) => (
                 <option key={e} value={e}>
                   {e}
@@ -267,27 +270,16 @@ export const PlanForm = ({
         </FormGrid>
       </Surface>
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="check" /> {isEdit ? 'Guardar Cambios' : 'Guardar Plan'}
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

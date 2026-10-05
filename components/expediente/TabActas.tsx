@@ -91,7 +91,7 @@ export const TabActas = ({ cid }: { cid: string }) => {
       )}
 
       <TableViewport className="tbl-wrap">
-        <DataTable className="tbl">
+        <DataTable className="tbl" aria-label="Actas suscritas del contrato">
           <thead>
             <tr>
               <th className="nw">Número</th>

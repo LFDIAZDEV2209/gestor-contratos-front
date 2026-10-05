@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -18,6 +20,7 @@ import { Icon } from '../icons';
  * siendo simulado: si se deja vacío se genera el nombre por defecto.
  */
 export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
+  const cancelar = useFormCancel("/documentos");
   const [intentado, setIntentado] = useState(false);
   const [form, setForm] = useState({
     contractId: '',
@@ -34,14 +37,14 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
 
   const nombre = form.nombre.trim();
   const errCampo: Record<string, string> = {};
-  const errores: string[] = [];
+  const { errores, fieldErrors, addError } = createFieldValidation();
   if (!form.contractId) {
     errCampo.contractId = 'Selecciona el contrato al que pertenece el documento.';
-    errores.push('El contrato es obligatorio.');
+    addError("contractId", 'El contrato es obligatorio.');
   }
   if (!nombre) {
     errCampo.nombre = 'Ingresa el nombre con el que se indexará el documento.';
-    errores.push('El nombre del documento es obligatorio.');
+    addError("nombre", 'El nombre del documento es obligatorio.');
   }
 
   const guardar = () => {
@@ -90,14 +93,14 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/documentos">Documentos</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>Nuevo documento</span>
-          </div>
+            <span aria-current="page">Nuevo documento</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             Cargar nuevo documento
           </h1>
@@ -111,9 +114,9 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="folder-tree" /> Identificación
-            </h3>
+            </h2>
             <span className="sub small muted">Contrato, nombre y categoría del documento</span>
           </div>
         </div>
@@ -121,7 +124,7 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
         <FormGrid className="form-grid">
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
-            <Select
+            <Select name="contractId"
               value={form.contractId}
               onChange={(e) => set({ contractId: e.target.value })}
               aria-describedby={err('contractId') ? 'err-dcontrato' : undefined}
@@ -142,7 +145,7 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
 
           <Field className={`f span2${err('nombre') ? ' err' : ''}`}>
             <label className="req">Nombre del documento</label>
-            <Input
+            <Input name="nombre"
               value={form.nombre}
               placeholder="Ej. Minuta del contrato firmada"
               onChange={(e) => set({ nombre: e.target.value })}
@@ -157,7 +160,7 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
 
           <Field className="f">
             <label className="req">Categoría</label>
-            <Select value={form.categoria} onChange={(e) => set({ categoria: e.target.value })}>
+            <Select name="categoria" value={form.categoria} onChange={(e) => set({ categoria: e.target.value })}>
               {CAT('categoriasDoc').map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
@@ -168,7 +171,7 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
 
           <Field className="f span3">
             <label>Archivo (nombre o ruta simulada)</label>
-            <Input
+            <Input name="archivo"
               value={form.archivo}
               placeholder="Ej. contrato_firmado_final.pdf"
               onChange={(e) => set({ archivo: e.target.value })}
@@ -184,9 +187,9 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="history" /> Versión inicial
-            </h3>
+            </h2>
             <span className="sub small muted">
               Se registra v1 con el usuario y la fecha de hoy; nunca se elimina
             </span>
@@ -196,7 +199,7 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
         <FormGrid className="form-grid">
           <Field className="f span3">
             <label>Motivo de la carga</label>
-            <Input
+            <Input name="motivo"
               value={form.motivo}
               placeholder="Ej. Carga inicial"
               onChange={(e) => set({ motivo: e.target.value })}
@@ -205,7 +208,7 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
 
           <Field className="f span3">
             <label>Observaciones</label>
-            <Textarea
+            <Textarea name="obs"
               rows={3}
               value={form.obs}
               placeholder="Notas adicionales sobre el documento..."
@@ -215,27 +218,16 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
         </FormGrid>
       </Surface>
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="upload" /> Subir documento
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

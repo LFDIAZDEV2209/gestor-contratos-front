@@ -8,7 +8,7 @@ import { money, todayIso, uid } from '../../../lib/format';
 import { CAT } from '../../../lib/catalog';
 import { cupoStats } from '../../../lib/metrics';
 import type { Cupo, Guarantee } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
 
 type FormState = {
   poliza: string;
@@ -52,15 +52,15 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
   const excedeCupo = cupoDisp != null && Number(form.valor) > cupoDisp;
   const venceTrasCupo = !!cupoElegido?.fechaVenc && form.fechaVenc > cupoElegido.fechaVenc;
 
-  const errores: string[] = [];
-  if (!form.poliza.trim()) errores.push('El número de la póliza es obligatorio.');
-  if (!form.valor || Number(form.valor) <= 0) errores.push('Ingresa un valor asegurado mayor a cero.');
-  if (!form.fechaInicio) errores.push('La fecha de inicio de vigencia es obligatoria.');
-  if (!form.fechaVenc) errores.push('La fecha de vencimiento de vigencia es obligatoria.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!form.poliza.trim()) addError("poliza", 'El número de la póliza es obligatorio.');
+  if (!form.valor || Number(form.valor) <= 0) addError("valor", 'Ingresa un valor asegurado mayor a cero.');
+  if (!form.fechaInicio) addError("fechaInicio", 'La fecha de inicio de vigencia es obligatoria.');
+  if (!form.fechaVenc) addError("fechaVenc", 'La fecha de vencimiento de vigencia es obligatoria.');
   if (form.fechaVenc && form.fechaInicio && form.fechaVenc < form.fechaInicio)
-    errores.push('El vencimiento no puede ser anterior al inicio.');
+    addError("fechaVenc", 'El vencimiento no puede ser anterior al inicio.');
   if (form.modalidadPoliza === 'Póliza por cupo' && !form.cupoId)
-    errores.push('Selecciona el cupo de la aseguradora para esta póliza por cupo.');
+    addError("cupoId", 'Selecciona el cupo de la aseguradora para esta póliza por cupo.');
 
   const guardar = () => {
     setIntentado(true);
@@ -100,6 +100,7 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="garantias"
       paso="Nueva póliza"
@@ -145,11 +146,11 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
       <FormGrid className="form-grid">
         <Field className="f">
           <label className="req">Número de póliza</label>
-          <Input value={form.poliza} onChange={(e) => set({ poliza: e.target.value })} placeholder="Ej. 1234-CP" />
+          <Input name="poliza" value={form.poliza} onChange={(e) => set({ poliza: e.target.value })} placeholder="Ej. 1234-CP" />
         </Field>
         <Field className="f">
           <label>Tipo de amparo</label>
-          <Select value={form.tipo} onChange={(e) => set({ tipo: e.target.value })}>
+          <Select name="tipo" value={form.tipo} onChange={(e) => set({ tipo: e.target.value })}>
             {CAT('tiposGarantia').map((t) => (
               <option key={t} value={t}>
                 {t}
@@ -159,7 +160,7 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
         </Field>
         <Field className="f">
           <label>Aseguradora</label>
-          <Select value={form.aseguradora} onChange={(e) => set({ aseguradora: e.target.value, cupoId: '' })}>
+          <Select name="aseguradora" value={form.aseguradora} onChange={(e) => set({ aseguradora: e.target.value, cupoId: '' })}>
             {CAT('aseguradoras').map((a) => (
               <option key={a} value={a}>
                 {a}
@@ -169,7 +170,7 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
         </Field>
         <Field className="f">
           <label>Modalidad</label>
-          <Select
+          <Select name="modalidadPoliza"
             value={form.modalidadPoliza}
             onChange={(e) => set({ modalidadPoliza: e.target.value, cupoId: '' })}
           >
@@ -180,7 +181,7 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
         {form.modalidadPoliza === 'Póliza por cupo' && (
           <Field className="f">
             <label className="req">Cupo de la aseguradora</label>
-            <Select value={form.cupoId} onChange={(e) => set({ cupoId: e.target.value })}>
+            <Select name="cupoId" value={form.cupoId} onChange={(e) => set({ cupoId: e.target.value })}>
               <option value="">— Seleccione el cupo —</option>
               {cuposForAseg.map((cp) => (
                 <option key={cp.id} value={cp.id}>
@@ -192,7 +193,7 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
         )}
         <Field className="f">
           <label className="req">Valor asegurado (COP)</label>
-          <Input
+          <Input name="valor"
             type="number"
             min="0"
             step="100000"
@@ -202,7 +203,7 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
         </Field>
         <Field className="f">
           <label>% del valor del contrato</label>
-          <Input
+          <Input name="porcentaje"
             type="number"
             min="0"
             max="100"
@@ -213,11 +214,11 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
         </Field>
         <Field className="f">
           <label className="req">Inicio de vigencia</label>
-          <Input type="date" value={form.fechaInicio} onChange={(e) => set({ fechaInicio: e.target.value })} />
+          <Input name="fechaInicio" type="date" value={form.fechaInicio} onChange={(e) => set({ fechaInicio: e.target.value })} />
         </Field>
         <Field className="f">
           <label className="req">Vencimiento de vigencia</label>
-          <Input type="date" value={form.fechaVenc} onChange={(e) => set({ fechaVenc: e.target.value })} />
+          <Input name="fechaVenc" type="date" value={form.fechaVenc} onChange={(e) => set({ fechaVenc: e.target.value })} />
         </Field>
       </FormGrid>
     </ExpedienteFormShell>

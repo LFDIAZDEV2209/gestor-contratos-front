@@ -7,7 +7,7 @@ import { Store, AuthService, Audit } from '../../../lib/store';
 import { todayIso, uid } from '../../../lib/format';
 import { CAT } from '../../../lib/catalog';
 import type { Obligation } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
 
 /**
  * VISTA dedicada de alta de obligación contractual (antes modal en TabObligaciones).
@@ -27,10 +27,10 @@ export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
   const [intentado, setIntentado] = useState(false);
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
-  const errores: string[] = [];
-  if (!form.descripcion.trim()) errores.push('La descripción de la obligación es obligatoria.');
-  if (!form.responsable.trim()) errores.push('El responsable es obligatorio.');
-  if (!form.fechaLimite) errores.push('La fecha límite es obligatoria.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!form.descripcion.trim()) addError("descripcion", 'La descripción de la obligación es obligatoria.');
+  if (!form.responsable.trim()) addError("responsable", 'El responsable es obligatorio.');
+  if (!form.fechaLimite) addError("fechaLimite", 'La fecha límite es obligatoria.');
 
   const guardar = () => {
     setIntentado(true);
@@ -68,6 +68,7 @@ export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="obligaciones"
       paso="Nueva obligación"
@@ -89,7 +90,7 @@ export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
       <FormGrid className="form-grid">
         <Field className="f span2">
           <label className="req">Descripción de la obligación</label>
-          <Textarea
+          <Textarea name="descripcion"
             rows={2}
             value={form.descripcion}
             onChange={(e) => set({ descripcion: e.target.value })}
@@ -98,7 +99,7 @@ export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
         </Field>
         <Field className="f">
           <label>Tipo</label>
-          <Select value={form.tipo} onChange={(e) => set({ tipo: e.target.value })}>
+          <Select name="tipo" value={form.tipo} onChange={(e) => set({ tipo: e.target.value })}>
             {CAT('tiposObligacion').map((t) => (
               <option key={t} value={t}>
                 {t}
@@ -108,7 +109,7 @@ export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
         </Field>
         <Field className="f">
           <label>Periodicidad</label>
-          <Select value={form.periodicidad} onChange={(e) => set({ periodicidad: e.target.value })}>
+          <Select name="periodicidad" value={form.periodicidad} onChange={(e) => set({ periodicidad: e.target.value })}>
             {['Única', 'Semanal', 'Quincenal', 'Mensual', 'Trimestral', 'Semestral', 'Anual', 'Por entrega', 'Permanente'].map((p) => (
               <option key={p} value={p}>
                 {p}
@@ -118,7 +119,7 @@ export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
         </Field>
         <Field className="f">
           <label className="req">Responsable</label>
-          <Input
+          <Input name="responsable"
             value={form.responsable}
             onChange={(e) => set({ responsable: e.target.value })}
             placeholder="Nombre del responsable"
@@ -126,7 +127,7 @@ export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
         </Field>
         <Field className="f">
           <label className="req">Fecha límite</label>
-          <Input
+          <Input name="fechaLimite"
             type="date"
             value={form.fechaLimite}
             onChange={(e) => set({ fechaLimite: e.target.value })}
@@ -134,7 +135,7 @@ export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
         </Field>
         <Field className="f">
           <label>Evidencia requerida</label>
-          <Input
+          <Input name="evidencia"
             value={form.evidencia}
             onChange={(e) => set({ evidencia: e.target.value })}
             placeholder="Ej. Certificado de cumplimiento"
@@ -142,7 +143,7 @@ export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
         </Field>
         <Field className="f">
           <label>Observaciones</label>
-          <Input
+          <Input name="obs"
             value={form.obs}
             onChange={(e) => set({ obs: e.target.value })}
             placeholder="Notas adicionales..."

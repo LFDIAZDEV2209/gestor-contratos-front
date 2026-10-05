@@ -291,7 +291,7 @@ export const ActasView = ({
 
         {/* Tabla de actas con rail de estado y hover lift */}
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Registro de actas contractuales">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -438,7 +438,7 @@ export const ActasView = ({
                         Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} de{' '}
                         <b>{filtered.length}</b> actas
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de actas">
                         <Button
                           disabled={currentPage <= 1}
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -447,7 +447,7 @@ export const ActasView = ({
                           &lt;
                         </Button>
                         {Array.from({ length: totalPages }, (_, p) => p + 1).map((p) => (
-                          <Button key={p} className={p === currentPage ? 'on' : ''} aria-current={p === currentPage ? 'page' : undefined} onClick={() => setPage(p)}>
+                          <Button key={p} className={p === currentPage ? 'on' : ''} aria-current={p === currentPage ? 'page' : undefined} aria-label={`Ir a la página ${p}`} onClick={() => setPage(p)}>
                             {p}
                           </Button>
                         ))}

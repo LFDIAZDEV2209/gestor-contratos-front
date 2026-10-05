@@ -6,7 +6,8 @@ import { FormGrid, Field } from '../../ui/Workspace';
 import { Store, AuthService, Audit } from '../../../lib/store';
 import { todayIso, uid, clamp } from '../../../lib/format';
 import type { Plan } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
+import { guardExpedienteRecord } from './ExpedienteRoute';
 
 type FormState = {
   hallazgo: string;
@@ -39,14 +40,18 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
   const [intentado, setIntentado] = useState(false);
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
-  const errores: string[] = [];
-  if (!form.hallazgo.trim()) errores.push('El hallazgo o hecho observado es obligatorio.');
-  if (!form.accion.trim()) errores.push('La acción correctiva comprometida es obligatoria.');
-  if (!form.fecha) errores.push('La fecha límite de cumplimiento es obligatoria.');
-  if (form.avance < 0 || form.avance > 100) errores.push('El avance debe estar entre 0 y 100.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!isEdit && !form.hallazgo.trim()) addError("hallazgo", 'El hallazgo o hecho observado es obligatorio.');
+  if (!form.accion.trim()) addError("accion", 'La acción correctiva comprometida es obligatoria.');
+  if (!form.fecha) addError("fecha", 'La fecha límite de cumplimiento es obligatoria.');
+  if (form.avance < 0 || form.avance > 100) addError("avance", 'El avance debe estar entre 0 y 100.');
 
   const guardar = () => {
     setIntentado(true);
+    if (recordId && !guardExpedienteRecord(cid, 'plans', recordId)) {
+      notify('El registro ya no pertenece a este expediente.');
+      return;
+    }
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
       return;
@@ -97,6 +102,7 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="incumplimientos"
       paso={isEdit ? `Avance de plan · ${actual!.id}` : 'Nuevo plan'}
@@ -125,7 +131,7 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
           <>
             <Field className="f span2">
               <label className="req">Hallazgo o hecho observado</label>
-              <Textarea
+              <Textarea name="hallazgo"
                 rows={2}
                 value={form.hallazgo}
                 placeholder="Hallazgo documentado en informe de supervisión o auditoría..."
@@ -135,7 +141,7 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
             </Field>
             <Field className="f span2">
               <label>Causa raíz identificada</label>
-              <Textarea
+              <Textarea name="causa"
                 rows={2}
                 value={form.causa}
                 placeholder="Causa técnica, logística o administrativa que originó la desviación..."
@@ -144,7 +150,7 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
             </Field>
             <Field className="f span2">
               <label className="req">Acción correctiva comprometida</label>
-              <Textarea
+              <Textarea name="accion"
                 rows={2}
                 value={form.accion}
                 placeholder="Acciones verificables para corregir el hallazgo y prevenir su recurrencia..."
@@ -154,11 +160,11 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
             </Field>
             <Field className="f">
               <label className="req">Fecha límite de cumplimiento</label>
-              <Input type="date" value={form.fecha} onChange={(e) => set({ fecha: e.target.value })} required />
+              <Input name="fecha" type="date" value={form.fecha} onChange={(e) => set({ fecha: e.target.value })} required />
             </Field>
             <Field className="f">
               <label>Responsable asignado</label>
-              <Input
+              <Input name="responsable"
                 value={form.responsable}
                 placeholder="Supervisor / Contratista"
                 onChange={(e) => set({ responsable: e.target.value })}
@@ -170,7 +176,7 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
           <>
             <Field className="f">
               <label className="req">Estado de implementación</label>
-              <Select value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
+              <Select name="estado" value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
                 <option value="Abierto">Abierto</option>
                 <option value="En ejecución">En ejecución</option>
                 <option value="Cumplido">Cumplido a satisfacción</option>
@@ -180,7 +186,7 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
             </Field>
             <Field className="f">
               <label className="req">% Avance implementado (0–100)</label>
-              <Input
+              <Input name="avance"
                 type="number"
                 min="0"
                 max="100"
@@ -191,7 +197,7 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
             </Field>
             <Field className="f span2">
               <label className="req">Acción correctiva en curso</label>
-              <Textarea
+              <Textarea name="accion"
                 rows={2}
                 value={form.accion}
                 onChange={(e) => set({ accion: e.target.value })}
@@ -200,7 +206,7 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
             </Field>
             <Field className="f span2">
               <label>Responsable del seguimiento</label>
-              <Input
+              <Input name="responsable"
                 value={form.responsable}
                 onChange={(e) => set({ responsable: e.target.value })}
                 placeholder={actual?.responsable || 'Supervisor'}

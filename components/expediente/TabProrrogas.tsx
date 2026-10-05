@@ -165,7 +165,7 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Historial de prórrogas suscritas">
               <thead>
                 <tr>
                   <th className="nw">Número Otrosí</th>

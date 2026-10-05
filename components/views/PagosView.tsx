@@ -427,7 +427,7 @@ export const PagosView = ({
 
         {/* Table */}
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Relación de órdenes de pago y facturas">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -582,7 +582,7 @@ export const PagosView = ({
                         Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} de{' '}
                         <b>{filtered.length}</b> pagos
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de pagos y facturas">
                         <Button
                           disabled={currentPage <= 1}
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -591,7 +591,13 @@ export const PagosView = ({
                           &lt;
                         </Button>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                          <Button key={p} className={p === currentPage ? 'on' : ''} onClick={() => setPage(p)}>
+                          <Button
+                            key={p}
+                            className={p === currentPage ? 'on' : ''}
+                            aria-current={p === currentPage ? 'page' : undefined}
+                            onClick={() => setPage(p)}
+                            aria-label={`Ir a la página ${p}`}
+                          >
                             {p}
                           </Button>
                         ))}

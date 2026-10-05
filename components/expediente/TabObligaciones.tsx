@@ -127,7 +127,7 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
       ) : (
         <Surface className="panel" style={{ paddingTop: 0 }}>
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Obligaciones contractuales">
               <thead>
                 <tr>
                   <th>Descripción</th>

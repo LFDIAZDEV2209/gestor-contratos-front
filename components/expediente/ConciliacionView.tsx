@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { Icon } from '../icons';
-import { Store, Audit } from '../../lib/store';
+import { Store, Audit, AuthService } from '../../lib/store';
 import { Validator } from '../../lib/validator';
 import { contractHref } from '../app/routes';
 import type { Contract } from '../../lib/types';
@@ -18,10 +18,11 @@ export const ConciliacionView = ({ cid }: { cid: string }) => {
   const c = Store.get('contracts', cid) as Contract | undefined;
   const logeado = useRef(false);
 
-  const res = useMemo(() => (c ? Validator.reconcile(c) : null), [c]);
+  const canView = AuthService.can('ver');
+  const res = useMemo(() => (c && canView ? Validator.reconcile(c) : null), [c, canView]);
 
   useEffect(() => {
-    if (!c || !res || logeado.current) return;
+    if (!c || !res || !canView || logeado.current) return;
     logeado.current = true;
     Audit.log({
       contractId: c.id,
@@ -30,7 +31,23 @@ export const ConciliacionView = ({ cid }: { cid: string }) => {
       campo: 'Resultado',
       nuevo: res.diffs ? `${res.diffs} diferencias` : 'Sin diferencias'
     });
-  }, [c, res]);
+  }, [c, res, canView]);
+
+  if (!canView) {
+    return (
+      <div className="anim-fade-rise" style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <EmptyState
+          title="Acceso restringido"
+          description="Tu rol no tiene permiso para consultar la conciliación contractual."
+          action={
+            <Link className="btn pri" href="/contratos" style={{ marginTop: 12 }}>
+              <Icon name="chevron-left" /> Volver a Contratos
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
 
   if (!c) {
     return (
@@ -127,12 +144,12 @@ export const ConciliacionView = ({ cid }: { cid: string }) => {
           <Surface className="panel mb">
             <div className="panel-h">
               <div>
-                <h3>Comparación campo a campo</h3>
+                <h2 style={{ fontSize: '15px', margin: 0, fontWeight: 600 }}>Comparación campo a campo</h2>
                 <span className="sub">{res.rows.length} campos conciliados</span>
               </div>
             </div>
             <TableViewport className="tbl-wrap">
-              <DataTable className="tbl conc">
+              <DataTable className="tbl conc" aria-label="Comparación campo a campo de conciliación">
                 <thead>
                   <tr>
                     <th>Campo</th>

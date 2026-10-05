@@ -662,7 +662,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 />
               ) : (
                 <TableViewport className="tbl-wrap">
-                  <DataTable className="tbl">
+                  <DataTable className="tbl" aria-label="Gestión de usuarios del sistema">
                     <thead>
                       <tr>
                         <th>ID</th>
@@ -776,7 +776,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
               </p>
 
               <TableViewport className="tbl-wrap">
-                <DataTable className="tbl perm">
+                <DataTable className="tbl perm" aria-label="Matriz de permisos por rol">
                   <thead>
                     <tr>
                       <th>Rol</th>
@@ -860,7 +860,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 />
               ) : (
                 <TableViewport className="tbl-wrap">
-                  <DataTable className="tbl">
+                  <DataTable className="tbl" aria-label="Catálogo de tipos de empresa">
                     <thead>
                       <tr>
                         <th>Razón social</th>

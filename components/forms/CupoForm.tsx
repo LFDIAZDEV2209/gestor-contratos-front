@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -17,6 +19,7 @@ import { Icon } from '../icons';
  * Mismas reglas que el handler original: número y valor obligatorios.
  */
 export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
+  const cancelar = useFormCancel("/aseguradoras");
   const [intentado, setIntentado] = useState(false);
   const [form, setForm] = useState({
     aseguradora: CAT('aseguradoras')[0] || 'Seguros del Estado S.A.',
@@ -33,26 +36,26 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
   const errCampo: Record<string, string> = {};
-  const errores: string[] = [];
+  const { errores, fieldErrors, addError } = createFieldValidation();
   if (!form.numero.trim()) {
     errCampo.numero = 'Ingresa el número o código del cupo.';
-    errores.push('El número de cupo es obligatorio.');
+    addError("numero", 'El número de cupo es obligatorio.');
   }
   if (!form.valor) {
     errCampo.valor = 'Ingresa el valor total asignado al cupo.';
-    errores.push('El valor asignado es obligatorio.');
+    addError("valor", 'El valor asignado es obligatorio.');
   }
   if (!form.fechaInicio) {
     errCampo.fechaInicio = 'Define la fecha de apertura del cupo.';
-    errores.push('La fecha de inicio es obligatoria.');
+    addError("fechaInicio", 'La fecha de inicio es obligatoria.');
   }
   if (!form.fechaVenc) {
     errCampo.fechaVenc = 'Define la fecha de vencimiento del cupo.';
-    errores.push('La fecha de vencimiento es obligatoria.');
+    addError("fechaVenc", 'La fecha de vencimiento es obligatoria.');
   }
   if (form.fechaInicio && form.fechaVenc && form.fechaVenc < form.fechaInicio) {
     errCampo.fechaVenc = 'El vencimiento no puede ser anterior a la fecha de inicio.';
-    errores.push('La fecha de vencimiento debe ser posterior a la de inicio.');
+    addError("fechaVenc", 'La fecha de vencimiento debe ser posterior a la de inicio.');
   }
 
   const guardar = () => {
@@ -92,14 +95,14 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/aseguradoras">Aseguradoras</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>Nuevo cupo</span>
-          </div>
+            <span aria-current="page">Nuevo cupo</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             Nuevo cupo de aseguradora
           </h1>
@@ -113,9 +116,9 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="layers" /> Datos del cupo
-            </h3>
+            </h2>
             <span className="sub small muted">Aseguradora emisora, monto autorizado y vigencia</span>
           </div>
         </div>
@@ -123,7 +126,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
         <FormGrid className="form-grid">
           <Field className="f span3">
             <label className="req">Aseguradora</label>
-            <Select value={form.aseguradora} onChange={(e) => set({ aseguradora: e.target.value })}>
+            <Select name="aseguradora" value={form.aseguradora} onChange={(e) => set({ aseguradora: e.target.value })}>
               {CAT('aseguradoras').map((a) => (
                 <option key={a} value={a}>
                   {a}
@@ -134,7 +137,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className={`f${err('numero') ? ' err' : ''}`}>
             <label className="req">Número / Código de cupo</label>
-            <Input
+            <Input name="numero"
               value={form.numero}
               placeholder="Ej. CUP-SURA-2026"
               onChange={(e) => set({ numero: e.target.value })}
@@ -149,7 +152,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className={`f${err('valor') ? ' err' : ''}`}>
             <label className="req">Valor total asignado (COP)</label>
-            <Input
+            <Input name="valor"
               type="number"
               min={0}
               step={1000000}
@@ -166,7 +169,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className="f">
             <label>Estado</label>
-            <Select value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
+            <Select name="estado" value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
               <option value="Vigente">Vigente</option>
               <option value="Suspendido">Suspendido</option>
               <option value="Vencido">Vencido</option>
@@ -175,7 +178,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className={`f${err('fechaInicio') ? ' err' : ''}`}>
             <label className="req">Fecha de apertura</label>
-            <Input
+            <Input name="fechaInicio"
               type="date"
               value={form.fechaInicio}
               onChange={(e) => set({ fechaInicio: e.target.value })}
@@ -190,7 +193,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className={`f${err('fechaVenc') ? ' err' : ''}`}>
             <label className="req">Fecha de vencimiento</label>
-            <Input
+            <Input name="fechaVenc"
               type="date"
               value={form.fechaVenc}
               onChange={(e) => set({ fechaVenc: e.target.value })}
@@ -205,7 +208,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className="f span3">
             <label>Tomador / Beneficiario</label>
-            <Input
+            <Input name="tomador"
               value={form.tomador}
               placeholder="Razón social contratante o consorcio"
               onChange={(e) => set({ tomador: e.target.value })}
@@ -214,7 +217,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className="f span3">
             <label>Intermediario / Corredor</label>
-            <Input
+            <Input name="intermediario"
               value={form.intermediario}
               placeholder="Agencia o corredor de seguros"
               onChange={(e) => set({ intermediario: e.target.value })}
@@ -223,7 +226,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className="f span3">
             <label>Observaciones</label>
-            <Textarea
+            <Textarea name="observaciones"
               rows={3}
               value={form.observaciones}
               placeholder="Condiciones particulares, exclusiones o acuerdos del cupo..."
@@ -233,27 +236,16 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
         </FormGrid>
       </Surface>
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="check" /> Registrar cupo
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

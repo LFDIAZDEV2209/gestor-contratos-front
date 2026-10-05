@@ -1,10 +1,11 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { WorkspaceSkeleton } from '@/components/ui/Workspace';
+import { useRouter, useSearchParams, notFound } from 'next/navigation';
 import { Alerts } from '@/lib/alerts';
 import { AuthService } from '@/lib/store';
-import { EmptyState } from '@/components/ui/Workspace';
+import { RouteState as EmptyState } from '@/components/expediente/forms/RouteState';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { TareaForm } from '@/components/forms/TareaForm';
@@ -30,7 +31,8 @@ function TareaDesdeAlerta() {
     setPermiso(AuthService.can('crear'));
   }, []);
 
-  if (permiso === null) return null;
+  if (permiso === null) return <WorkspaceSkeleton />;
+  if (permiso && alertKey && !alert) notFound();
 
   if (!alert || !permiso) {
     return (
@@ -63,7 +65,7 @@ function TareaDesdeAlerta() {
 export default function Page() {
   return (
     <div className="anim-fade-rise">
-      <Suspense fallback={null}>
+      <Suspense fallback={<WorkspaceSkeleton />}>
         <TareaDesdeAlerta />
       </Suspense>
     </div>

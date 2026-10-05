@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -17,6 +19,7 @@ import { Icon } from '../icons';
  * Mismas reglas del handler original: contrato, número y fecha obligatorios.
  */
 export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
+  const cancelar = useFormCancel("/actas");
   const [intentado, setIntentado] = useState(false);
   const [form, setForm] = useState({
     contractId: '',
@@ -36,18 +39,18 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
   const numero = form.numero.trim();
   const errCampo: Record<string, string> = {};
-  const errores: string[] = [];
+  const { errores, fieldErrors, addError } = createFieldValidation();
   if (!form.contractId) {
     errCampo.contractId = 'Selecciona el contrato al que pertenece el acta.';
-    errores.push('El contrato es obligatorio.');
+    addError("contractId", 'El contrato es obligatorio.');
   }
   if (!numero) {
     errCampo.numero = 'Ingresa el número o consecutivo del acta.';
-    errores.push('El número del acta es obligatorio.');
+    addError("numero", 'El número del acta es obligatorio.');
   }
   if (!form.fecha) {
     errCampo.fecha = 'Indica la fecha de elaboración o firma.';
-    errores.push('La fecha del acta es obligatoria.');
+    addError("fecha", 'La fecha del acta es obligatoria.');
   }
 
   const guardar = () => {
@@ -86,14 +89,14 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/actas">Actas</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>Nueva acta</span>
-          </div>
+            <span aria-current="page">Nueva acta</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             Nueva acta contractual
           </h1>
@@ -107,9 +110,9 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="file-signature" /> Identificación del acta
-            </h3>
+            </h2>
             <span className="sub small muted">Contrato, tipo, consecutivo y fecha</span>
           </div>
         </div>
@@ -117,7 +120,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
         <FormGrid className="form-grid">
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
-            <Select
+            <Select name="contractId"
               value={form.contractId}
               onChange={(e) => set({ contractId: e.target.value })}
               aria-describedby={err('contractId') ? 'err-acontrato' : undefined}
@@ -138,7 +141,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className="f">
             <label className="req">Tipo de acta</label>
-            <Select value={form.tipo} onChange={(e) => set({ tipo: e.target.value })}>
+            <Select name="tipo" value={form.tipo} onChange={(e) => set({ tipo: e.target.value })}>
               {tiposCatalogo.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -149,7 +152,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className={`f${err('numero') ? ' err' : ''}`}>
             <label className="req">Número de acta</label>
-            <Input
+            <Input name="numero"
               value={form.numero}
               placeholder="Ej. ACT-001"
               onChange={(e) => set({ numero: e.target.value })}
@@ -164,7 +167,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className={`f${err('fecha') ? ' err' : ''}`}>
             <label className="req">Fecha</label>
-            <Input
+            <Input name="fecha"
               type="date"
               value={form.fecha}
               onChange={(e) => set({ fecha: e.target.value })}
@@ -179,7 +182,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className="f span3">
             <label>Firmantes</label>
-            <Input
+            <Input name="firmantes"
               value={form.firmantes}
               placeholder="Nombres y cargos de quienes suscriben el acta"
               onChange={(e) => set({ firmantes: e.target.value })}
@@ -188,7 +191,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className="f span3">
             <label>Descripción / Objeto del acta</label>
-            <Textarea
+            <Textarea name="descripcion"
               rows={4}
               value={form.descripcion}
               placeholder="Detalle o acuerdos formalizados en el acta..."
@@ -201,9 +204,9 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="check-circle" /> Estado y soporte
-            </h3>
+            </h2>
             <span className="sub small muted">Situación documental y archivo de respaldo</span>
           </div>
         </div>
@@ -211,7 +214,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
         <FormGrid className="form-grid">
           <Field className="f">
             <label>Estado</label>
-            <Select value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
+            <Select name="estado" value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
               <option value="Borrador">Borrador</option>
               <option value="En firmas">En firmas</option>
               <option value="Firmada">Firmada</option>
@@ -220,7 +223,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
 
           <Field className="f span2">
             <label>Documento soporte (archivo)</label>
-            <Input
+            <Input name="archivo"
               value={form.archivo}
               placeholder="Nombre del archivo adjunto (ej. acta_inicio_firmada.pdf)"
               onChange={(e) => set({ archivo: e.target.value })}
@@ -234,27 +237,16 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
         </FormGrid>
       </Surface>
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="check" /> Registrar acta
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

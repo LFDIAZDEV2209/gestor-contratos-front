@@ -7,7 +7,7 @@ import { Store, AuthService, Audit } from '../../../lib/store';
 import { todayIso, uid } from '../../../lib/format';
 import { CAT } from '../../../lib/catalog';
 import type { Acta } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
 
 /**
  * VISTA dedicada de alta de actas (antes modal en TabActas). Reglas del handler original:
@@ -26,9 +26,9 @@ export const ActaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
   const [intentado, setIntentado] = useState(false);
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
-  const errores: string[] = [];
-  if (!form.numero.trim()) errores.push('El número del acta es obligatorio (se usa como radicado en el expediente).');
-  if (!form.fecha) errores.push('La fecha del acta es obligatoria.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!form.numero.trim()) addError("numero", 'El número del acta es obligatorio (se usa como radicado en el expediente).');
+  if (!form.fecha) addError("fecha", 'La fecha del acta es obligatoria.');
 
   const guardar = () => {
     setIntentado(true);
@@ -64,6 +64,7 @@ export const ActaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="actas"
       paso="Nueva acta"
@@ -85,7 +86,7 @@ export const ActaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
       <FormGrid className="form-grid">
         <Field className="f">
           <label className="req">Tipo de acta</label>
-          <Select value={form.tipo} onChange={(e) => set({ tipo: e.target.value })}>
+          <Select name="tipo" value={form.tipo} onChange={(e) => set({ tipo: e.target.value })}>
             {CAT('tiposActa').map((t) => (
               <option key={t} value={t}>
                 {t}
@@ -95,15 +96,15 @@ export const ActaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
         </Field>
         <Field className="f">
           <label className="req">Número de acta</label>
-          <Input value={form.numero} placeholder="Ej. ACT-001" onChange={(e) => set({ numero: e.target.value })} />
+          <Input name="numero" value={form.numero} placeholder="Ej. ACT-001" onChange={(e) => set({ numero: e.target.value })} />
         </Field>
         <Field className="f">
           <label className="req">Fecha</label>
-          <Input type="date" value={form.fecha} onChange={(e) => set({ fecha: e.target.value })} />
+          <Input name="fecha" type="date" value={form.fecha} onChange={(e) => set({ fecha: e.target.value })} />
         </Field>
         <Field className="f">
           <label>Estado</label>
-          <Select value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
+          <Select name="estado" value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
             <option value="Borrador">Borrador</option>
             <option value="En firmas">En firmas</option>
             <option value="Firmada">Firmada</option>
@@ -111,7 +112,7 @@ export const ActaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
         </Field>
         <Field className="f span2">
           <label>Firmantes</label>
-          <Input
+          <Input name="firmantes"
             value={form.firmantes}
             placeholder="Nombres y cargos de quienes suscriben el acta"
             onChange={(e) => set({ firmantes: e.target.value })}
@@ -119,7 +120,7 @@ export const ActaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
         </Field>
         <Field className="f span2">
           <label>Descripción / Objeto del acta</label>
-          <Textarea
+          <Textarea name="descripcion"
             rows={3}
             value={form.descripcion}
             placeholder="Detalle o acuerdos registrados en el acta..."
@@ -128,7 +129,7 @@ export const ActaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
         </Field>
         <Field className="f span2">
           <label>Documento soporte (archivo)</label>
-          <Input
+          <Input name="archivo"
             value={form.archivo}
             placeholder="Nombre del archivo adjunto (ej. acta_inicio_firmada.pdf)"
             onChange={(e) => set({ archivo: e.target.value })}

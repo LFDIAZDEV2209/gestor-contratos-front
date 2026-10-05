@@ -1,5 +1,5 @@
 'use client';
-import { Children, cloneElement, isValidElement, useId, type HTMLAttributes, type ReactNode, type TableHTMLAttributes } from 'react';
+import { Children, cloneElement, isValidElement, useEffect, useId, useRef, type HTMLAttributes, type ReactNode, type TableHTMLAttributes } from 'react';
 import { Icon } from '../icons';
 import { Button } from './button';
 import { Input, Select, Textarea } from './Controls';
@@ -7,7 +7,24 @@ type BoxProps = HTMLAttributes<HTMLDivElement>;
 export function PageHeader({ className = '', variant = 'plain', children, ...props }: BoxProps & { variant?: 'plain' | 'hero' }) { return <header {...props} className={`ph workspace-heading ${variant === 'hero' ? 'page-hero' : ''} ${className}`}>{children}</header>; }
 export function Surface({ className = '', ...props }: BoxProps) { return <div {...props} className={`panel ${className}`} />; }
 export function MetricCard({ className = '', ...props }: BoxProps) { return <div {...props} className={`kpi metric-card ${className}`} />; }
-export function TableViewport({ className = '', ...props }: BoxProps) { return <div {...props} className={`tbl-wrap ${className}`} tabIndex={0} role="region" aria-label={props['aria-label'] || 'Tabla de datos; desplazamiento horizontal disponible'} />; }
+// Tabla con affordance de scroll reactiva: 'none' (sin overflow, sin hint),
+// 'true' (fin del desplazamiento alcanzado) o sin atributo (hint persistente).
+export function TableViewport({ className = '', ...props }: BoxProps) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const update = () => {
+    const el = ref.current;
+    if (!el) return;
+    const overflow = el.scrollWidth - el.clientWidth;
+    if (overflow <= 2) {
+      el.setAttribute('data-scrolled-end', 'none');
+      return;
+    }
+    if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 4) el.setAttribute('data-scrolled-end', 'true');
+    else el.removeAttribute('data-scrolled-end');
+  };
+  useEffect(() => { update(); }, []);
+  return <div ref={ref} onScroll={update} {...props} className={`tbl-wrap ${className}`} tabIndex={0} role="region" aria-label={props['aria-label'] || 'Tabla de datos; desplazamiento horizontal disponible'} />;
+}
 export function DataTable({ className = '', children, layout = 'compact', ...props }: TableHTMLAttributes<HTMLTableElement> & { layout?: 'compact' | 'readable' }) {
   const body = Children.toArray(children).find(child=>isValidElement<ChildProps>(child) && child.type === 'tbody');
   const rows = isValidElement<ChildProps>(body) ? Children.toArray(body.props.children).filter(Boolean) : [];

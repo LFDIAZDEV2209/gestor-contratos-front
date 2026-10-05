@@ -98,7 +98,7 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
         )}
         {docs.length > 0 && (
           <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Documentos del contrato">
             <thead>
               <tr>
                 <th>Categoría</th>
@@ -187,7 +187,7 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
             <Icon name="lock" /> Las versiones de los documentos son inmutables y nunca se eliminan del repositorio.
           </div>
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Historial de versiones del documento">
               <thead>
                 <tr>
                   <th>Versión</th>

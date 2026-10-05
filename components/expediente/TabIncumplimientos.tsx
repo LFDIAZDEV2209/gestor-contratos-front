@@ -191,7 +191,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Incumplimientos registrados del contrato">
               <thead>
                 <tr>
                   <th className="nw">Fecha reporte</th>
@@ -312,7 +312,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Planes de mejoramiento del contrato">
               <thead>
                 <tr>
                   <th>Hallazgo observado</th>

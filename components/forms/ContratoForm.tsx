@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -66,6 +68,7 @@ export const ContratoForm = ({
   initial?: Partial<Contract>;
   onDone: (savedId: string) => void;
 }) => {
+  const cancelar = useFormCancel("/contratos");
   const isEdit = Boolean(initial?.id);
   const [tab, setTab] = useState<TabId>('General');
   const [form, setForm] = useState<Partial<Contract>>(() => ({
@@ -113,6 +116,17 @@ export const ContratoForm = ({
 
   const issues = Validator.draft(form);
   const hasCritical = issues.some((i) => i.sev === 'Alta');
+  const [intentado, setIntentado] = useState(false);
+  const issueFields: Record<string, string> = {
+    'Número': 'numero', 'Objeto': 'objeto', 'Fecha de inicio': 'fechaInicio',
+    'Fecha de terminación': 'fechaFin', 'Duración': 'duracionDias',
+    'Reducciones': 'reducciones', 'IVA': 'iva', 'Ejecución física': 'avanceFisico'
+  };
+  const fieldErrors = Object.fromEntries(issues.filter((issue) => issue.sev === 'Alta').map((issue) => [issueFields[issue.campo ?? ''] ?? 'numero', issue.msg]));
+  const activateField = (field: string) => setTab(
+    ['fechaInicio', 'fechaFin', 'duracionDias'].includes(field) ? 'Fechas'
+      : ['reducciones', 'iva', 'avanceFisico'].includes(field) ? 'Económica' : 'General'
+  );
 
   const getIssueFor = (campo: string) => {
     return issues.find((i) => (i.campo || '').toLowerCase() === campo.toLowerCase());
@@ -142,6 +156,7 @@ export const ContratoForm = ({
   const valTotalActual = Math.max(0, valBase + valIva + valOtros + valAdic - valReduc);
 
   const handleSave = () => {
+    setIntentado(true);
     if (hasCritical) {
       notify('Corrige los errores críticos marcados antes de guardar.');
       return;
@@ -207,10 +222,10 @@ export const ContratoForm = ({
     id === 'General' ? generalIssuesCount : id === 'Fechas' ? fechasIssuesCount : id === 'Económica' ? econIssuesCount : 0;
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado} activateField={activateField}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }} aria-label="Ruta de navegación">
+          <nav className="crumb" style={{ width: '100%', marginBottom: 6 }} aria-label="Ruta de navegación">
             <Link href="/contratos">Contratos</Link>
             {isEdit && (
               <>
@@ -221,8 +236,8 @@ export const ContratoForm = ({
               </>
             )}
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>{isEdit ? 'Editar contrato' : 'Nuevo contrato'}</span>
-          </div>
+            <span aria-current="page">{isEdit ? 'Editar contrato' : 'Nuevo contrato'}</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0, flexWrap: 'wrap' }}>
             {isEdit ? 'Editar Contrato' : 'Registro de Nuevo Contrato'}
             {isEdit && <span className="badge b-info mono">{String(currentNumber || '')}</span>}
@@ -364,8 +379,17 @@ export const ContratoForm = ({
                 type="button"
                 role="tab"
                 id={`tab-seccion-${idx}`}
-                aria-controls={`panel-seccion-${idx}`}
+                aria-controls="contrato-form-panel"
                 aria-selected={activo}
+                tabIndex={activo ? 0 : -1}
+                onKeyDown={(event) => {
+                  const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+                  if (!keys.includes(event.key)) return;
+                  event.preventDefault();
+                  const next = event.key === 'Home' ? 0 : event.key === 'End' ? SECCIONES.length - 1 : (idx + (event.key === 'ArrowRight' ? 1 : -1) + SECCIONES.length) % SECCIONES.length;
+                  setTab(SECCIONES[next].id);
+                  document.getElementById(`tab-seccion-${next}`)?.focus();
+                }}
                 className={`tab ${activo ? 'on' : ''}`}
                 onClick={() => setTab(s.id)}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
@@ -400,14 +424,14 @@ export const ContratoForm = ({
           key={tab}
           className="tab-content anim-fade-rise"
           role="tabpanel"
-          id={`panel-seccion-${SECCIONES.findIndex((s) => s.id === tab)}`}
+          id="contrato-form-panel"
           aria-labelledby={`tab-seccion-${SECCIONES.findIndex((s) => s.id === tab)}`}
           style={{ animationDuration: '200ms' }}
         >
           <div style={{ marginBottom: 16 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name={seccion.icon} size={15} style={{ color: 'var(--brand)' }} /> {seccion.titulo}
-            </h3>
+            </h2>
             <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 0' }}>{seccion.sub}</p>
           </div>
 
@@ -415,7 +439,7 @@ export const ContratoForm = ({
             <FormGrid className="form-grid">
               <Field className="f">
                 <label className="req">Número de Contrato</label>
-                <Input
+                <Input name="numero"
                   value={form.numero || form.num || ''}
                   onChange={(e) => updateField('numero', e.target.value)}
                   placeholder="Ej. CTR-2024-001"
@@ -430,7 +454,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label>Tipo de Contrato</label>
-                <Select value={form.tipo || form.type || 'Servicios'} onChange={(e) => updateField('tipo', e.target.value)}>
+                <Select name="tipo" value={form.tipo || form.type || 'Servicios'} onChange={(e) => updateField('tipo', e.target.value)}>
                   <option value="Obra">Obra</option>
                   <option value="Servicios">Prestación de Servicios</option>
                   <option value="Suministro">Suministro</option>
@@ -441,7 +465,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label className="req">Empresa Contratante</label>
-                <Select
+                <Select name="companyId"
                   value={form.companyId || form.company || ''}
                   onChange={(e) => updateField('companyId', e.target.value)}
                 >
@@ -456,7 +480,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label>Nombre del Contratista</label>
-                <Input
+                <Input name="contratista"
                   value={form.contratista || ''}
                   onChange={(e) => updateField('contratista', e.target.value)}
                   placeholder="Razón social o contratista"
@@ -465,7 +489,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label>NIT / Identificación Contratista</label>
-                <Input
+                <Input name="nitContratista"
                   value={form.nitContratista || ''}
                   onChange={(e) => updateField('nitContratista', e.target.value)}
                   placeholder="Ej. 900.123.456-7"
@@ -474,7 +498,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label>Estado Inicial</label>
-                <Select
+                <Select name="estado"
                   value={form.estado || form.status || 'Borrador'}
                   onChange={(e) => updateField('estado', e.target.value)}
                 >
@@ -488,7 +512,7 @@ export const ContratoForm = ({
 
               <Field className="f span3">
                 <label className="req">Objeto Contractual</label>
-                <Textarea
+                <Textarea name="objeto"
                   rows={3}
                   value={form.objeto || form.obj || ''}
                   onChange={(e) => updateField('objeto', e.target.value)}
@@ -504,7 +528,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label>Responsable Interno</label>
-                <Input
+                <Input name="responsable"
                   value={form.responsable || ''}
                   onChange={(e) => updateField('responsable', e.target.value)}
                   placeholder="Nombre del funcionario responsable"
@@ -513,7 +537,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label>Supervisor Designado</label>
-                <Input
+                <Input name="supervisor"
                   value={form.supervisor || ''}
                   onChange={(e) => updateField('supervisor', e.target.value)}
                   placeholder="Nombre del supervisor"
@@ -526,7 +550,7 @@ export const ContratoForm = ({
             <FormGrid className="form-grid">
               <Field className="f">
                 <label>Fecha de Firma</label>
-                <Input
+                <Input name="fechaFirma"
                   type="date"
                   value={form.fechaFirma || form.signDate || ''}
                   onChange={(e) => updateField('fechaFirma', e.target.value)}
@@ -535,7 +559,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label className="req">Fecha de Inicio</label>
-                <Input
+                <Input name="fechaInicio"
                   type="date"
                   value={form.fechaInicio || form.startDate || ''}
                   onChange={(e) => updateField('fechaInicio', e.target.value)}
@@ -550,7 +574,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label className="req">Fecha de Terminación</label>
-                <Input
+                <Input name="fechaFin"
                   type="date"
                   value={form.fechaFin || form.endDate || ''}
                   onChange={(e) => updateField('fechaFin', e.target.value)}
@@ -580,9 +604,13 @@ export const ContratoForm = ({
 
           {tab === 'Económica' && (
             <FormGrid className="form-grid">
+              {isEdit && Number(initial?.avanceFisico) > 100 && <Field className="f">
+                <label>Ejecución física acumulada (%)</label>
+                <Input name="avanceFisico" type="number" min="0" max="100" value={form.avanceFisico ?? 0} onChange={(event) => updateField('avanceFisico', Number(event.target.value))} />
+              </Field>}
               <Field className="f">
                 <label className="req">Valor Base / Inicial</label>
-                <Input
+                <Input name="valorBase"
                   type="number"
                   min="0"
                   step="1000"
@@ -595,7 +623,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label>Moneda</label>
-                <Select value={form.cur || 'COP'} onChange={(e) => updateField('cur', e.target.value)}>
+                <Select name="cur" value={form.cur || 'COP'} onChange={(e) => updateField('cur', e.target.value)}>
                   <option value="COP">COP — Peso Colombiano</option>
                   <option value="USD">USD — Dólar Estadounidense</option>
                 </Select>
@@ -603,7 +631,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label>IVA Aplicable</label>
-                <Input
+                <Input name="iva"
                   type="number"
                   min="0"
                   value={form.iva || ''}
@@ -620,7 +648,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label>Adiciones Contractuales</label>
-                <Input
+                <Input name="adiciones"
                   type="number"
                   min="0"
                   value={form.adiciones || ''}
@@ -631,7 +659,7 @@ export const ContratoForm = ({
 
               <Field className="f">
                 <label>Reducciones Contractuales</label>
-                <Input
+                <Input name="reducciones"
                   type="number"
                   min="0"
                   value={form.reducciones || ''}
@@ -711,7 +739,7 @@ export const ContratoForm = ({
             <FormGrid className="form-grid">
               <Field className="f span3">
                 <label>Descripción Detallada del Alcance</label>
-                <Textarea
+                <Textarea name="descripcion"
                   rows={4}
                   value={form.descripcion || form.objeto || form.obj || ''}
                   onChange={(e) => updateField('descripcion', e.target.value)}
@@ -721,7 +749,7 @@ export const ContratoForm = ({
 
               <Field className="f span3">
                 <label>Entregables y Productos Esperados</label>
-                <Textarea
+                <Textarea name="productos"
                   rows={3}
                   value={form.productos || ''}
                   onChange={(e) => updateField('productos', e.target.value)}
@@ -731,7 +759,7 @@ export const ContratoForm = ({
 
               <Field className="f span3">
                 <label>Indicadores de Cumplimiento / Seguimiento</label>
-                <Input
+                <Input name="indicadores"
                   value={form.indicadores || ''}
                   onChange={(e) => updateField('indicadores', e.target.value)}
                   placeholder="Ej. Cumplimiento de cronograma 100%, nivel de satisfacción > 90%"
@@ -778,13 +806,13 @@ export const ContratoForm = ({
 
       {/* Footer de acciones canónico del sistema */}
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={handleSave} disabled={hasCritical} title={hasCritical ? 'Corrija los errores críticos para guardar' : 'Guardar expediente'}>
+        <Button className="btn pri" onClick={handleSave} aria-disabled={hasCritical} title={hasCritical ? 'Corrija los errores críticos para guardar' : 'Guardar expediente'}>
           <Icon name="check" /> {isEdit ? 'Guardar Cambios' : 'Guardar Contrato'}
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

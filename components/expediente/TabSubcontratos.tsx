@@ -216,7 +216,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Subcontratos vinculados al contrato">
               <thead>
                 <tr>
                   <th className="nw">Número</th>

@@ -1,9 +1,9 @@
 "use client";
 
 import { use } from "react";
-import { useRouter } from "next/navigation";
+import { notFound,  useRouter } from "next/navigation";
 import { Store, AuthService } from "@/lib/store";
-import { EmptyState } from "@/components/ui/Workspace";
+import { RouteState as EmptyState } from '@/components/expediente/forms/RouteState';
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/icons";
 import { UsuarioForm } from "@/components/forms/UsuarioForm";
@@ -23,6 +23,7 @@ export default function Page({
     AuthService.currentUser()?.rol === "ADMINISTRADOR" &&
     AuthService.can("editar");
 
+  if (permitido && !user) notFound();
   if (!user || !permitido) {
     return (
       <div

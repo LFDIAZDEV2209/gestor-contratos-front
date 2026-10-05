@@ -7,7 +7,8 @@ import { Store, AuthService, Audit } from '../../../lib/store';
 import { todayIso, uid } from '../../../lib/format';
 import { CAT } from '../../../lib/catalog';
 import type { Contract, Risk } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
+import { guardExpedienteRecord } from './ExpedienteRoute';
 
 type FormState = {
   riesgo: string;
@@ -48,14 +49,18 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
   const nivel = (Number(form.prob) || 0) * (Number(form.impacto) || 0);
   const nivelTxt = nivel >= 15 ? 'Extremo' : nivel >= 10 ? 'Alto' : nivel >= 5 ? 'Moderado' : 'Bajo';
 
-  const errores: string[] = [];
-  if (!form.riesgo.trim()) errores.push('La descripción del evento de riesgo es obligatoria.');
-  if (Number(form.prob) < 1 || Number(form.prob) > 5) errores.push('La probabilidad debe estar entre 1 y 5.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!form.riesgo.trim()) addError("riesgo", 'La descripción del evento de riesgo es obligatoria.');
+  if (Number(form.prob) < 1 || Number(form.prob) > 5) addError("prob", 'La probabilidad debe estar entre 1 y 5.');
   if (Number(form.impacto) < 1 || Number(form.impacto) > 5)
-    errores.push('El impacto debe estar entre 1 y 5.');
+    addError("impacto", 'El impacto debe estar entre 1 y 5.');
 
   const guardar = () => {
     setIntentado(true);
+    if (recordId && !guardExpedienteRecord(cid, 'risks', recordId)) {
+      notify('El registro ya no pertenece a este expediente.');
+      return;
+    }
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
       return;
@@ -111,6 +116,7 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="riesgos"
       paso={isEdit ? `Editar riesgo · ${actual!.id}` : 'Nuevo riesgo'}
@@ -139,7 +145,7 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
       <FormGrid className="form-grid">
         <Field className="f span2">
           <label className="req">Descripción del evento de riesgo</label>
-          <Textarea
+          <Textarea name="riesgo"
             rows={2}
             value={form.riesgo}
             placeholder="Descripción concisa de la amenaza o evento que podría impactar el contrato..."
@@ -149,7 +155,7 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
         </Field>
         <Field className="f">
           <label className="req">Categoría de riesgo</label>
-          <Select value={form.categoria} onChange={(e) => set({ categoria: e.target.value })}>
+          <Select name="categoria" value={form.categoria} onChange={(e) => set({ categoria: e.target.value })}>
             {CAT('categoriasRiesgo').map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
@@ -159,7 +165,7 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
         </Field>
         <Field className="f">
           <label className="req">Responsable del monitoreo</label>
-          <Input
+          <Input name="responsable"
             value={form.responsable}
             placeholder={c.responsable || 'Supervisor designado'}
             onChange={(e) => set({ responsable: e.target.value })}
@@ -167,7 +173,7 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
         </Field>
         <Field className="f">
           <label className="req">Probabilidad (1 a 5)</label>
-          <Select value={form.prob} onChange={(e) => set({ prob: Number(e.target.value) })}>
+          <Select name="prob" value={form.prob} onChange={(e) => set({ prob: Number(e.target.value) })}>
             <option value={1}>1 - Muy baja (Raro)</option>
             <option value={2}>2 - Baja (Poco probable)</option>
             <option value={3}>3 - Media (Posible)</option>
@@ -177,7 +183,7 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
         </Field>
         <Field className="f">
           <label className="req">Impacto (1 a 5)</label>
-          <Select value={form.impacto} onChange={(e) => set({ impacto: Number(e.target.value) })}>
+          <Select name="impacto" value={form.impacto} onChange={(e) => set({ impacto: Number(e.target.value) })}>
             <option value={1}>1 - Leve (Insignificante)</option>
             <option value={2}>2 - Menor</option>
             <option value={3}>3 - Moderado</option>
@@ -187,7 +193,7 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
         </Field>
         <Field className="f">
           <label>Estrategia de tratamiento</label>
-          <Select value={form.tratamiento} onChange={(e) => set({ tratamiento: e.target.value })}>
+          <Select name="tratamiento" value={form.tratamiento} onChange={(e) => set({ tratamiento: e.target.value })}>
             <option value="Mitigar">Mitigar (Reducir probabilidad o impacto)</option>
             <option value="Transferir">Transferir (Pólizas / Subcontratos)</option>
             <option value="Aceptar">Aceptar (Asumir riesgo residual)</option>
@@ -196,7 +202,7 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
         </Field>
         <Field className="f">
           <label>Estado</label>
-          <Select value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
+          <Select name="estado" value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
             <option value="Abierto">Abierto</option>
             <option value="Controlado">Controlado</option>
             <option value="Cerrado">Cerrado</option>
@@ -204,7 +210,7 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
         </Field>
         <Field className="f span2">
           <label>Plan de mitigación / Controles preventivos</label>
-          <Textarea
+          <Textarea name="mitigacion"
             rows={3}
             value={form.mitigacion}
             placeholder="Acciones preventivas, controles operacionales y protocolos de contingencia..."
@@ -214,7 +220,7 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
         {!isEdit && (
           <Field className="f span2">
             <label>Evidencia / Referencia documental</label>
-            <Input
+            <Input name="evidencia"
               value={form.evidencia}
               placeholder="Ej. Informe de supervisión 2026-04"
               onChange={(e) => set({ evidencia: e.target.value })}

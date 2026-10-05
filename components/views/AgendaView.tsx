@@ -312,7 +312,7 @@ export const AgendaView = ({
               </div>
             ) : (
               <TableViewport className="tbl-wrap">
-                <DataTable className="tbl">
+                <DataTable className="tbl" aria-label={`Contratos: ${b.title}`}>
                   <thead>
                     <tr>
                       <th className="nw">Número</th>

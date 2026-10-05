@@ -1,9 +1,9 @@
 "use client";
 
 import { use } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, notFound } from "next/navigation";
 import { AuthService } from "@/lib/store";
-import { EmptyState } from "@/components/ui/Workspace";
+import { RouteState as EmptyState } from '@/components/expediente/forms/RouteState';
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/icons";
 import { getReporte } from "@/components/reportes/catalogo";
@@ -31,29 +31,10 @@ export default function Page({
 
   const report = getReporte(key);
   const volver = () => router.push("/reportes");
+  if (!AuthService.can('ver')) return <EmptyState title="Acceso restringido" description="Tu rol no permite consultar reportes." />;
+  if (!report) notFound();
 
-  if (!report) {
-    return (
-      <div
-        className="anim-fade-rise"
-        style={{ padding: "40px 20px", textAlign: "center" }}
-      >
-        <EmptyState
-          title="Reporte no encontrado"
-          description="La clave del reporte no existe en la biblioteca. Puede que el reporte haya sido retirado del catálogo."
-          action={
-            <Button
-              className="btn pri"
-              onClick={volver}
-              style={{ marginTop: 12 }}
-            >
-              <Icon name="chevron-left" /> Volver a Reportes
-            </Button>
-          }
-        />
-      </div>
-    );
-  }
+
 
   // Permiso de auditoría del reporte de bitácora (se resuelve al entrar directo)
   if (report.k === "r_aud" && !AuthService.can("auditar")) {

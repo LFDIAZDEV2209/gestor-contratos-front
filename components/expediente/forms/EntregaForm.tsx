@@ -6,7 +6,8 @@ import { FormGrid, Field } from '../../ui/Workspace';
 import { Store, AuthService, Audit } from '../../../lib/store';
 import { todayIso, clamp } from '../../../lib/format';
 import type { Deliverable } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
+import { guardExpedienteRecord } from './ExpedienteRoute';
 
 type FormState = { estado: string; avance: number; fechaReal: string; evidencia: string; obs: string };
 
@@ -28,11 +29,15 @@ export const EntregaForm = ({ cid, recordId, onDone }: { cid: string; recordId: 
   const [intentado, setIntentado] = useState(false);
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
-  const errores: string[] = [];
-  if (form.avance < 0 || form.avance > 100) errores.push('El avance debe estar entre 0 y 100.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (form.avance < 0 || form.avance > 100) addError("avance", 'El avance debe estar entre 0 y 100.');
 
   const guardar = () => {
     setIntentado(true);
+    if (recordId && !guardExpedienteRecord(cid, 'deliverables', recordId)) {
+      notify('El registro ya no pertenece a este expediente.');
+      return;
+    }
     if (!d) return;
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -66,6 +71,7 @@ export const EntregaForm = ({ cid, recordId, onDone }: { cid: string; recordId: 
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="entregables"
       paso="Gestionar entrega"
@@ -87,7 +93,7 @@ export const EntregaForm = ({ cid, recordId, onDone }: { cid: string; recordId: 
       <FormGrid className="form-grid">
         <Field className="f">
           <label className="req">Estado de entrega</label>
-          <Select
+          <Select name="estado"
             value={form.estado}
             onChange={(e) => {
               const est = e.target.value;
@@ -107,7 +113,7 @@ export const EntregaForm = ({ cid, recordId, onDone }: { cid: string; recordId: 
         </Field>
         <Field className="f">
           <label className="req">% Avance actual (0–100)</label>
-          <Input
+          <Input name="avance"
             type="number"
             min="0"
             max="100"
@@ -118,11 +124,11 @@ export const EntregaForm = ({ cid, recordId, onDone }: { cid: string; recordId: 
         </Field>
         <Field className="f span2">
           <label>Fecha real de radicación o entrega</label>
-          <Input type="date" value={form.fechaReal} onChange={(e) => set({ fechaReal: e.target.value })} />
+          <Input name="fechaReal" type="date" value={form.fechaReal} onChange={(e) => set({ fechaReal: e.target.value })} />
         </Field>
         <Field className="f span2">
           <label>Radicado / Soporte documental</label>
-          <Input
+          <Input name="evidencia"
             value={form.evidencia}
             onChange={(e) => set({ evidencia: e.target.value })}
             placeholder="Ej. Radicado interno No. 2026-0982 o enlace a carpeta"
@@ -130,7 +136,7 @@ export const EntregaForm = ({ cid, recordId, onDone }: { cid: string; recordId: 
         </Field>
         <Field className="f span2">
           <label>Observaciones de supervisión</label>
-          <Textarea
+          <Textarea name="obs"
             rows={2}
             value={form.obs}
             onChange={(e) => set({ obs: e.target.value })}

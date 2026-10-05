@@ -6,7 +6,7 @@ import { FormGrid, Field } from '../../ui/Workspace';
 import { Store, AuthService, Audit } from '../../../lib/store';
 import { todayIso, addDays, diffDays, uid } from '../../../lib/format';
 import type { Acta, Contract, Modification } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
 
 /**
  * VISTA dedicada de reinicio de ejecución (antes modal en TabSuspensiones, fila 49 del mapa).
@@ -31,10 +31,10 @@ export const ReinicioForm = ({ cid, onDone }: { cid: string; onDone: () => void 
   const [soporte, setSoporte] = useState('');
   const [intentado, setIntentado] = useState(false);
 
-  const errores: string[] = [];
-  if (!fecha) errores.push('La fecha efectiva del reinicio es obligatoria.');
-  if (!justificacion.trim()) errores.push('La justificación de la actuación es obligatoria.');
-  if (diasProrroga < 0) errores.push('Los días de ampliación no pueden ser negativos.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!fecha) addError("fecha", 'La fecha efectiva del reinicio es obligatoria.');
+  if (!justificacion.trim()) addError("justificacion", 'La justificación de la actuación es obligatoria.');
+  if (diasProrroga < 0) addError("diasProrroga", 'Los días de ampliación no pueden ser negativos.');
 
   const guardar = () => {
     setIntentado(true);
@@ -92,6 +92,7 @@ export const ReinicioForm = ({ cid, onDone }: { cid: string; onDone: () => void 
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="suspensiones"
       paso="Reinicio"
@@ -113,11 +114,11 @@ export const ReinicioForm = ({ cid, onDone }: { cid: string; onDone: () => void 
       <FormGrid className="form-grid">
         <Field className="f">
           <label className="req">Fecha efectiva del reinicio</label>
-          <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          <Input name="fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
         </Field>
         <Field className="f">
           <label>Días de ampliación acumulados</label>
-          <Input
+          <Input name="diasProrroga"
             type="number"
             min="0"
             step="1"
@@ -131,11 +132,11 @@ export const ReinicioForm = ({ cid, onDone }: { cid: string; onDone: () => void 
         </Field>
         <Field className="f">
           <label>Nueva fecha de terminación contractual</label>
-          <Input value={nuevaFechaFin} disabled readOnly />
+          <Input name="nuevaFechaFin" value={nuevaFechaFin} disabled readOnly />
         </Field>
         <Field className="f">
           <label>Documento soporte (archivo radicado)</label>
-          <Input
+          <Input name="soporte"
             value={soporte}
             placeholder="Ej. acta_reinicio_firmada.pdf"
             onChange={(e) => setSoporte(e.target.value)}
@@ -143,7 +144,7 @@ export const ReinicioForm = ({ cid, onDone }: { cid: string; onDone: () => void 
         </Field>
         <Field className="f span2">
           <label className="req">Justificación de la actuación</label>
-          <Textarea
+          <Textarea name="justificacion"
             rows={3}
             value={justificacion}
             placeholder="Causal del reinicio (solucionada la causal de la suspensión, acuerdo de las partes...)"

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from "next/link";
 import { Input, Select } from "../ui/Controls";
 import { notify } from "../ui/Feedback";
@@ -25,6 +27,7 @@ export const UsuarioForm = ({
   initial?: Partial<User>;
   onDone: (savedId: string) => void;
 }) => {
+  const cancelar = useFormCancel("/configuracion?tab=usuarios");
   const isEdit = Boolean(initial?.id);
   const [form, setForm] = useState<Partial<User>>(
     () => initial ?? { rol: "CONSULTA", estado: "Activo" },
@@ -36,11 +39,11 @@ export const UsuarioForm = ({
   // Validación en bloque (mismas reglas de negocio del modal original)
   const nombre = (form.nombre || "").trim();
   const email = (form.email || "").trim();
-  const errores: string[] = [];
-  if (!nombre) errores.push("El nombre completo es obligatorio.");
-  if (!email) errores.push("El correo electrónico es obligatorio.");
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!nombre) addError("nombre", "El nombre completo es obligatorio.");
+  if (!email) addError("email", "El correo electrónico es obligatorio.");
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    errores.push("El correo electrónico no tiene un formato válido.");
+    addError("email", "El correo electrónico no tiene un formato válido.");
 
   const guardar = () => {
     setIntentado(true);
@@ -106,16 +109,16 @@ export const UsuarioForm = ({
   };
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: "100%", marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: "100%", marginBottom: 6 }}>
             <Link href="/configuracion">Configuración</Link>
             <span style={{ color: "var(--muted)" }}> / </span>
             <Link href="/configuracion?tab=usuarios">Usuarios</Link>
             <span style={{ color: "var(--muted)" }}> / </span>
-            <span>{isEdit ? "Editar ficha" : "Nuevo usuario"}</span>
-          </div>
+            <span aria-current="page">{isEdit ? "Editar ficha" : "Nuevo usuario"}</span>
+          </nav>
           <h1
             style={{
               display: "flex",
@@ -138,7 +141,7 @@ export const UsuarioForm = ({
         <FormGrid className="form-grid">
           <Field className="f span2">
             <label className="req">Nombre completo</label>
-            <Input
+            <Input name="nombre"
               value={form.nombre || ""}
               onChange={(e) => set({ nombre: e.target.value })}
               placeholder="Nombre del usuario"
@@ -147,7 +150,7 @@ export const UsuarioForm = ({
 
           <Field className="f span2">
             <label className="req">Correo electrónico</label>
-            <Input
+            <Input name="email"
               type="email"
               value={form.email || ""}
               onChange={(e) => set({ email: e.target.value })}
@@ -157,7 +160,7 @@ export const UsuarioForm = ({
 
           <Field className="f">
             <label>Rol del sistema</label>
-            <Select
+            <Select name="rol"
               value={form.rol || "CONSULTA"}
               onChange={(e) => set({ rol: e.target.value })}
             >
@@ -174,7 +177,7 @@ export const UsuarioForm = ({
 
           <Field className="f">
             <label>Estado</label>
-            <Select
+            <Select name="estado"
               value={(form.estado as any) || "Activo"}
               onChange={(e) => set({ estado: e.target.value as any })}
             >
@@ -188,31 +191,16 @@ export const UsuarioForm = ({
         </FormGrid>
       </Surface>
 
-      {intentado && errores.length > 0 && (
-        <Surface
-          className="panel mb"
-          role="alert"
-          style={{ borderColor: "var(--crit, #c0392b)" }}
-        >
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: "8px 0 0 18px", padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="check" /> {isEdit ? "Guardar Cambios" : "Guardar Usuario"}
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

@@ -224,7 +224,7 @@ export const ExpedienteView = ({
       <header className="exp-head" style={{ '--railc': `var(--${m.sem})` } as any}>
         <div className="exp-top">
           <div>
-            <div className="exp-num">
+            <h1 className="exp-num" style={{ margin: 0, fontSize: 'inherit', fontWeight: 'inherit', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               CONTRATO #{c.numero}{' '}
               <Badge
                 text={m.estado}
@@ -236,7 +236,7 @@ export const ExpedienteView = ({
               <small style={{ marginLeft: '8px', color: 'var(--muted)', fontSize: '13px' }}>
                 {c.tipo} {c.modalidad ? `· ${c.modalidad}` : ''}
               </small>
-            </div>
+            </h1>
             <div className="exp-obj">{c.objeto}</div>
           </div>
 
@@ -518,6 +518,12 @@ export const ExpedienteView = ({
             role="tablist"
             aria-label="Secciones del expediente"
             onKeyDown={(event) => {
+              if (event.key === ' ' || event.key === 'Spacebar') {
+                event.preventDefault();
+                const target = event.target as HTMLElement;
+                target.click();
+                return;
+              }
               const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
               if (!keys.includes(event.key)) return;
               event.preventDefault();

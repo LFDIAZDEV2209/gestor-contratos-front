@@ -300,7 +300,7 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
 
         {/* Tabla de empresas con hover de elevación y entrada escalonada */}
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Directorio de empresas y contratistas">
             <thead>
               <tr>
                 <th style={{ width: 140 }}>NIT</th>
@@ -338,7 +338,7 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                     }}
                   >
                     <td>
-                      <span className="mono" style={{ fontWeight: 600, color: 'var(--ink)' }}>
+                      <span className="mono" style={{ fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>
                         {c.nit}
                       </span>
                     </td>
@@ -438,7 +438,7 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                         Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} de{' '}
                         <b>{filtered.length}</b> empresas
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de empresas">
                         <Button
                           disabled={currentPage <= 1}
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -450,6 +450,7 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                           <Button
                             key={p}
                             className={p === currentPage ? 'on' : ''}
+                            aria-current={p === currentPage ? 'page' : undefined}
                             onClick={() => setPage(p)}
                             aria-label={`Ir a la página ${p}`}
                           >

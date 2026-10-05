@@ -314,7 +314,7 @@ export const GarantiasView = ({
 
         {/* Tabla de pólizas con rail de vigencia y hover lift */}
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Pólizas y amparos de garantía">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -455,7 +455,7 @@ export const GarantiasView = ({
                         Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} de{' '}
                         <b>{filtered.length}</b> pólizas
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de pólizas y garantías">
                         <Button
                           disabled={currentPage <= 1}
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -464,7 +464,7 @@ export const GarantiasView = ({
                           &lt;
                         </Button>
                         {Array.from({ length: totalPages }, (_, p) => p + 1).map((p) => (
-                          <Button key={p} className={p === currentPage ? 'on' : ''} aria-current={p === currentPage ? 'page' : undefined} onClick={() => setPage(p)}>
+                          <Button key={p} className={p === currentPage ? 'on' : ''} aria-current={p === currentPage ? 'page' : undefined} aria-label={`Ir a la página ${p}`} onClick={() => setPage(p)}>
                             {p}
                           </Button>
                         ))}

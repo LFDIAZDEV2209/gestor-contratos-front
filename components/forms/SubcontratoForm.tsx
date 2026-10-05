@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -60,6 +62,7 @@ export const SubcontratoForm = ({
   initial?: Partial<Subcontract>;
   onDone: (savedId: string) => void;
 }) => {
+  const cancelar = useFormCancel("/subcontratos");
   const isEdit = Boolean(initial?.id);
   const [form, setForm] = useState<Partial<Subcontract>>(() =>
     initial ? { ...initial } : { ...FORM_DEFAULT }
@@ -94,24 +97,24 @@ export const SubcontratoForm = ({
   const fechaInicio = form.fechaInicio || '';
   const fechaFin = form.fechaFin || '';
 
-  const errores: string[] = [];
-  if (!contractId) errores.push('Seleccione el contrato principal al que se vincula el subcontrato.');
-  else if (!contrato) errores.push('El contrato principal seleccionado ya no existe en el portafolio.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!contractId) addError("contractId", 'Seleccione el contrato principal al que se vincula el subcontrato.');
+  else if (!contrato) addError("contractId", 'El contrato principal seleccionado ya no existe en el portafolio.');
   else if (contrato.anulado)
-    errores.push(`El contrato principal ${contrato.numero} está anulado y no admite subcontratos.`);
-  if (!numero) errores.push('El número del subcontrato es obligatorio.');
-  if (!contratista) errores.push('El nombre del subcontratista es obligatorio.');
-  if (!nit) errores.push('El NIT del subcontratista es obligatorio.');
-  if (!objeto) errores.push('El objeto del subcontrato es obligatorio.');
-  if (!(valor > 0)) errores.push('El valor del subcontrato debe ser mayor a cero.');
-  if (!fechaInicio) errores.push('La fecha de inicio es obligatoria.');
-  if (!fechaFin) errores.push('La fecha de terminación es obligatoria.');
+    addError("contractId", `El contrato principal ${contrato.numero} está anulado y no admite subcontratos.`);
+  if (!numero) addError("numero", 'El número del subcontrato es obligatorio.');
+  if (!contratista) addError("contratista", 'El nombre del subcontratista es obligatorio.');
+  if (!nit) addError("nit", 'El NIT del subcontratista es obligatorio.');
+  if (!objeto) addError("objeto", 'El objeto del subcontrato es obligatorio.');
+  if (!(valor > 0)) addError("valor", 'El valor del subcontrato debe ser mayor a cero.');
+  if (!fechaInicio) addError("fechaInicio", 'La fecha de inicio es obligatoria.');
+  if (!fechaFin) addError("fechaFin", 'La fecha de terminación es obligatoria.');
   if (fechaInicio && fechaFin && fechaFin < fechaInicio)
-    errores.push('La fecha de terminación debe ser posterior o igual a la de inicio.');
-  if (ejecucion < 0 || ejecucion > 100) errores.push('La ejecución debe estar entre 0% y 100%.');
+    addError("fechaFin", 'La fecha de terminación debe ser posterior o igual a la de inicio.');
+  if (ejecucion < 0 || ejecucion > 100) addError("ejecucion", 'La ejecución debe estar entre 0% y 100%.');
   // Regla de negocio 1: la suma de subcontratos no supera el valor del contrato principal
   if (contrato && valor > 0 && delegado + valor > valorContrato) {
-    errores.push(
+    addError("valor",
       `La suma de subcontratos (${money(delegado + valor)}) supera el valor del contrato principal (${money(
         valorContrato
       )}); solo quedan ${money(disponible)} disponibles.`
@@ -119,7 +122,7 @@ export const SubcontratoForm = ({
   }
   // Regla de negocio 2: ningún subcontrato termina después del contrato principal
   if (contrato && fechaFin && finPrincipal && fechaFin > finPrincipal) {
-    errores.push(
+    addError("fechaFin",
       `La terminación (${fdate(fechaFin)}) no puede ser posterior a la del contrato principal (${fdate(
         finPrincipal
       )}).`
@@ -198,14 +201,14 @@ export const SubcontratoForm = ({
   };
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/subcontratos">Subcontratos</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>{isEdit ? 'Editar subcontrato' : 'Nuevo subcontrato'}</span>
-          </div>
+            <span aria-current="page">{isEdit ? 'Editar subcontrato' : 'Nuevo subcontrato'}</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             {isEdit ? 'Editar Subcontrato' : 'Nuevo Subcontrato'}
           </h1>
@@ -220,16 +223,16 @@ export const SubcontratoForm = ({
       {/* Vínculo contractual: selector + resumen en vivo de las reglas de negocio */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="file-contract" size={16} /> Vínculo contractual
-          </h3>
+          </h2>
           <span className="sub">{contracts.length} contratos vigentes en el portafolio</span>
         </div>
 
         <FormGrid className="form-grid">
           <Field className="f span3">
             <label className="req">Contrato principal</label>
-            <Select
+            <Select name="contractId"
               value={contractId}
               disabled={isEdit}
               onChange={(e) => {
@@ -316,16 +319,16 @@ export const SubcontratoForm = ({
       {/* Datos del subcontrato */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="diagram-project" size={16} /> Datos del subcontrato
-          </h3>
+          </h2>
           <span className="sub">Los campos con * son obligatorios</span>
         </div>
 
         <FormGrid className="form-grid">
           <Field className="f">
             <label className="req">Número de subcontrato</label>
-            <Input
+            <Input name="numero"
               value={form.numero || ''}
               placeholder="Ej. SC-001"
               onChange={(e) => set({ numero: e.target.value })}
@@ -334,7 +337,7 @@ export const SubcontratoForm = ({
 
           <Field className="f">
             <label>Estado</label>
-            <Select value={form.estado || 'Activo'} onChange={(e) => set({ estado: e.target.value })}>
+            <Select name="estado" value={form.estado || 'Activo'} onChange={(e) => set({ estado: e.target.value })}>
               {ESTADOS.map((e) => (
                 <option key={e} value={e}>
                   {e}
@@ -345,7 +348,7 @@ export const SubcontratoForm = ({
 
           <Field className="f">
             <label>Responsable del seguimiento</label>
-            <Input
+            <Input name="responsable"
               value={form.responsable || ''}
               placeholder="Nombre del responsable"
               onChange={(e) => set({ responsable: e.target.value })}
@@ -354,7 +357,7 @@ export const SubcontratoForm = ({
 
           <Field className="f">
             <label className="req">Subcontratista</label>
-            <Input
+            <Input name="contratista"
               value={form.contratista || ''}
               placeholder="Nombre o razón social"
               onChange={(e) => set({ contratista: e.target.value })}
@@ -363,7 +366,7 @@ export const SubcontratoForm = ({
 
           <Field className="f">
             <label className="req">NIT</label>
-            <Input
+            <Input name="nit"
               value={form.nit || ''}
               placeholder="900.000.000-0"
               onChange={(e) => set({ nit: e.target.value })}
@@ -372,7 +375,7 @@ export const SubcontratoForm = ({
 
           <Field className="f">
             <label className="req">Valor</label>
-            <Input
+            <Input name="valor"
               type="number"
               min={0}
               value={form.valor ?? 0}
@@ -385,7 +388,7 @@ export const SubcontratoForm = ({
 
           <Field className="f">
             <label className="req">Fecha de inicio</label>
-            <Input
+            <Input name="fechaInicio"
               type="date"
               value={fechaInicio}
               onChange={(e) => set({ fechaInicio: e.target.value })}
@@ -394,7 +397,7 @@ export const SubcontratoForm = ({
 
           <Field className="f">
             <label className="req">Fecha de terminación</label>
-            <Input type="date" value={fechaFin} onChange={(e) => set({ fechaFin: e.target.value })} />
+            <Input name="fechaFin" type="date" value={fechaFin} onChange={(e) => set({ fechaFin: e.target.value })} />
             {finPrincipal && (
               <small style={{ fontSize: 11.5, color: 'var(--muted)' }}>
                 Máximo hasta {fdate(finPrincipal)} (contrato principal).
@@ -404,7 +407,7 @@ export const SubcontratoForm = ({
 
           <Field className="f">
             <label>Ejecución (%)</label>
-            <Input
+            <Input name="ejecucion"
               type="number"
               min={0}
               max={100}
@@ -416,7 +419,7 @@ export const SubcontratoForm = ({
 
           <Field className="f span3">
             <label className="req">Objeto del subcontrato</label>
-            <Textarea
+            <Textarea name="objeto"
               rows={3}
               value={form.objeto || ''}
               placeholder="Detalle de actividades a ejecutar..."
@@ -426,27 +429,16 @@ export const SubcontratoForm = ({
         </FormGrid>
       </Surface>
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="check" /> {isEdit ? 'Guardar Cambios' : 'Guardar Subcontrato'}
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

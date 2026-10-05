@@ -233,7 +233,7 @@ export const ReporteVista = ({
               className="tbl-wrap"
               aria-label={`Datos del reporte ${report.t}`}
             >
-              <DataTable layout="readable">
+              <DataTable layout="readable" aria-label={`Tabla del reporte ${report.t}`}>
                 <thead>
                   <tr>
                     {data.cols.map((col, idx) => (

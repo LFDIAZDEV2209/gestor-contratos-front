@@ -455,7 +455,7 @@ export const SubcontratosView = ({
           )}
 
           <TableViewport className="tbl-wrap" aria-label="Tabla global de subcontratos">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Listado de subcontratos autorizados">
               <thead>
                 <tr>
                   <th className="nw">Número</th>
@@ -622,7 +622,7 @@ export const SubcontratosView = ({
                           Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} de{' '}
                           <b>{filtered.length}</b> subcontratos
                         </span>
-                        <div className="pager">
+                        <div className="pager" role="navigation" aria-label="Paginación de subcontratos">
                           <Button
                             disabled={currentPage <= 1}
                             onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -634,6 +634,7 @@ export const SubcontratosView = ({
                             <Button
                               key={p}
                               className={p === currentPage ? 'on' : ''}
+                              aria-current={p === currentPage ? 'page' : undefined}
                               onClick={() => setPage(p)}
                               aria-label={`Ir a la página ${p}`}
                             >

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, EmptyState, WorkspaceSkeleton } from '../ui/Workspace';
+import { PageHeader, Surface, EmptyState, WorkspaceSkeleton, Field } from '../ui/Workspace';
 import { PBar } from '../ui/PBar';
 import { Badge } from '../ui/Badge';
 import { Icon } from '../icons';
@@ -64,6 +64,7 @@ const ObligacionFichaContent = ({
   setNewComment: (v: string) => void;
   onBack: () => void;
 }) => {
+  const [newCheckItem, setNewCheckItem] = useState('');
   const raw = Store.get('obligations', id) as Obligation | undefined;
   const ob = raw ? obligationPresentation(raw) : null;
 
@@ -141,6 +142,7 @@ const ObligacionFichaContent = ({
   };
 
   const handleToggleChecklist = (checkId: string) => {
+    if (!AuthService.guard('editar')) return;
     const list = ob.checklist || [];
     const updated = list.map((item) => (item.id === checkId ? { ...item, listo: !item.listo } : item));
     const completedCount = updated.filter((i) => i.listo).length;
@@ -156,7 +158,42 @@ const ObligacionFichaContent = ({
     refresh();
   };
 
+  const handleAddCheckItem = () => {
+    if (!AuthService.guard('editar')) return;
+    const trimmed = newCheckItem.trim();
+    if (!trimmed) return;
+    const list = ob.checklist || [];
+    const newItem = {
+      id: `${ob.id}-chk-${Date.now()}`,
+      texto: trimmed,
+      listo: false
+    };
+    const updated = [...list, newItem];
+    const completedCount = updated.filter((i) => i.listo).length;
+    const autoCumpl = updated.length
+      ? Math.round((completedCount / updated.length) * 100)
+      : 0;
+    const autoEstado = autoCumpl === 100 ? 'Cumplida' : autoCumpl > 0 ? 'En proceso' : 'Pendiente';
+
+    Store.update('obligations', ob.id, {
+      checklist: updated,
+      cumplimiento: autoCumpl,
+      estado: autoEstado
+    });
+    Audit.log({
+      contractId: ob.contractId,
+      modulo: 'Obligaciones',
+      accion: 'Edición',
+      campo: 'Checklist de obligación ' + ob.id,
+      nuevo: `Nuevo ítem agregado: "${trimmed}"`
+    });
+    setNewCheckItem('');
+    refresh();
+    notify('Nuevo ítem de verificación agregado.');
+  };
+
   const handleAddComment = () => {
+    if (!AuthService.guard('editar')) return;
     if (!newComment.trim()) return;
     const u = AuthService.currentUser();
     const commentItem = {
@@ -179,7 +216,7 @@ const ObligacionFichaContent = ({
           <nav className="crumb" style={{ width: '100%', marginBottom: 6 }} aria-label="Ruta de navegación">
             <Link href="/obligaciones">Obligaciones</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>{ob.id}</span>
+            <span aria-current="page">{ob.id}</span>
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0, flexWrap: 'wrap' }}>
             Ficha de obligación
@@ -206,9 +243,9 @@ const ObligacionFichaContent = ({
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="list-check" /> Contexto de la obligación
-            </h3>
+            </h2>
             <span className="sub small muted">
               {c ? (
                 <Link className="link" href={contractHref(c.id, 'obligaciones')} title="Abrir expediente del contrato">
@@ -272,9 +309,9 @@ const ObligacionFichaContent = ({
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="clipboard-check" /> Checklist de actividades ({ob.checklist?.length || 0})
-            </h3>
+            </h2>
             <span className="sub small muted">Cada ítem marcado recalcula el cumplimiento de la obligación</span>
           </div>
         </div>
@@ -294,6 +331,7 @@ const ObligacionFichaContent = ({
             >
               <Input
                 type="checkbox"
+                disabled={!AuthService.can('editar')}
                 checked={chk.listo}
                 onChange={() => handleToggleChecklist(chk.id)}
               />
@@ -313,6 +351,32 @@ const ObligacionFichaContent = ({
               }
             />
           )}
+
+          {AuthService.can('editar') && (
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <Field style={{ flex: '1 1 240px', minWidth: 200 }}>
+                  <label htmlFor="nuevo-check-item">Nuevo ítem de verificación</label>
+                  <Input
+                    id="nuevo-check-item"
+                    className="inp sm"
+                    placeholder="Descripción del entregable o actividad a verificar..."
+                    value={newCheckItem}
+                    onChange={(e) => setNewCheckItem(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCheckItem();
+                      }
+                    }}
+                  />
+                </Field>
+                <Button className="btn sm sec" onClick={handleAddCheckItem} style={{ height: 38, marginBottom: 0 }}>
+                  <Icon name="plus" /> Agregar ítem
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </Surface>
 
@@ -320,9 +384,9 @@ const ObligacionFichaContent = ({
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="comment" /> Bitácora y comentarios ({ob.comentarios?.length || 0})
-            </h3>
+            </h2>
             <span className="sub small muted">Historial de gestiones y observaciones del equipo</span>
           </div>
         </div>

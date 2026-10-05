@@ -6,7 +6,7 @@ import { FormGrid, Field } from '../../ui/Workspace';
 import { Store, AuthService, Audit } from '../../../lib/store';
 import { todayIso, uid } from '../../../lib/format';
 import type { Acta, Contract, Modification } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
 
 /**
  * VISTA dedicada de suspensión contractual (antes modal en TabSuspensiones, fila 49 del mapa).
@@ -21,9 +21,9 @@ export const SuspensionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
   const [soporte, setSoporte] = useState('');
   const [intentado, setIntentado] = useState(false);
 
-  const errores: string[] = [];
-  if (!fecha) errores.push('La fecha efectiva de la suspensión es obligatoria.');
-  if (!justificacion.trim()) errores.push('La justificación de la actuación es obligatoria.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!fecha) addError("fecha", 'La fecha efectiva de la suspensión es obligatoria.');
+  if (!justificacion.trim()) addError("justificacion", 'La justificación de la actuación es obligatoria.');
 
   const guardar = () => {
     setIntentado(true);
@@ -76,6 +76,7 @@ export const SuspensionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="suspensiones"
       paso="Suspensión"
@@ -103,11 +104,11 @@ export const SuspensionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
       <FormGrid className="form-grid">
         <Field className="f">
           <label className="req">Fecha efectiva</label>
-          <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          <Input name="fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
         </Field>
         <Field className="f">
           <label>Documento soporte (archivo radicado)</label>
-          <Input
+          <Input name="soporte"
             value={soporte}
             placeholder="Ej. acta_suspension_firmada.pdf"
             onChange={(e) => setSoporte(e.target.value)}
@@ -115,7 +116,7 @@ export const SuspensionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
         </Field>
         <Field className="f span2">
           <label className="req">Justificación de la actuación</label>
-          <Textarea
+          <Textarea name="justificacion"
             rows={3}
             value={justificacion}
             placeholder="Causal de la suspensión (sitio no entregado, caso fortuito, acuerdo entre las partes...)"

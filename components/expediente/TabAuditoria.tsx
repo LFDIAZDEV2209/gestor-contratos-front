@@ -162,7 +162,7 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
 
       {vista === 'tabla' ? (
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Registro de auditoría del contrato">
             <thead>
               <tr>
                 <th className="nw">Fecha / Hora</th>

@@ -396,7 +396,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
         </div>
 
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Hechos y procesos de incumplimiento">
             <thead>
               <tr>
                 <th>ID</th>
@@ -518,7 +518,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                         Mostrando {(currentPageB - 1) * pageSize + 1}–{Math.min(currentPageB * pageSize, filteredBreaches.length)} de{' '}
                         <b>{filteredBreaches.length}</b> incumplimientos
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de incumplimientos">
                         <Button
                           disabled={currentPageB <= 1}
                           onClick={() => setPageB((p) => Math.max(1, p - 1))}
@@ -527,7 +527,13 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                           &lt;
                         </Button>
                         {Array.from({ length: totalPagesB }, (_, i) => i + 1).map((p) => (
-                          <Button key={p} className={p === currentPageB ? 'on' : ''} onClick={() => setPageB(p)}>
+                          <Button
+                            key={p}
+                            className={p === currentPageB ? 'on' : ''}
+                            aria-current={p === currentPageB ? 'page' : undefined}
+                            onClick={() => setPageB(p)}
+                            aria-label={`Ir a la página ${p}`}
+                          >
                             {p}
                           </Button>
                         ))}
@@ -575,7 +581,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
         </div>
 
         <TableViewport className="tbl-wrap" aria-label="Tabla de planes de mejoramiento">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Planes de mejoramiento concertados">
             <thead>
               <tr>
                 <th>ID</th>
@@ -686,7 +692,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                         Mostrando {(currentPageP - 1) * pageSize + 1}–{Math.min(currentPageP * pageSize, plans.length)} de{' '}
                         <b>{plans.length}</b> planes
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de planes de mejoramiento">
                         <Button
                           disabled={currentPageP <= 1}
                           onClick={() => setPageP((p) => Math.max(1, p - 1))}
@@ -695,7 +701,13 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                           &lt;
                         </Button>
                         {Array.from({ length: totalPagesP }, (_, i) => i + 1).map((p) => (
-                          <Button key={p} className={p === currentPageP ? 'on' : ''} onClick={() => setPageP(p)}>
+                          <Button
+                            key={p}
+                            className={p === currentPageP ? 'on' : ''}
+                            aria-current={p === currentPageP ? 'page' : undefined}
+                            onClick={() => setPageP(p)}
+                            aria-label={`Ir a la página ${p}`}
+                          >
                             {p}
                           </Button>
                         ))}

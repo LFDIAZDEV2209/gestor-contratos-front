@@ -6,7 +6,7 @@ import { FormGrid, Field } from '../../ui/Workspace';
 import { Store, AuthService, Audit } from '../../../lib/store';
 import { todayIso, addDays, diffDays, uid, fdate } from '../../../lib/format';
 import type { Contract, Modification } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
 
 /**
  * VISTA dedicada de prórroga (ampliación de plazo, fila 44 del mapa) — antes modal en TabProrrogas.
@@ -25,12 +25,12 @@ export const ProrrogaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
   const [soporte, setSoporte] = useState('');
   const [intentado, setIntentado] = useState(false);
 
-  const errores: string[] = [];
-  if (!nuevaFecha) errores.push('Selecciona la nueva fecha de terminación.');
-  if (!diasAdd || diasAdd < 1) errores.push('Los días de ampliación deben ser al menos 1.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!nuevaFecha) addError("nuevaFecha", 'Selecciona la nueva fecha de terminación.');
+  if (!diasAdd || diasAdd < 1) addError("nuevaFecha", 'Los días de ampliación deben ser al menos 1.');
   if (nuevaFecha && base && nuevaFecha <= base)
-    errores.push('La nueva fecha debe ser posterior a la terminación actual: una prórroga amplía el plazo.');
-  if (!justificacion.trim()) errores.push('La justificación técnica de la prórroga es obligatoria.');
+    addError("nuevaFecha", 'La nueva fecha debe ser posterior a la terminación actual: una prórroga amplía el plazo.');
+  if (!justificacion.trim()) addError("justificacion", 'La justificación técnica de la prórroga es obligatoria.');
 
   const guardar = () => {
     setIntentado(true);
@@ -75,6 +75,7 @@ export const ProrrogaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="prorrogas"
       paso="Nueva prórroga"
@@ -100,7 +101,7 @@ export const ProrrogaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
         </Field>
         <Field className="f">
           <label className="req">Días de ampliación</label>
-          <Input
+          <Input name="diasAdd"
             type="number"
             min="1"
             step="1"
@@ -114,7 +115,7 @@ export const ProrrogaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
         </Field>
         <Field className="f">
           <label className="req">Nueva fecha de terminación</label>
-          <Input
+          <Input name="nuevaFecha"
             type="date"
             value={nuevaFecha}
             onChange={(e) => {
@@ -126,11 +127,11 @@ export const ProrrogaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
         </Field>
         <Field className="f">
           <label>Número del otrosí</label>
-          <Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="PRO-2026-01" />
+          <Input name="numero" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="PRO-2026-01" />
         </Field>
         <Field className="f span2">
           <label className="req">Justificación técnica</label>
-          <Textarea
+          <Textarea name="justificacion"
             rows={3}
             value={justificacion}
             placeholder="Causa de la ampliación (evidencia, retraso imputable, mutuo acuerdo...)"
@@ -139,7 +140,7 @@ export const ProrrogaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
         </Field>
         <Field className="f span2">
           <label>Documento soporte (archivo radicado)</label>
-          <Input
+          <Input name="soporte"
             value={soporte}
             placeholder="Ej. otrosi_prorroga_firmado.pdf"
             onChange={(e) => setSoporte(e.target.value)}

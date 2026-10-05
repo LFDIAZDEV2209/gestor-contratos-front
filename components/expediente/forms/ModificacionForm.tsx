@@ -7,7 +7,7 @@ import { Store, AuthService, Audit } from '../../../lib/store';
 import { money, todayIso, uid, diffDays, fdate } from '../../../lib/format';
 import { M } from '../../../lib/metrics';
 import type { Contract, Modification } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
 
 type FormState = {
   tipo: string;
@@ -60,18 +60,18 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
   const conFecha = form.tipo === 'Prórroga' || form.tipo === 'Reinicio' || form.tipo === 'Terminación anticipada';
   const conTexto = form.tipo === 'Cesión' || form.tipo === 'Modificación de supervisor';
 
-  const errores: string[] = [];
-  if (!form.numero.trim()) errores.push('El número o radicado del otrosí es obligatorio.');
-  if (!form.justificacion.trim()) errores.push('La justificación técnica y jurídica es obligatoria.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!form.numero.trim()) addError("numero", 'El número o radicado del otrosí es obligatorio.');
+  if (!form.justificacion.trim()) addError("justificacion", 'La justificación técnica y jurídica es obligatoria.');
   if (conValor && (!form.valorNuevo || form.valorNuevo <= 0))
-    errores.push('Ingresa el nuevo valor total del contrato (mayor a cero).');
+    addError("valorNuevo", 'Ingresa el nuevo valor total del contrato (mayor a cero).');
   if (conValor && form.tipo === 'Reducción' && Number(form.valorNuevo) >= m.valorActual)
-    errores.push('El valor reducido debe ser inferior al valor actual del contrato.');
-  if (conFecha && !form.fechaNueva) errores.push('Ingresa la nueva fecha de terminación.');
+    addError("valorNuevo", 'El valor reducido debe ser inferior al valor actual del contrato.');
+  if (conFecha && !form.fechaNueva) addError("fechaNueva", 'Ingresa la nueva fecha de terminación.');
   if (conFecha && form.tipo === 'Prórroga' && form.fechaNueva && c.fechaFin && form.fechaNueva <= c.fechaFin)
-    errores.push('La nueva fecha debe ampliarse: debe ser posterior a la terminación actual.');
+    addError("fechaNueva", 'La nueva fecha debe ampliarse: debe ser posterior a la terminación actual.');
   if (conTexto && !form.nuevoTexto.trim())
-    errores.push(
+    addError("nuevoTexto",
       form.tipo === 'Cesión'
         ? 'Indica el nuevo contratista cesionario (razón social y NIT).'
         : 'Indica el nuevo supervisor asignado (nombre y cargo).'
@@ -164,6 +164,7 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="modificaciones"
       paso="Nueva modificación"
@@ -204,7 +205,7 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
       <FormGrid className="form-grid">
         <Field className="f">
           <label className="req">Tipo de modificación</label>
-          <Select
+          <Select name="tipo"
             value={form.tipo}
             onChange={(e) => {
               const t = e.target.value;
@@ -223,7 +224,7 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
         </Field>
         <Field className="f">
           <label className="req">Número o radicado del Otrosí</label>
-          <Input
+          <Input name="numero"
             value={form.numero}
             placeholder="Ej. OTROSI-01 o MOD-2026-01"
             onChange={(e) => set({ numero: e.target.value })}
@@ -232,13 +233,13 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
         </Field>
         <Field className="f">
           <label className="req">Fecha de suscripción</label>
-          <Input type="date" value={form.fecha} onChange={(e) => set({ fecha: e.target.value })} required />
+          <Input name="fecha" type="date" value={form.fecha} onChange={(e) => set({ fecha: e.target.value })} required />
         </Field>
 
         {conValor && (
           <Field className="f">
             <label className="req">{form.tipo === 'Adición' ? 'Nuevo valor total actualizado' : 'Nuevo valor total reducido'}</label>
-            <Input
+            <Input name="valorNuevo"
               type="number"
               min="0"
               step="1000"
@@ -257,7 +258,7 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
             </Field>
             <Field className="f">
               <label className="req">Nueva fecha de terminación</label>
-              <Input type="date" value={form.fechaNueva} onChange={(e) => set({ fechaNueva: e.target.value })} />
+              <Input name="fechaNueva" type="date" value={form.fechaNueva} onChange={(e) => set({ fechaNueva: e.target.value })} />
             </Field>
           </>
         )}
@@ -265,7 +266,7 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
         {form.tipo === 'Cesión' && (
           <Field className="f span2">
             <label className="req">Nuevo contratista cesionario (Razón Social y NIT)</label>
-            <Input
+            <Input name="nuevoTexto"
               value={form.nuevoTexto}
               placeholder="Ej. INGENIERÍA INTEGRAL S.A.S. - NIT 900.123.456-7"
               onChange={(e) => set({ nuevoTexto: e.target.value })}
@@ -277,7 +278,7 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
         {form.tipo === 'Modificación de supervisor' && (
           <Field className="f span2">
             <label className="req">Nuevo supervisor asignado (Nombre y cargo)</label>
-            <Input
+            <Input name="nuevoTexto"
               value={form.nuevoTexto}
               placeholder="Ej. Ing. Carlos Martínez - Supervisor de Contratos"
               onChange={(e) => set({ nuevoTexto: e.target.value })}
@@ -288,7 +289,7 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
 
         <Field className="f span2">
           <label className="req">Justificación técnica y jurídica</label>
-          <Textarea
+          <Textarea name="justificacion"
             rows={3}
             value={form.justificacion}
             placeholder="Motivo y justificación detallada de la modificación suscrita..."
@@ -298,7 +299,7 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
         </Field>
         <Field className="f span2">
           <label>Documento soporte (archivo radicado)</label>
-          <Input
+          <Input name="soporte"
             value={form.soporte}
             placeholder="Ej. otrosi_01_firmado.pdf"
             onChange={(e) => set({ soporte: e.target.value })}

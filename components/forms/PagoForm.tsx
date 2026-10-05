@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -21,6 +23,7 @@ import { Icon } from '../icons';
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 export const PagoForm = ({ onDone }: { onDone: () => void }) => {
+  const cancelar = useFormCancel("/pagos");
   const [intentado, setIntentado] = useState(false);
   const [form, setForm] = useState({
     contractId: '',
@@ -44,22 +47,22 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
   const neto = Number(form.bruto) + Number(form.iva) - Number(form.retenciones);
 
   const errCampo: Record<string, string> = {};
-  const errores: string[] = [];
+  const { errores, fieldErrors, addError } = createFieldValidation();
   if (!form.contractId) {
     errCampo.contractId = 'Selecciona el contrato al que se imputa el pago.';
-    errores.push('El contrato es obligatorio.');
+    addError("contractId", 'El contrato es obligatorio.');
   }
   if (!numero) {
     errCampo.numero = 'Indica el número del pago o de la cuenta de cobro.';
-    errores.push('El número de pago es obligatorio.');
+    addError("numero", 'El número de pago es obligatorio.');
   }
   if (!form.bruto) {
     errCampo.bruto = 'Registra el valor bruto (antes de IVA).';
-    errores.push('El valor bruto es obligatorio.');
+    addError("bruto", 'El valor bruto es obligatorio.');
   }
   if (!form.fecha) {
     errCampo.fecha = 'Indica la fecha del pago o de la cuenta.';
-    errores.push('La fecha es obligatoria.');
+    addError("fecha", 'La fecha es obligatoria.');
   }
 
   const guardar = () => {
@@ -107,14 +110,14 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/pagos">Pagos</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>Nuevo pago</span>
-          </div>
+            <span aria-current="page">Nuevo pago</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             Registrar pago o cuenta de cobro
           </h1>
@@ -128,9 +131,9 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="money-check-dollar" /> Identificación del pago
-            </h3>
+            </h2>
             <span className="sub small muted">Contrato, referencia y fechas del desembolso</span>
           </div>
         </div>
@@ -138,7 +141,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
         <FormGrid className="form-grid">
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
-            <Select
+            <Select name="contractId"
               value={form.contractId}
               onChange={(e) => set({ contractId: e.target.value })}
               aria-describedby={err('contractId') ? 'err-pcontrato' : undefined}
@@ -159,7 +162,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
 
           <Field className={`f${err('numero') ? ' err' : ''}`}>
             <label className="req">Número de pago o cuenta</label>
-            <Input
+            <Input name="numero"
               value={form.numero}
               placeholder="Ej. Pago 03"
               onChange={(e) => set({ numero: e.target.value })}
@@ -174,7 +177,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
 
           <Field className="f">
             <label>Número de factura</label>
-            <Input
+            <Input name="factura"
               value={form.factura}
               placeholder="Ej. FE-10492"
               onChange={(e) => set({ factura: e.target.value })}
@@ -183,7 +186,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
 
           <Field className={`f${err('fecha') ? ' err' : ''}`}>
             <label className="req">Fecha</label>
-            <Input
+            <Input name="fecha"
               type="date"
               value={form.fecha}
               onChange={(e) => set({ fecha: e.target.value })}
@@ -199,7 +202,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
           <Field className="f">
             <label>Periodo de facturación</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              <Select
+              <Select name="periodo"
                 value={String(Number(form.periodo.split('-')[1] || '1') - 1)}
                 onChange={(e) =>
                   set({ periodo: `${form.periodo.split('-')[0]}-${String(Number(e.target.value) + 1).padStart(2, '0')}` })
@@ -212,7 +215,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
                   </option>
                 ))}
               </Select>
-              <Select
+              <Select name="periodo"
                 value={form.periodo.split('-')[0]}
                 onChange={(e) => set({ periodo: `${e.target.value}-${form.periodo.split('-')[1]}` })}
                 aria-label="Año de facturación"
@@ -231,9 +234,9 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="scale-balanced" /> Valores y retenciones
-            </h3>
+            </h2>
             <span className="sub small muted">Neto = bruto + IVA − retenciones</span>
           </div>
         </div>
@@ -241,7 +244,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
         <FormGrid className="form-grid">
           <Field className={`f${err('bruto') ? ' err' : ''}`}>
             <label className="req">Valor bruto (antes de IVA)</label>
-            <Input
+            <Input name="bruto"
               type="number"
               value={form.bruto}
               placeholder="Ej. 10000000"
@@ -259,7 +262,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
 
           <Field className="f">
             <label>IVA (19 % o aplicable)</label>
-            <Input
+            <Input name="iva"
               type="number"
               value={form.iva}
               onChange={(e) => set({ iva: Number(e.target.value) })}
@@ -268,7 +271,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
 
           <Field className="f">
             <label>Retenciones tributarias</label>
-            <Input
+            <Input name="retenciones"
               type="number"
               value={form.retenciones}
               onChange={(e) => set({ retenciones: Number(e.target.value) })}
@@ -283,7 +286,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
 
           <Field className="f span3">
             <label>Documento soporte (factura / cuenta)</label>
-            <Input
+            <Input name="soporte"
               value={form.soporte}
               placeholder="Nombre del archivo (ej. factura_pago_03.pdf)"
               onChange={(e) => set({ soporte: e.target.value })}
@@ -301,9 +304,9 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
         <Surface className="panel mb">
           <div className="panel-h">
             <div>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
                 <Icon name="file-signature" /> Contexto del contrato
-              </h3>
+              </h2>
               <span className="sub small muted">
                 {seleccion.numero} · {seleccion.contratista}
               </span>
@@ -335,27 +338,16 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
         </Surface>
       )}
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="check" /> Registrar pago
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

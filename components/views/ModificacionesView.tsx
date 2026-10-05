@@ -363,7 +363,7 @@ export const ModificacionesView = ({
         )}
 
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Actos y modificaciones contractuales">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -529,7 +529,7 @@ export const ModificacionesView = ({
                         Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} de{' '}
                         <b>{filtered.length}</b> modificaciones
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de modificaciones contractuales">
                         <Button
                           disabled={currentPage <= 1}
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -538,7 +538,13 @@ export const ModificacionesView = ({
                           &lt;
                         </Button>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                          <Button key={p} className={p === currentPage ? 'on' : ''} onClick={() => setPage(p)}>
+                          <Button
+                            key={p}
+                            className={p === currentPage ? 'on' : ''}
+                            aria-current={p === currentPage ? 'page' : undefined}
+                            onClick={() => setPage(p)}
+                            aria-label={`Ir a la página ${p}`}
+                          >
                             {p}
                           </Button>
                         ))}

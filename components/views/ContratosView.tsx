@@ -362,6 +362,7 @@ export const ContratosView = () => {
                   setPage(1);
                 }}
                 className={`btn xs ${isActive ? 'active-chip' : 'ghost'}`}
+                aria-pressed={isActive}
                 style={{
                   borderRadius: 'var(--r-pill)',
                   background: isActive ? 'var(--selection, var(--brand-soft))' : 'var(--surface-2)',
@@ -395,7 +396,7 @@ export const ContratosView = () => {
 
         {/* Tabla de Contratos con efecto hover lift */}
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Portafolio integral de contratos">
             <thead>
               <tr>
                 <th style={{ width: 56, textAlign: 'center' }}>Sem</th>
@@ -560,7 +561,7 @@ export const ContratosView = () => {
                         Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} de{' '}
                         <b>{filtered.length}</b> contratos
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de contratos">
                         <Button
                           disabled={currentPage <= 1}
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -572,7 +573,9 @@ export const ContratosView = () => {
                           <Button
                             key={p}
                             className={p === currentPage ? 'on' : ''}
+                            aria-current={p === currentPage ? 'page' : undefined}
                             onClick={() => setPage(p)}
+                            aria-label={`Ir a la página ${p}`}
                           >
                             {p}
                           </Button>

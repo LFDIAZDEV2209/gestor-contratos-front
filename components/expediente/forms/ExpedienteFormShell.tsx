@@ -6,6 +6,9 @@ import { PageHeader, Surface } from '../../ui/Workspace';
 import { Icon } from '../../icons';
 import { Store } from '../../../lib/store';
 import { contractHref } from '../../app/routes';
+import { AccessibleForm } from '../../forms/AccessibleForm';
+import { useFormCancel } from '../../forms/useFormCancel';
+export { createFieldValidation } from '../../forms/AccessibleForm';
 
 /**
  * Envoltura canónica de las VISTAS de creación/edición del expediente (modal → página).
@@ -20,6 +23,7 @@ export const ExpedienteFormShell = ({
   title,
   description,
   errores,
+  fieldErrors,
   intentado = false,
   onSubmit,
   submitLabel,
@@ -38,6 +42,7 @@ export const ExpedienteFormShell = ({
   description: string;
   /** Reglas de negocio del formulario; solo se muestran tras el primer intento de guardado. */
   errores: string[];
+  fieldErrors: Record<string, string>;
   intentado?: boolean;
   onSubmit: () => void;
   submitLabel: string;
@@ -48,9 +53,10 @@ export const ExpedienteFormShell = ({
   children: ReactNode;
 }) => {
   const c = Store.get('contracts', cid);
-  const volver = onCancel ?? (() => window.history.back());
+  const volver = useFormCancel(contractHref(cid, tab), `/contrato/${encodeURIComponent(cid)}`, onCancel);
 
   return (
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
     <div className="anim-fade-rise" style={{ maxWidth: 1040, margin: '0 auto' }}>
       <PageHeader className="ph">
         <div>
@@ -59,7 +65,7 @@ export const ExpedienteFormShell = ({
             <span style={{ color: 'var(--muted)' }}> / </span>
             <Link href={contractHref(cid, tab)}>{c ? `Contrato ${c.numero}` : 'Expediente'}</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>{paso}</span>
+            <span aria-current="page">{paso}</span>
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>{title}</h1>
           <p style={{ margin: '4px 0 0' }}>{description}</p>
@@ -70,18 +76,6 @@ export const ExpedienteFormShell = ({
 
       {nota}
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={volver}>
@@ -92,5 +86,6 @@ export const ExpedienteFormShell = ({
         </Button>
       </div>
     </div>
+    </AccessibleForm>
   );
 };

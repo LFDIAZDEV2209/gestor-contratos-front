@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { WorkspaceSkeleton } from '@/components/ui/Workspace';
 import { useRouter } from 'next/navigation';
 import { AuthService } from '@/lib/store';
-import { EmptyState } from '@/components/ui/Workspace';
+import { RouteState as EmptyState } from '@/components/expediente/forms/RouteState';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { RiesgoForm } from '@/components/forms/RiesgoForm';
@@ -18,7 +19,7 @@ export default function Page() {
     setPermiso(AuthService.can('crear'));
   }, []);
 
-  if (permiso === null) return null;
+  if (permiso === null) return <WorkspaceSkeleton />;
 
   if (!permiso) {
     return (

@@ -6,7 +6,7 @@ import { FormGrid, Field } from '../../ui/Workspace';
 import { Store, AuthService, Audit } from '../../../lib/store';
 import { money, todayIso, uid } from '../../../lib/format';
 import type { Payment } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
 
 type FormState = {
   numero: string;
@@ -40,10 +40,10 @@ export const PagoForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
   const calcNeto = Number(form.bruto) + Number(form.iva) - Number(form.retenciones);
-  const errores: string[] = [];
-  if (!form.numero.trim()) errores.push('El número de pago o cuenta de cobro es obligatorio (radicado interno).');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!form.numero.trim()) addError("numero", 'El número de pago o cuenta de cobro es obligatorio (radicado interno).');
   if (!form.bruto || Number(form.bruto) <= 0)
-    errores.push('El valor bruto debe ser positivo: sin él no se liquidan IVA, retenciones ni neto.');
+    addError("bruto", 'El valor bruto debe ser positivo: sin él no se liquidan IVA, retenciones ni neto.');
 
   const guardar = () => {
     setIntentado(true);
@@ -83,6 +83,7 @@ export const PagoForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="pagos"
       paso="Registrar pago"
@@ -109,23 +110,23 @@ export const PagoForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
       <FormGrid className="form-grid">
         <Field className="f">
           <label className="req">Número de pago</label>
-          <Input value={form.numero} onChange={(e) => set({ numero: e.target.value })} placeholder="Ej. OP-044-01" />
+          <Input name="numero" value={form.numero} onChange={(e) => set({ numero: e.target.value })} placeholder="Ej. OP-044-01" />
         </Field>
         <Field className="f">
           <label>Factura de venta</label>
-          <Input value={form.factura} onChange={(e) => set({ factura: e.target.value })} placeholder="Ej. FE-8891" />
+          <Input name="factura" value={form.factura} onChange={(e) => set({ factura: e.target.value })} placeholder="Ej. FE-8891" />
         </Field>
         <Field className="f">
           <label className="req">Fecha de radicación</label>
-          <Input type="date" value={form.fecha} onChange={(e) => set({ fecha: e.target.value })} />
+          <Input name="fecha" type="date" value={form.fecha} onChange={(e) => set({ fecha: e.target.value })} />
         </Field>
         <Field className="f">
           <label>Periodo de ejecución (AAAA-MM)</label>
-          <Input type="month" value={form.periodo} onChange={(e) => set({ periodo: e.target.value })} />
+          <Input name="periodo" type="month" value={form.periodo} onChange={(e) => set({ periodo: e.target.value })} />
         </Field>
         <Field className="f">
           <label className="req">Valor bruto</label>
-          <Input
+          <Input name="bruto"
             type="number"
             min="0"
             value={form.bruto || ''}
@@ -137,7 +138,7 @@ export const PagoForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
         </Field>
         <Field className="f">
           <label>IVA</label>
-          <Input
+          <Input name="iva"
             type="number"
             min="0"
             value={form.iva || ''}
@@ -146,7 +147,7 @@ export const PagoForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
         </Field>
         <Field className="f">
           <label>Retenciones (ReteFuente / ReteICA)</label>
-          <Input
+          <Input name="retenciones"
             type="number"
             min="0"
             value={form.retenciones || ''}
@@ -155,7 +156,7 @@ export const PagoForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
         </Field>
         <Field className="f">
           <label>Archivo soporte</label>
-          <Input
+          <Input name="soporte"
             value={form.soporte}
             onChange={(e) => set({ soporte: e.target.value })}
             placeholder="Factura_01.pdf"

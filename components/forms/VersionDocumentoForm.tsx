@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -23,6 +25,7 @@ export const VersionDocumentoForm = ({
   doc: Document;
   onDone: (savedId: string) => void;
 }) => {
+  const cancelar = useFormCancel("/documentos");
   const [intentado, setIntentado] = useState(false);
   const [form, setForm] = useState({ archivo: '', motivo: '', cambios: '' });
 
@@ -34,10 +37,10 @@ export const VersionDocumentoForm = ({
 
   const archivo = form.archivo.trim();
   const errCampo: Record<string, string> = {};
-  const errores: string[] = [];
+  const { errores, fieldErrors, addError } = createFieldValidation();
   if (!archivo) {
     errCampo.archivo = 'Ingresa el nombre del archivo de esta versión.';
-    errores.push('El archivo es obligatorio.');
+    addError("archivo", 'El archivo es obligatorio.');
   }
 
   const guardar = () => {
@@ -77,16 +80,16 @@ export const VersionDocumentoForm = ({
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/documentos">Documentos</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
             <Link href="/documentos">{doc.nombre}</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>Nueva versión</span>
-          </div>
+            <span aria-current="page">Nueva versión</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             Cargar nueva versión
             <span
@@ -115,9 +118,9 @@ export const VersionDocumentoForm = ({
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="file-text" /> {doc.nombre}
-            </h3>
+            </h2>
             <span className="sub small muted">
               Categoría {doc.categoria} · {versions.length} versión(es) · Estado {doc.estado}
             </span>
@@ -150,9 +153,9 @@ export const VersionDocumentoForm = ({
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="upload" /> Carga de la versión v{nextV}
-            </h3>
+            </h2>
             <span className="sub small muted">Archivo, motivo y detalle de los cambios aplicados</span>
           </div>
         </div>
@@ -160,7 +163,7 @@ export const VersionDocumentoForm = ({
         <FormGrid className="form-grid">
           <Field className={`f span3${err('archivo') ? ' err' : ''}`}>
             <label className="req">Nuevo archivo</label>
-            <Input
+            <Input name="archivo"
               value={form.archivo}
               placeholder="Ej. contrato_firmado_v2.pdf"
               onChange={(e) => set({ archivo: e.target.value })}
@@ -176,7 +179,7 @@ export const VersionDocumentoForm = ({
 
           <Field className="f span3">
             <label>Motivo de la nueva versión</label>
-            <Input
+            <Input name="motivo"
               value={form.motivo}
               placeholder="Ej. Ajuste de cláusula / adición de firmas"
               onChange={(e) => set({ motivo: e.target.value })}
@@ -185,7 +188,7 @@ export const VersionDocumentoForm = ({
 
           <Field className="f span3">
             <label>Descripción de cambios</label>
-            <Textarea
+            <Textarea name="cambios"
               rows={4}
               value={form.cambios}
               placeholder="Detalle de modificaciones en esta versión..."
@@ -195,27 +198,16 @@ export const VersionDocumentoForm = ({
         </FormGrid>
       </Surface>
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="upload" /> Guardar versión v{nextV}
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

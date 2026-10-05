@@ -1,8 +1,8 @@
 'use client';
 import type { ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, notFound } from 'next/navigation';
 import { AuthService, Store } from '../../../lib/store';
-import { EmptyState } from '../../ui/Workspace';
+import { RouteState as EmptyState } from './RouteState';
 import { Button } from '../../ui/button';
 import { Icon } from '../../icons';
 import { contractHref } from '../../app/routes';
@@ -45,6 +45,7 @@ export const ExpedienteRoute = ({
   const reg = registro ? (Store.get(registro.col, registro.id) as { contractId?: string } | null) : null;
   const ajeno = !!reg && reg.contractId !== cid;
   const anulado = !!c && c.anulado;
+  if (permitido && (!c || (registro && (!reg || ajeno)))) notFound();
   const bloqueado = (!c || !permitido || (registro && !reg)) || (bloquearAnulado && anulado);
   if (bloqueado) {
     const titulo = !c
@@ -80,3 +81,9 @@ export const ExpedienteRoute = ({
 
   return <>{children(volver)}</>;
 };
+
+/** Revalida la pertenencia justo antes de escribir, incluso si la ficha sigue abierta. */
+export function guardExpedienteRecord(cid: string, col: keyof DB, id: string) {
+  const record = Store.get(col, id) as { contractId?: string } | undefined;
+  return !!Store.get('contracts', cid) && !!record && record.contractId === cid;
+}

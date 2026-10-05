@@ -247,8 +247,10 @@ export const ObligacionesView = ({
       {/* Main Panel */}
       <Surface className="panel">
         {/* Quick Views Tabs con icono */}
-        <div className="tabs" style={{ padding: '0 12px' }}>
+        <div className="tabs" style={{ padding: '0 12px' }} role="tablist" aria-label="Filtro de obligaciones por estado">
           <Button
+            role="tab"
+            aria-selected={activeTab === 'todas'}
             className={`tab ${activeTab === 'todas' ? 'on' : ''}`}
             aria-pressed={activeTab === 'todas'}
             onClick={() => {
@@ -259,6 +261,8 @@ export const ObligacionesView = ({
             <Icon name="list-check" size={12} /> Todas ({total})
           </Button>
           <Button
+            role="tab"
+            aria-selected={activeTab === 'pendientes'}
             className={`tab ${activeTab === 'pendientes' ? 'on' : ''}`}
             aria-pressed={activeTab === 'pendientes'}
             onClick={() => {
@@ -269,6 +273,8 @@ export const ObligacionesView = ({
             <Icon name="hourglass-half" size={12} /> Pendientes / En proceso ({pendientes})
           </Button>
           <Button
+            role="tab"
+            aria-selected={activeTab === 'vencidas'}
             className={`tab ${activeTab === 'vencidas' ? 'on' : ''}`}
             aria-pressed={activeTab === 'vencidas'}
             onClick={() => {
@@ -279,6 +285,8 @@ export const ObligacionesView = ({
             <Icon name="alert-circle" size={12} /> Vencidas ({vencidas})
           </Button>
           <Button
+            role="tab"
+            aria-selected={activeTab === 'cumplidas'}
             className={`tab ${activeTab === 'cumplidas' ? 'on' : ''}`}
             aria-pressed={activeTab === 'cumplidas'}
             onClick={() => {
@@ -432,7 +440,7 @@ export const ObligacionesView = ({
 
         {/* Table */}
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Listado de obligaciones contractuales">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -575,7 +583,7 @@ export const ObligacionesView = ({
                         Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} de{' '}
                         <b>{filtered.length}</b> obligaciones
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de obligaciones">
                         <Button
                           disabled={currentPage <= 1}
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -584,7 +592,13 @@ export const ObligacionesView = ({
                           &lt;
                         </Button>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                          <Button key={p} className={p === currentPage ? 'on' : ''} onClick={() => setPage(p)}>
+                          <Button
+                            key={p}
+                            className={p === currentPage ? 'on' : ''}
+                            aria-current={p === currentPage ? 'page' : undefined}
+                            onClick={() => setPage(p)}
+                            aria-label={`Ir a la página ${p}`}
+                          >
                             {p}
                           </Button>
                         ))}

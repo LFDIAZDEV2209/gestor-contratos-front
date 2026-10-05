@@ -6,7 +6,8 @@ import { FormGrid, Field } from '../../ui/Workspace';
 import { Store, AuthService, Audit } from '../../../lib/store';
 import { todayIso, uid } from '../../../lib/format';
 import type { Breach, Contract, Obligation } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
+import { guardExpedienteRecord } from './ExpedienteRoute';
 
 type FormState = {
   tipo: string;
@@ -48,13 +49,17 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
 
   const obligations = Store.byContract('obligations', cid) as Obligation[];
 
-  const errores: string[] = [];
-  if (!form.fecha) errores.push('La fecha de reporte formal es obligatoria.');
-  if (!form.descripcion.trim()) errores.push('La descripción detallada de los hechos es obligatoria.');
-  if (form.multa < 0) errores.push('La multa tasada no puede ser negativa.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!form.fecha) addError("fecha", 'La fecha de reporte formal es obligatoria.');
+  if (!form.descripcion.trim()) addError("descripcion", 'La descripción detallada de los hechos es obligatoria.');
+  if (form.multa < 0) addError("multa", 'La multa tasada no puede ser negativa.');
 
   const guardar = () => {
     setIntentado(true);
+    if (recordId && !guardExpedienteRecord(cid, 'breaches', recordId)) {
+      notify('El registro ya no pertenece a este expediente.');
+      return;
+    }
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
       return;
@@ -108,6 +113,7 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="incumplimientos"
       paso={isEdit ? `Gestionar ${actual!.id}` : 'Nuevo incumplimiento'}
@@ -134,7 +140,7 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
       <FormGrid className="form-grid">
         <Field className="f">
           <label className="req">Tipo de falta</label>
-          <Select value={form.tipo} onChange={(e) => set({ tipo: e.target.value })} disabled={isEdit}>
+          <Select name="tipo" value={form.tipo} onChange={(e) => set({ tipo: e.target.value })} disabled={isEdit}>
             <option value="Retraso en cronograma">Retraso en cronograma</option>
             <option value="Calidad de entregable">Deficiencia en calidad de entregable</option>
             <option value="No aporte de pólizas">No aporte o no renovación de pólizas</option>
@@ -145,11 +151,11 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
         </Field>
         <Field className="f">
           <label className="req">Fecha de reporte formal</label>
-          <Input type="date" value={form.fecha} onChange={(e) => set({ fecha: e.target.value })} required />
+          <Input name="fecha" type="date" value={form.fecha} onChange={(e) => set({ fecha: e.target.value })} required />
         </Field>
         <Field className="f">
           <label>Obligación contractual asociada</label>
-          <Select value={form.obligationId} onChange={(e) => set({ obligationId: e.target.value })}>
+          <Select name="obligationId" value={form.obligationId} onChange={(e) => set({ obligationId: e.target.value })}>
             <option value="">— Ninguna en particular —</option>
             {obligations.map((o) => (
               <option key={o.id} value={o.id}>
@@ -160,7 +166,7 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
         </Field>
         <Field className="f">
           <label>Nivel de impacto</label>
-          <Select value={form.impacto} onChange={(e) => set({ impacto: e.target.value })}>
+          <Select name="impacto" value={form.impacto} onChange={(e) => set({ impacto: e.target.value })}>
             <option value="Bajo">Bajo</option>
             <option value="Medio">Medio</option>
             <option value="Alto">Alto</option>
@@ -169,7 +175,7 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
         {isEdit && (
           <Field className="f">
             <label className="req">Estado de trámite</label>
-            <Select value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
+            <Select name="estado" value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
               <option value="Abierto">Abierto</option>
               <option value="En análisis">En análisis jurídico</option>
               <option value="En gestión">En gestión de descargos</option>
@@ -181,7 +187,7 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
         {!isEdit && (
           <Field className="f">
             <label>Responsable del seguimiento</label>
-            <Input
+            <Input name="responsable"
               value={form.responsable}
               onChange={(e) => set({ responsable: e.target.value })}
               placeholder={c.responsable || 'Supervisor'}
@@ -190,7 +196,7 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
         )}
         <Field className="f span2">
           <label className="req">Descripción detallada de los hechos</label>
-          <Textarea
+          <Textarea name="descripcion"
             rows={3}
             value={form.descripcion}
             placeholder="Detalle los hechos verificados, requerimientos desatendidos o evidencias recogidas..."
@@ -200,7 +206,7 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
         </Field>
         <Field className="f">
           <label>Medida administrativa {isEdit ? 'aplicada' : 'adoptada'}</label>
-          <Input
+          <Input name="medida"
             value={form.medida}
             placeholder="Ej. Requerimiento formal con apercibimiento"
             onChange={(e) => set({ medida: e.target.value })}
@@ -208,7 +214,7 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
         </Field>
         <Field className="f">
           <label>Valor tasado de sanción/multa (COP)</label>
-          <Input
+          <Input name="multa"
             type="number"
             min="0"
             value={form.multa || ''}
@@ -218,7 +224,7 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
         </Field>
         <Field className="f span2">
           <label>Plan de mitigación o acción de choque exigida</label>
-          <Input
+          <Input name="plan"
             value={form.plan}
             placeholder="Ej. Radicación de cronograma acelerado en 5 días hábiles"
             onChange={(e) => set({ plan: e.target.value })}

@@ -398,7 +398,7 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Historial de informes mensuales de ejecución">
               <thead>
                 <tr>
                   <th className="nw">Periodo</th>

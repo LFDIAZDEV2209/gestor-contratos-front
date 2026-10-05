@@ -124,7 +124,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
       {/* Tabla de pólizas */}
       <Surface className="panel">
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Pólizas y amparos de garantía del contrato">
             <thead>
               <tr>
                 <th>Póliza</th>

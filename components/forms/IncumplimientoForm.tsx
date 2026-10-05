@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
@@ -50,6 +52,7 @@ export const IncumplimientoForm = ({
   initial?: Partial<Breach>;
   onDone: (savedId: string) => void;
 }) => {
+  const cancelar = useFormCancel("/incumplimientos");
   const isEdit = Boolean(initial?.id);
   const [form, setForm] = useState<Partial<Breach>>(() =>
     initial ? { ...initial } : { ...FORM_DEFAULT }
@@ -74,12 +77,12 @@ export const IncumplimientoForm = ({
   const multa = Number(form.multa) || 0;
   const fecha = form.fecha || '';
 
-  const errores: string[] = [];
-  if (!contractId) errores.push('Seleccione el contrato al que se imputa el incumplimiento.');
-  else if (!contrato) errores.push('El contrato seleccionado ya no existe en el portafolio.');
-  if (!fecha) errores.push('La fecha del hecho es obligatoria.');
-  if (!descripcion) errores.push('La descripción del incumplimiento es obligatoria.');
-  if (multa < 0) errores.push('La multa no puede ser negativa.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!contractId) addError("contractId", 'Seleccione el contrato al que se imputa el incumplimiento.');
+  else if (!contrato) addError("contractId", 'El contrato seleccionado ya no existe en el portafolio.');
+  if (!fecha) addError("fecha", 'La fecha del hecho es obligatoria.');
+  if (!descripcion) addError("descripcion", 'La descripción del incumplimiento es obligatoria.');
+  if (multa < 0) addError("multa", 'La multa no puede ser negativa.');
 
   // El estado del tab puede ser un valor de trámite distinto (En análisis / En gestión):
   // se ofrezca como opción extra para no perderlo al editar desde el módulo global.
@@ -146,14 +149,14 @@ export const IncumplimientoForm = ({
   };
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/incumplimientos">Incumplimientos</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>{isEdit ? 'Editar incumplimiento' : 'Registrar incumplimiento'}</span>
-          </div>
+            <span aria-current="page">{isEdit ? 'Editar incumplimiento' : 'Registrar incumplimiento'}</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             {isEdit ? 'Editar Incumplimiento' : 'Registrar Incumplimiento'}
           </h1>
@@ -168,16 +171,16 @@ export const IncumplimientoForm = ({
       {/* Vínculo contractual */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="file-contract" size={16} /> Vínculo contractual
-          </h3>
+          </h2>
           <span className="sub">{contracts.length} contratos vigentes en el portafolio</span>
         </div>
 
         <FormGrid className="form-grid">
           <Field className="f span3">
             <label className="req">Contrato</label>
-            <Select value={contractId} onChange={(e) => set({ contractId: e.target.value })}>
+            <Select name="contractId" value={contractId} onChange={(e) => set({ contractId: e.target.value })}>
               <option value="">— Seleccione contrato —</option>
               {opciones.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -197,21 +200,21 @@ export const IncumplimientoForm = ({
       {/* Hecho incumplido */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="triangle-exclamation" size={16} /> Hecho incumplido
-          </h3>
+          </h2>
           <span className="sub">Los campos con * son obligatorios</span>
         </div>
 
         <FormGrid className="form-grid">
           <Field className="f">
             <label className="req">Fecha del hecho</label>
-            <Input type="date" value={fecha} onChange={(e) => set({ fecha: e.target.value })} />
+            <Input name="fecha" type="date" value={fecha} onChange={(e) => set({ fecha: e.target.value })} />
           </Field>
 
           <Field className="f">
             <label className="req">Tipo de incumplimiento</label>
-            <Select value={form.tipo || ''} onChange={(e) => set({ tipo: e.target.value })}>
+            <Select name="tipo" value={form.tipo || ''} onChange={(e) => set({ tipo: e.target.value })}>
               {TIPOS.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -222,7 +225,7 @@ export const IncumplimientoForm = ({
 
           <Field className="f">
             <label className="req">Nivel de impacto</label>
-            <Select
+            <Select name="impacto"
               value={String(form.impacto || 'Medio')}
               onChange={(e) => set({ impacto: e.target.value })}
             >
@@ -236,7 +239,7 @@ export const IncumplimientoForm = ({
 
           <Field className="f span3">
             <label className="req">Descripción detallada</label>
-            <Textarea
+            <Textarea name="descripcion"
               rows={3}
               value={form.descripcion || ''}
               placeholder="Hechos que configuran el presunto incumplimiento"
@@ -249,16 +252,16 @@ export const IncumplimientoForm = ({
       {/* Consecuencias y seguimiento */}
       <Surface className="panel mb">
         <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="scale-balanced" size={16} /> Consecuencias y seguimiento
-          </h3>
+          </h2>
           <span className="sub">Multas en pesos colombianos (COP)</span>
         </div>
 
         <FormGrid className="form-grid">
           <Field className="f">
             <label>Multa / sanción económica</label>
-            <Input
+            <Input name="multa"
               type="number"
               min={0}
               value={multa || ''}
@@ -272,7 +275,7 @@ export const IncumplimientoForm = ({
 
           <Field className="f">
             <label>Responsable del seguimiento</label>
-            <Input
+            <Input name="responsable"
               value={form.responsable || ''}
               placeholder="Nombre del responsable"
               onChange={(e) => set({ responsable: e.target.value })}
@@ -281,7 +284,7 @@ export const IncumplimientoForm = ({
 
           <Field className="f">
             <label>Estado</label>
-            <Select value={form.estado || 'Abierto'} onChange={(e) => set({ estado: e.target.value })}>
+            <Select name="estado" value={form.estado || 'Abierto'} onChange={(e) => set({ estado: e.target.value })}>
               {Array.from(estados).map((e) => (
                 <option key={e} value={e}>
                   {e}
@@ -292,7 +295,7 @@ export const IncumplimientoForm = ({
 
           <Field className="f span3">
             <label>Plan de acción requerido</label>
-            <Textarea
+            <Textarea name="planAccion"
               rows={3}
               value={form.planAccion || ''}
               placeholder="Medidas de mitigación o plan exigido al contratista"
@@ -305,27 +308,16 @@ export const IncumplimientoForm = ({
         </FormGrid>
       </Surface>
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="check" /> {isEdit ? 'Guardar Cambios' : 'Guardar Incumplimiento'}
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

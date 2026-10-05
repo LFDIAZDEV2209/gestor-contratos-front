@@ -7,7 +7,8 @@ import { Store, AuthService, Audit } from '../../../lib/store';
 import { money, monthLabel, uid } from '../../../lib/format';
 import { M } from '../../../lib/metrics';
 import type { Contract, Exec } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
+import { guardExpedienteRecord } from './ExpedienteRoute';
 
 type FormState = { periodo: string; valor: number; avanceFisico: number; obs: string };
 
@@ -34,15 +35,19 @@ export const EjecucionForm = ({ cid, recordId, onDone }: { cid: string; recordId
   const duplicado = (Store.byContract('execs', cid) as Exec[]).some(
     (ex) => ex.periodo === form.periodo && ex.id !== actual?.id
   );
-  const errores: string[] = [];
-  if (!form.periodo) errores.push('Selecciona el periodo del informe (AAAA-MM).');
-  if (!form.valor || form.valor <= 0) errores.push('El valor ejecutado debe ser mayor a cero.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!form.periodo) addError("periodo", 'Selecciona el periodo del informe (AAAA-MM).');
+  if (!form.valor || form.valor <= 0) addError("valor", 'El valor ejecutado debe ser mayor a cero.');
   if (form.avanceFisico < 0 || form.avanceFisico > 100)
-    errores.push('El avance físico acumulado debe estar entre 0 y 100.');
-  if (duplicado) errores.push('Ya existe un informe registrado para ese periodo: edítalo en lugar de duplicarlo.');
+    addError("avanceFisico", 'El avance físico acumulado debe estar entre 0 y 100.');
+  if (duplicado) addError("periodo", 'Ya existe un informe registrado para ese periodo: edítalo en lugar de duplicarlo.');
 
   const guardar = () => {
     setIntentado(true);
+    if (recordId && !guardExpedienteRecord(cid, 'execs', recordId)) {
+      notify('El registro ya no pertenece a este expediente.');
+      return;
+    }
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
       return;
@@ -87,6 +92,7 @@ export const EjecucionForm = ({ cid, recordId, onDone }: { cid: string; recordId
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="ejecucion"
       paso={isEdit ? `Editar ejecución · ${actual!.periodo}` : 'Registrar ejecución'}
@@ -112,11 +118,11 @@ export const EjecucionForm = ({ cid, recordId, onDone }: { cid: string; recordId
       <FormGrid className="form-grid">
         <Field className="f">
           <label className="req">Periodo (AAAA-MM)</label>
-          <Input type="month" value={form.periodo} onChange={(e) => set({ periodo: e.target.value })} required />
+          <Input name="periodo" type="month" value={form.periodo} onChange={(e) => set({ periodo: e.target.value })} required />
         </Field>
         <Field className="f">
           <label className="req">Valor ejecutado del periodo (COP)</label>
-          <Input
+          <Input name="valor"
             type="number"
             min="0"
             step="1000"
@@ -128,7 +134,7 @@ export const EjecucionForm = ({ cid, recordId, onDone }: { cid: string; recordId
         </Field>
         <Field className="f">
           <label className="req">% Avance físico acumulado (0–100)</label>
-          <Input
+          <Input name="avanceFisico"
             type="number"
             min="0"
             max="100"
@@ -141,7 +147,7 @@ export const EjecucionForm = ({ cid, recordId, onDone }: { cid: string; recordId
         </Field>
         <Field className="f span2">
           <label>Observaciones / Acta de soporte</label>
-          <Input
+          <Input name="obs"
             value={form.obs}
             onChange={(e) => set({ obs: e.target.value })}
             placeholder="Informe de supervisión o radicado de soporte..."

@@ -203,7 +203,7 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Actas y eventos de suspensión del contrato">
               <thead>
                 <tr>
                   <th className="nw">Número</th>
@@ -295,7 +295,7 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Actas suscritas de suspensión o reinicio">
               <thead>
                 <tr>
                   <th className="nw">Número acta</th>

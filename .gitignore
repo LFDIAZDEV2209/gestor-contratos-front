@@ -24,6 +24,9 @@ dev-server.log
 scratch/
 .playwright-mcp/
 qa-redise*.png
+qa/
+qa-*.png
+pass4-*.png
 
 # ─── Editor / sistema operativo ────────────────────────────────
 .vscode/*

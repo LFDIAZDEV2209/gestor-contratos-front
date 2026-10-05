@@ -392,7 +392,7 @@ export const AseguradorasView = ({
           </div>
         </div>
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Matriz de cobertura por aseguradora">
             <thead>
               <tr>
                 <th className="nw">Contrato</th>
@@ -474,7 +474,7 @@ export const AseguradorasView = ({
                         Mostrando {(currentPageMatrix - 1) * PAGE_SIZE + 1}–{Math.min(currentPageMatrix * PAGE_SIZE, cs.length)} de{' '}
                         <b>{cs.length}</b> contratos
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de matriz de aseguradoras">
                         <Button
                           disabled={currentPageMatrix <= 1}
                           onClick={() => setPageMatrix((p) => Math.max(1, p - 1))}
@@ -483,7 +483,7 @@ export const AseguradorasView = ({
                           &lt;
                         </Button>
                         {Array.from({ length: totalPagesMatrix }, (_, p) => p + 1).map((p) => (
-                          <Button key={p} className={p === currentPageMatrix ? 'on' : ''} aria-current={p === currentPageMatrix ? 'page' : undefined} onClick={() => setPageMatrix(p)}>
+                          <Button key={p} className={p === currentPageMatrix ? 'on' : ''} aria-current={p === currentPageMatrix ? 'page' : undefined} aria-label={`Ir a la página ${p}`} onClick={() => setPageMatrix(p)}>
                             {p}
                           </Button>
                         ))}
@@ -521,7 +521,7 @@ export const AseguradorasView = ({
           )}
         </div>
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl">
+          <DataTable className="tbl" aria-label="Cupos autorizados por aseguradora">
             <thead>
               <tr>
                 <th className="nw">Número de Cupo</th>
@@ -618,7 +618,7 @@ export const AseguradorasView = ({
                         Mostrando {(currentPageCupos - 1) * PAGE_SIZE + 1}–{Math.min(currentPageCupos * PAGE_SIZE, allCupos.length)} de{' '}
                         <b>{allCupos.length}</b> cupos
                       </span>
-                      <div className="pager">
+                      <div className="pager" role="navigation" aria-label="Paginación de cupos de aseguradoras">
                         <Button
                           disabled={currentPageCupos <= 1}
                           onClick={() => setPageCupos((p) => Math.max(1, p - 1))}
@@ -627,7 +627,7 @@ export const AseguradorasView = ({
                           &lt;
                         </Button>
                         {Array.from({ length: totalPagesCupos }, (_, p) => p + 1).map((p) => (
-                          <Button key={p} className={p === currentPageCupos ? 'on' : ''} aria-current={p === currentPageCupos ? 'page' : undefined} onClick={() => setPageCupos(p)}>
+                          <Button key={p} className={p === currentPageCupos ? 'on' : ''} aria-current={p === currentPageCupos ? 'page' : undefined} aria-label={`Ir a la página ${p}`} onClick={() => setPageCupos(p)}>
                             {p}
                           </Button>
                         ))}

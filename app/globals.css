@@ -1164,6 +1164,16 @@ h2 {
   font-size: 12px;
   background: var(--surface-2);
   border-bottom: 1px solid var(--line);
+  transition: opacity var(--t-fast, .18s) var(--ease, ease);
+}
+
+/* Sin overflow horizontal no hay nada que deslizar: se oculta el hint. */
+.tbl-wrap[data-scrolled-end='none']::before { display: none; }
+
+/* Fin del desplazamiento alcanzado: feedback en lugar de insistencia. */
+.tbl-wrap[data-scrolled-end='true']:has(table)::before {
+  content: 'Fin del desplazamiento horizontal ✓';
+  opacity: .82;
 }
 
 /* Variante destacada invertida: gradiente de marca completo */

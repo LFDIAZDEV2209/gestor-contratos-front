@@ -7,7 +7,7 @@ import { Store, AuthService, Audit } from '../../../lib/store';
 import { nowStamp, fdate, uid } from '../../../lib/format';
 import { CAT } from '../../../lib/catalog';
 import type { Document } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
 
 /**
  * VISTA dedicada de alta de documentos del expediente (antes modal en TabDocumentos).
@@ -24,8 +24,8 @@ export const DocumentoForm = ({ cid, catInicial, onDone }: { cid: string; catIni
   const [intentado, setIntentado] = useState(false);
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
-  const errores: string[] = [];
-  if (!form.nombre.trim()) errores.push('El nombre del documento es obligatorio.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!form.nombre.trim()) addError("nombre", 'El nombre del documento es obligatorio.');
 
   const guardar = () => {
     setIntentado(true);
@@ -67,6 +67,7 @@ export const DocumentoForm = ({ cid, catInicial, onDone }: { cid: string; catIni
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="documentos"
       paso="Cargar documento"
@@ -88,7 +89,7 @@ export const DocumentoForm = ({ cid, catInicial, onDone }: { cid: string; catIni
       <FormGrid className="form-grid">
         <Field className="f span2">
           <label className="req">Nombre del documento</label>
-          <Input
+          <Input name="nombre"
             value={form.nombre}
             onChange={(e) => set({ nombre: e.target.value })}
             placeholder="Ej. Acta de entrega fase 1"
@@ -96,7 +97,7 @@ export const DocumentoForm = ({ cid, catInicial, onDone }: { cid: string; catIni
         </Field>
         <Field className="f">
           <label>Categoría</label>
-          <Select value={form.categoria} onChange={(e) => set({ categoria: e.target.value })}>
+          <Select name="categoria" value={form.categoria} onChange={(e) => set({ categoria: e.target.value })}>
             {cats.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -106,7 +107,7 @@ export const DocumentoForm = ({ cid, catInicial, onDone }: { cid: string; catIni
         </Field>
         <Field className="f span2">
           <label>Archivo adjunto (PDF / Word / Excel)</label>
-          <Input
+          <Input name="archivo"
             type="text"
             placeholder="Nombre del archivo (ej. Acta_Fase1.pdf)"
             value={form.archivo}

@@ -223,7 +223,7 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl">
+            <DataTable className="tbl" aria-label="Historial de actos modificatorios">
               <thead>
                 <tr>
                   <th className="nw">Número</th>

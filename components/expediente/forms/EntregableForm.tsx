@@ -6,7 +6,8 @@ import { FormGrid, Field } from '../../ui/Workspace';
 import { Store, AuthService, Audit } from '../../../lib/store';
 import { todayIso, addDays, uid } from '../../../lib/format';
 import type { Contract, Deliverable } from '../../../lib/types';
-import { ExpedienteFormShell } from './ExpedienteFormShell';
+import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
+import { guardExpedienteRecord } from './ExpedienteRoute';
 
 type FormState = { nombre: string; descripcion: string; fechaInicio: string; fechaProg: string; responsable: string };
 
@@ -30,14 +31,18 @@ export const EntregableForm = ({ cid, recordId, onDone }: { cid: string; recordI
   const [intentado, setIntentado] = useState(false);
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
-  const errores: string[] = [];
-  if (!form.nombre.trim()) errores.push('El nombre del entregable es obligatorio.');
-  if (!form.fechaProg) errores.push('La fecha programada de entrega es obligatoria.');
+  const { errores, fieldErrors, addError } = createFieldValidation();
+  if (!form.nombre.trim()) addError("nombre", 'El nombre del entregable es obligatorio.');
+  if (!form.fechaProg) addError("fechaProg", 'La fecha programada de entrega es obligatoria.');
   if (form.fechaProg && form.fechaInicio && form.fechaProg < form.fechaInicio)
-    errores.push('La fecha programada no puede ser anterior a la fecha de inicio.');
+    addError("fechaProg", 'La fecha programada no puede ser anterior a la fecha de inicio.');
 
   const guardar = () => {
     setIntentado(true);
+    if (recordId && !guardExpedienteRecord(cid, 'deliverables', recordId)) {
+      notify('El registro ya no pertenece a este expediente.');
+      return;
+    }
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
       return;
@@ -88,6 +93,7 @@ export const EntregableForm = ({ cid, recordId, onDone }: { cid: string; recordI
 
   return (
     <ExpedienteFormShell
+      fieldErrors={fieldErrors}
       cid={cid}
       tab="entregables"
       paso={isEdit ? `Editar entregable · ${actual!.nombre}` : 'Nuevo entregable'}
@@ -113,7 +119,7 @@ export const EntregableForm = ({ cid, recordId, onDone }: { cid: string; recordI
       <FormGrid className="form-grid">
         <Field className="f span2">
           <label className="req">Nombre del entregable / producto</label>
-          <Input
+          <Input name="nombre"
             value={form.nombre}
             onChange={(e) => set({ nombre: e.target.value })}
             placeholder="Ej. Informe técnico de interventoría o acta de avance..."
@@ -122,7 +128,7 @@ export const EntregableForm = ({ cid, recordId, onDone }: { cid: string; recordI
         </Field>
         <Field className="f span2">
           <label>Descripción / Criterio de aceptación</label>
-          <Textarea
+          <Textarea name="descripcion"
             rows={2}
             value={form.descripcion}
             onChange={(e) => set({ descripcion: e.target.value })}
@@ -131,15 +137,15 @@ export const EntregableForm = ({ cid, recordId, onDone }: { cid: string; recordI
         </Field>
         <Field className="f">
           <label className="req">Fecha planificada de inicio</label>
-          <Input type="date" value={form.fechaInicio} onChange={(e) => set({ fechaInicio: e.target.value })} required />
+          <Input name="fechaInicio" type="date" value={form.fechaInicio} onChange={(e) => set({ fechaInicio: e.target.value })} required />
         </Field>
         <Field className="f">
           <label className="req">Fecha programada de entrega</label>
-          <Input type="date" value={form.fechaProg} onChange={(e) => set({ fechaProg: e.target.value })} required />
+          <Input name="fechaProg" type="date" value={form.fechaProg} onChange={(e) => set({ fechaProg: e.target.value })} required />
         </Field>
         <Field className="f span2">
           <label>Responsable de entrega o revisión</label>
-          <Input
+          <Input name="responsable"
             value={form.responsable}
             onChange={(e) => set({ responsable: e.target.value })}
             placeholder={c.contratista || 'Nombre del responsable asignado'}

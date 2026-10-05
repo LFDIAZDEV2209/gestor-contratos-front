@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormCancel } from './useFormCancel';
+import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
@@ -21,6 +23,7 @@ import { Icon } from '../icons';
  * valor) y la confirmación de exceso de cupo, que sigue siendo un modal.
  */
 export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
+  const cancelar = useFormCancel("/garantias");
   const [intentado, setIntentado] = useState(false);
   const [form, setForm] = useState({
     contractId: '',
@@ -56,26 +59,26 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
   // Mismas reglas del flujo original + fechas de vigencia nunca vacías.
   const poliza = form.poliza.trim();
   const errCampo: Record<string, string> = {};
-  const errores: string[] = [];
+  const { errores, fieldErrors, addError } = createFieldValidation();
   if (!form.contractId) {
     errCampo.contractId = 'Selecciona el contrato al que se ampara la póliza.';
-    errores.push('El contrato es obligatorio.');
+    addError("contractId", 'El contrato es obligatorio.');
   }
   if (!poliza) {
     errCampo.poliza = 'Ingresa el número de la póliza emitida.';
-    errores.push('El número de póliza es obligatorio.');
+    addError("poliza", 'El número de póliza es obligatorio.');
   }
   if (!form.valor) {
     errCampo.valor = 'Ingresa el valor asegurado (monto total cubierto).';
-    errores.push('El valor asegurado es obligatorio.');
+    addError("valor", 'El valor asegurado es obligatorio.');
   }
   if (!form.fechaInicio) {
     errCampo.fechaInicio = 'Define el inicio de la vigencia.';
-    errores.push('La fecha de inicio de vigencia es obligatoria.');
+    addError("fechaInicio", 'La fecha de inicio de vigencia es obligatoria.');
   }
   if (!form.fechaVenc) {
     errCampo.fechaVenc = 'Define el vencimiento de la vigencia.';
-    errores.push('La fecha de vencimiento de la vigencia es obligatoria.');
+    addError("fechaVenc", 'La fecha de vencimiento de la vigencia es obligatoria.');
   }
   if (
     form.fechaInicio &&
@@ -83,7 +86,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
     form.fechaVenc < form.fechaInicio
   ) {
     errCampo.fechaVenc = 'El vencimiento no puede ser anterior al inicio de vigencia.';
-    errores.push('La vigencia final debe ser posterior a la inicial.');
+    addError("fechaVenc", 'La vigencia final debe ser posterior a la inicial.');
   }
 
   const excedeCupo =
@@ -145,14 +148,14 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
 
   return (
-    <>
+    <AccessibleForm errors={fieldErrors} attempted={intentado}>
       <PageHeader className="ph">
         <div>
-          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+          <nav aria-label="Ruta de navegación" className="crumb" style={{ width: '100%', marginBottom: 6 }}>
             <Link href="/garantias">Garantías</Link>
             <span style={{ color: 'var(--muted)' }}> / </span>
-            <span>Nueva póliza</span>
-          </div>
+            <span aria-current="page">Nueva póliza</span>
+          </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             Nueva póliza de garantía
           </h1>
@@ -167,16 +170,16 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="file-signature" /> Contrato y aseguradora
-            </h3>
+            </h2>
             <span className="sub small muted">Sujeto asegurado y emisor de la cobertura</span>
           </div>
         </div>
         <FormGrid className="form-grid">
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
-            <Select
+            <Select name="contractId"
               value={form.contractId}
               onChange={(e) => set({ contractId: e.target.value })}
               aria-describedby={err('contractId') ? 'err-contrato' : undefined}
@@ -197,7 +200,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
           <Field className="f">
             <label className="req">Aseguradora</label>
-            <Select
+            <Select name="aseguradora"
               value={form.aseguradora}
               onChange={(e) => set({ aseguradora: e.target.value, cupoId: '' })}
             >
@@ -211,7 +214,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
           <Field className="f">
             <label className="req">Tipo de garantía</label>
-            <Select value={form.tipo} onChange={(e) => set({ tipo: e.target.value })}>
+            <Select name="tipo" value={form.tipo} onChange={(e) => set({ tipo: e.target.value })}>
               {CAT('tiposGarantia').map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -222,7 +225,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
           <Field className="f">
             <label>Estado de la póliza</label>
-            <Select value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
+            <Select name="estado" value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
               <option value="Aprobada">Aprobada</option>
               <option value="Pendiente">Pendiente</option>
             </Select>
@@ -234,16 +237,16 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="shield" /> Póliza y modalidad de expedición
-            </h3>
+            </h2>
             <span className="sub small muted">Identificación del documento y esquema de cobertura</span>
           </div>
         </div>
         <FormGrid className="form-grid">
           <Field className={`f${err('poliza') ? ' err' : ''}`}>
             <label className="req">Número de póliza</label>
-            <Input
+            <Input name="poliza"
               value={form.poliza}
               placeholder="Ej. POL-984321"
               onChange={(e) => set({ poliza: e.target.value })}
@@ -258,7 +261,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
           <Field className="f">
             <label className="req">Modalidad de expedición</label>
-            <Select
+            <Select name="modalidadPoliza"
               value={form.modalidadPoliza}
               onChange={(e) => set({ modalidadPoliza: e.target.value, cupoId: '' })}
             >
@@ -269,7 +272,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
           <Field className="f">
             <label>Porcentaje de cobertura</label>
-            <Input
+            <Input name="porcentaje"
               type="number"
               min={0}
               max={100}
@@ -281,7 +284,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
           <Field className="f">
             <label>Tomador</label>
-            <Input
+            <Input name="tomador"
               value={form.tomador}
               placeholder="Razón social o contratista"
               onChange={(e) => set({ tomador: e.target.value })}
@@ -290,7 +293,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
           <Field className="f">
             <label>Intermediario / Corredor</label>
-            <Input
+            <Input name="intermediario"
               value={form.intermediario}
               placeholder="Corredor de seguros"
               onChange={(e) => set({ intermediario: e.target.value })}
@@ -305,7 +308,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
               <label>
                 Cupo de la aseguradora ({availableCupos.length} disponibles)
               </label>
-              <Select value={form.cupoId} onChange={(e) => set({ cupoId: e.target.value })}>
+              <Select name="cupoId" value={form.cupoId} onChange={(e) => set({ cupoId: e.target.value })}>
                 <option value="">— Seleccione un cupo vigente —</option>
                 {availableCupos.map((cp) => {
                   const st = cupoStats(cp);
@@ -372,16 +375,16 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
       <Surface className="panel mb">
         <div className="panel-h">
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
               <Icon name="hourglass" /> Cobertura y vigencias
-            </h3>
+            </h2>
             <span className="sub small muted">Montos asegurados y periodo de responsabilidad</span>
           </div>
         </div>
         <FormGrid className="form-grid">
           <Field className={`f${err('valor') ? ' err' : ''}`}>
             <label className="req">Valor asegurado</label>
-            <Input
+            <Input name="valor"
               type="number"
               min={0}
               step={1000}
@@ -398,7 +401,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
           <Field className="f">
             <label>Prima</label>
-            <Input
+            <Input name="prima"
               type="number"
               min={0}
               step={1000}
@@ -409,7 +412,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
           <Field className="f">
             <label>Fecha de expedición</label>
-            <Input
+            <Input name="fechaExp"
               type="date"
               value={form.fechaExp}
               onChange={(e) => set({ fechaExp: e.target.value })}
@@ -418,7 +421,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
           <Field className={`f${err('fechaInicio') ? ' err' : ''}`}>
             <label className="req">Fecha inicio vigencia</label>
-            <Input
+            <Input name="fechaInicio"
               type="date"
               value={form.fechaInicio}
               onChange={(e) => set({ fechaInicio: e.target.value })}
@@ -433,7 +436,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
           <Field className={`f${err('fechaVenc') ? ' err' : ''}`}>
             <label className="req">Fecha fin vigencia</label>
-            <Input
+            <Input name="fechaVenc"
               type="date"
               value={form.fechaVenc}
               onChange={(e) => set({ fechaVenc: e.target.value })}
@@ -448,27 +451,16 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
         </FormGrid>
       </Surface>
 
-      {intentado && errores.length > 0 && (
-        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
-          <b>Atención: corrige antes de guardar</b>
-          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-            {errores.map((e) => (
-              <li key={e} style={{ fontSize: 13 }}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        </Surface>
-      )}
+
 
       <div className="form-foot">
-        <Button className="btn ghost" onClick={() => window.history.back()}>
+        <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
         <Button className="btn pri" onClick={guardar}>
           <Icon name="check" /> Registrar póliza
         </Button>
       </div>
-    </>
+    </AccessibleForm>
   );
 };

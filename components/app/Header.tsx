@@ -240,6 +240,11 @@ export const Header: React.FC<HeaderProps> = ({
               if (first) { router.push(first.href); first.onClick(); }
             }
           }}
+          onBlur={() => {
+            // Cierre al perder foco: evita que el dropdown flotante
+            // intercepte clics cuando el usuario navega con Tab.
+            window.setTimeout(() => setShowSearchResults(false), 150);
+          }}
         />
         <kbd className="kbd-chip">Ctrl K</kbd>
 
@@ -262,6 +267,8 @@ export const Header: React.FC<HeaderProps> = ({
                       href={r.href}
                       className="dd-i"
                       onClick={r.onClick}
+                      // Evita el blur del input antes del clic en el resultado
+                      onMouseDown={(e) => e.preventDefault()}
                     >
                       <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--ink)' }}>
                         {r.t}
