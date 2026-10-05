@@ -1,23 +1,23 @@
 'use client';
-import { Select, Input } from '../ui/Controls';
+import Link from 'next/link';
+import { Select } from '../ui/Controls';
 import { notify, requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Field, Surface, TableViewport, DataTable, FormGrid, EmptyState } from '../ui/Workspace';
+import { Field, Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Document } from '../../lib/types';
-import { Store, AuthService, Audit } from '../../lib/store';
+import { Store, AuthService } from '../../lib/store';
 import { M } from '../../lib/metrics';
-import { fdate, nowStamp, uid } from '../../lib/format';
+import { fdate } from '../../lib/format';
 import { CAT } from '../../lib/catalog';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+import { expHref } from './routes';
 
 export const TabDocumentos = ({ cid }: { cid: string }) => {
   const [catFilter, setCatFilter] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
-  const [showNewModal, setShowNewModal] = useState(false);
-  const [newDoc, setNewDoc] = useState({ nombre: '', categoria: 'Informes', archivo: '' });
 
   const docs = Store.byContract('documents', cid) as Document[];
   const cats = CAT('categoriasDoc');
@@ -25,40 +25,6 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
   const m = M(c);
 
   const filtered = docs.filter((d) => !catFilter || d.categoria === catFilter);
-
-  const handleUpload = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!newDoc.nombre) return notify('Ingrese el nombre del documento');
-
-    const u = AuthService.currentUser();
-    const docObj: Document = {
-      id: uid('DOC'),
-      contractId: cid,
-      nombre: newDoc.nombre,
-      categoria: newDoc.categoria,
-      estado: 'Activo',
-      versions: [
-        {
-          v: 1,
-          fecha: fdate(nowStamp()),
-          usuario: u.nombre,
-          archivo: newDoc.archivo || `${newDoc.nombre}.pdf`,
-          motivo: 'Carga inicial'
-        }
-      ]
-    };
-
-    Store.insert('documents', docObj);
-    Audit.log({
-      contractId: cid,
-      modulo: 'Documentos',
-      accion: 'Creación',
-      campo: 'Documento',
-      nuevo: newDoc.nombre
-    });
-    setShowNewModal(false);
-    setNewDoc({ nombre: '', categoria: 'Informes', archivo: '' });
-  };
 
   const handleAnular = async (docId: string, docName: string) => {
     if (!AuthService.guard('anular')) return;
@@ -74,12 +40,12 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
       <div className="panel-h mb-3">
         <div>
           <h3>Documentos del expediente</h3>
-          <span className="sub">{docs.length} documentos registrados</span>
+          <span className="sub">{filtered.length} de {docs.length} documento(s) mostrados</span>
         </div>
         <div className="row-flex">
-          <Button className="btn sm pri" onClick={() => setShowNewModal(true)}>
+          <Link className="btn sm pri" href={expHref(cid, 'documentos/nueva')}>
             <Icon name="upload" /> Cargar documento
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -104,26 +70,34 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
           <div>
             Faltan documentos requeridos del expediente:{' '}
             {m.docsFaltantes.map((doc: string, i: number) => (
-              <Button
+              <Link
                 key={i}
                 className="btn xs ghost"
-                onClick={() => {
-                  if (!AuthService.guard('crear')) return;
-                  setNewDoc({ nombre: '', categoria: doc, archivo: '' });
-                  setShowNewModal(true);
-                }}
+                href={`${expHref(cid, 'documentos/nueva')}?categoria=${encodeURIComponent(doc)}`}
                 style={{ margin: '2px 2px 0', color: 'var(--warn-text)' }}
                 title={`Cargar documento de ${doc}`}
               >
                 <Icon name="upload" /> {doc}
-              </Button>
+              </Link>
             ))}
           </div>
         </div>
       )}
 
       <Surface className="panel">
-        <TableViewport className="tbl-wrap">
+        {docs.length === 0 && (
+          <EmptyState
+            title="Sin documentos en el expediente"
+            description="Carga el contrato suscrito, los estudios previos y los soportes exigidos por la cláusula de administración."
+            action={
+              <Link className="btn sm pri" href={expHref(cid, 'documentos/nueva')}>
+                <Icon name="upload" /> Cargar primer documento
+              </Link>
+            }
+          />
+        )}
+        {docs.length > 0 && (
+          <TableViewport className="tbl-wrap">
           <DataTable className="tbl">
             <thead>
               <tr>
@@ -194,6 +168,7 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
             </tbody>
           </DataTable>
         </TableViewport>
+        )}
       </Surface>
 
       {/* Modal Historial de Versiones */}
@@ -244,57 +219,6 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
               </tbody>
             </DataTable>
           </TableViewport>
-        </Modal>
-      )}
-
-      {/* Modal Carga de Documento */}
-      {showNewModal && (
-        <Modal
-          title="Cargar nuevo documento al expediente"
-          onClose={() => setShowNewModal(false)}
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setShowNewModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleUpload}>
-                Guardar Documento
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f span2">
-              <label className="req">Nombre del documento</label>
-              <Input
-                value={newDoc.nombre}
-                onChange={(e) => setNewDoc({ ...newDoc, nombre: e.target.value })}
-                placeholder="Ej. Acta de entrega fase 1"
-              />
-            </Field>
-            <Field className="f">
-              <label>Categoría</label>
-              <Select
-                value={newDoc.categoria}
-                onChange={(e) => setNewDoc({ ...newDoc, categoria: e.target.value })}
-              >
-                {cats.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field className="f span2">
-              <label>Archivo adjunto (PDF / Word / Excel)</label>
-              <Input
-                type="text"
-                placeholder="Nombre del archivo (ej. Acta_Fase1.pdf)"
-                value={newDoc.archivo}
-                onChange={(e) => setNewDoc({ ...newDoc, archivo: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
         </Modal>
       )}
     </div>

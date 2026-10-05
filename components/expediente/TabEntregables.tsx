@@ -1,40 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Input, Select, Textarea } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
+import { Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import type { Deliverable } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { effDeliv } from '../../lib/metrics';
-import { fdate, diffDays, todayIso, parseD, iso, addDays, clamp, monthLabel, monthKey, uid, pct } from '../../lib/format';
+import { fdate, diffDays, todayIso, parseD, iso, addDays, clamp, monthLabel, monthKey, pct } from '../../lib/format';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+import Link from 'next/link';
+import { nuevoHref, editarHref, editarEnHref } from './routes';
 
 export const TabEntregables = ({ cid }: { cid: string }) => {
-  const [showNewModal, setShowNewModal] = useState(false);
-  const [editingDeliv, setEditingDeliv] = useState<Deliverable | null>(null);
-  const [deliveryModal, setDeliveryModal] = useState<Deliverable | null>(null);
-
-  const [newDeliv, setNewDeliv] = useState({
-    nombre: '',
-    descripcion: '',
-    fechaInicio: todayIso(),
-    fechaProg: addDays(todayIso(), 30),
-    responsable: ''
-  });
-
-  const [deliveryForm, setDeliveryForm] = useState({
-    estado: 'Entregado',
-    avance: 100,
-    fechaReal: todayIso(),
-    evidencia: '',
-    obs: ''
-  });
-
   const c = Store.get('contracts', cid);
   if (!c) {
     return (
@@ -218,105 +198,6 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
     );
   }
 
-  const handleCreate = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!newDeliv.nombre.trim()) return notify('Ingrese el nombre del entregable');
-    if (!newDeliv.fechaProg) return notify('Ingrese la fecha programada');
-
-    const u = AuthService.currentUser();
-    const dObj: Deliverable = {
-      id: uid('EN'),
-      contractId: cid,
-      nombre: newDeliv.nombre.trim(),
-      descripcion: newDeliv.descripcion.trim(),
-      fechaInicio: newDeliv.fechaInicio,
-      fechaProg: newDeliv.fechaProg,
-      responsable: newDeliv.responsable.trim() || c.supervisor || u.nombre,
-      estado: 'Pendiente',
-      avance: 0
-    };
-
-    Store.insert('deliverables', dObj);
-    Audit.log({
-      contractId: cid,
-      modulo: 'Entregables',
-      accion: 'Creación',
-      campo: 'Entregable ' + dObj.id,
-      nuevo: dObj.nombre
-    });
-
-    notify(`Entregable "${dObj.nombre}" creado exitosamente`);
-    setShowNewModal(false);
-    setNewDeliv({
-      nombre: '',
-      descripcion: '',
-      fechaInicio: todayIso(),
-      fechaProg: addDays(todayIso(), 30),
-      responsable: ''
-    });
-  };
-
-  const handleOpenDelivery = (d: Deliverable) => {
-    setDeliveryModal(d);
-    setDeliveryForm({
-      estado: d.estado === 'Pendiente' ? 'Entregado' : d.estado,
-      avance: Number(d.avance) || (d.estado === 'Aprobado' || d.estado === 'Entregado' ? 100 : 50),
-      fechaReal: d.fechaReal || todayIso(),
-      evidencia: d.evidencia || '',
-      obs: d.obs || ''
-    });
-  };
-
-  const handleSaveDelivery = () => {
-    if (!AuthService.guard('editar')) return;
-    if (!deliveryModal) return;
-
-    Store.update('deliverables', deliveryModal.id, {
-      estado: deliveryForm.estado,
-      avance: Number(deliveryForm.avance) || 0,
-      fechaReal: deliveryForm.fechaReal,
-      evidencia: deliveryForm.evidencia,
-      obs: deliveryForm.obs
-    });
-
-    Audit.log({
-      contractId: cid,
-      modulo: 'Entregables',
-      accion: 'Edición',
-      campo: 'Estado entregable ' + deliveryModal.nombre,
-      anterior: deliveryModal.estado,
-      nuevo: `${deliveryForm.estado} (${deliveryForm.avance}%)`
-    });
-
-    notify(`Entregable "${deliveryModal.nombre}" actualizado correctamente`);
-    setDeliveryModal(null);
-  };
-
-  const handleUpdate = () => {
-    if (!AuthService.guard('editar')) return;
-    if (!editingDeliv) return;
-    if (!editingDeliv.nombre.trim()) return notify('El nombre del entregable es requerido');
-
-    Store.update('deliverables', editingDeliv.id, {
-      nombre: editingDeliv.nombre.trim(),
-      descripcion: editingDeliv.descripcion?.trim(),
-      fechaInicio: editingDeliv.fechaInicio,
-      fechaProg: editingDeliv.fechaProg,
-      responsable: editingDeliv.responsable?.trim()
-    });
-
-    Audit.log({
-      contractId: cid,
-      modulo: 'Entregables',
-      accion: 'Edición',
-      campo: 'Datos entregable ' + editingDeliv.id,
-      nuevo: editingDeliv.nombre
-    });
-
-    notify(`Entregable "${editingDeliv.nombre}" actualizado`);
-    setEditingDeliv(null);
-  };
-
   const handleDelete = async (d: Deliverable) => {
     if (!AuthService.guard('editar')) return;
     const ok = await confirmAction(`¿Está seguro de eliminar el entregable "${d.nombre}"? Esta acción no se puede deshacer.`);
@@ -346,13 +227,13 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
           </span>
         </div>
         <div className="row-flex">
-          <Button
+          <Link
             className="btn sm pri"
-            onClick={() => setShowNewModal(true)}
+            href={nuevoHref(cid, 'entregables')}
             aria-label="Registrar nuevo entregable"
           >
             <Icon name="plus" /> Nuevo entregable
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -405,6 +286,11 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
             <EmptyState
               title="Sin cronograma disponible"
               description="No hay entregables registrados para graficar en la línea de tiempo."
+              action={
+                <Link className="btn pri sm" href={nuevoHref(cid, 'entregables')}>
+                  <Icon name="plus" /> Crear primer entregable
+                </Link>
+              }
             />
           )}
         </div>
@@ -424,9 +310,9 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
             title="Sin entregables registrados"
             description="El expediente no registra hitos ni productos contractuales aún."
             action={
-              <Button className="btn pri sm" onClick={() => setShowNewModal(true)}>
+              <Link className="btn pri sm" href={nuevoHref(cid, 'entregables')}>
                 <Icon name="plus" /> Crear primer entregable
-              </Button>
+              </Link>
             }
           />
         ) : (
@@ -494,22 +380,22 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
                       <td className="text-xs text-[var(--ink-2)]">{d.responsable || '—'}</td>
                       <td className="nw text-right">
                         <div className="inline-flex items-center gap-1 justify-end">
-                          <Button
+                          <Link
                             className="btn ghost xs"
-                            onClick={() => handleOpenDelivery(d)}
+                            href={editarEnHref(cid, 'entregables', d.id, 'entrega/editar')}
                             title="Registrar avance o radicación"
                             aria-label={`Actualizar avance de ${d.nombre}`}
                           >
                             <Icon name="check-circle" size={13} />
-                          </Button>
-                          <Button
+                          </Link>
+                          <Link
                             className="btn ghost xs"
-                            onClick={() => setEditingDeliv(d)}
+                            href={editarHref(cid, 'entregables', d.id)}
                             title="Editar entregable"
                             aria-label={`Editar entregable ${d.nombre}`}
                           >
                             <Icon name="pencil" size={13} />
-                          </Button>
+                          </Link>
                           <Button
                             className="btn ghost xs text-[var(--crit)] hover:bg-[var(--crit-bg)]"
                             onClick={() => handleDelete(d)}
@@ -529,210 +415,6 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
         )}
       </Surface>
 
-      {/* Modal Crear Entregable */}
-      {showNewModal && (
-        <Modal
-          title="Nuevo entregable contractual"
-          onClose={() => setShowNewModal(false)}
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setShowNewModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                <Icon name="check" /> Guardar Entregable
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Nombre del entregable / producto</label>
-              <Input
-                value={newDeliv.nombre}
-                onChange={(e) => setNewDeliv({ ...newDeliv, nombre: e.target.value })}
-                placeholder="Ej. Informe técnico de interventoría o acta de avance..."
-                required
-              />
-            </Field>
-            <Field className="f span2">
-              <label className="font-medium text-xs">Descripción / Criterio de aceptación</label>
-              <Textarea
-                rows={2}
-                value={newDeliv.descripcion}
-                onChange={(e) => setNewDeliv({ ...newDeliv, descripcion: e.target.value })}
-                placeholder="Detalle de condiciones técnicas y formales para aprobación..."
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Fecha planificada de inicio</label>
-              <Input
-                type="date"
-                value={newDeliv.fechaInicio}
-                onChange={(e) => setNewDeliv({ ...newDeliv, fechaInicio: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Fecha programada de entrega</label>
-              <Input
-                type="date"
-                value={newDeliv.fechaProg}
-                onChange={(e) => setNewDeliv({ ...newDeliv, fechaProg: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f span2">
-              <label className="font-medium text-xs">Responsable de entrega o revisión</label>
-              <Input
-                value={newDeliv.responsable}
-                onChange={(e) => setNewDeliv({ ...newDeliv, responsable: e.target.value })}
-                placeholder={c.contratista || 'Nombre del responsable asignado'}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
-
-      {/* Modal Registrar Avance / Entrega */}
-      {deliveryModal && (
-        <Modal
-          title={`Gestionar entrega · ${deliveryModal.nombre}`}
-          onClose={() => setDeliveryModal(null)}
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setDeliveryModal(null)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleSaveDelivery}>
-                <Icon name="check" /> Guardar Estado
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req font-medium text-xs">Estado de entrega</label>
-              <Select
-                value={deliveryForm.estado}
-                onChange={(e) => {
-                  const est = e.target.value;
-                  setDeliveryForm({
-                    ...deliveryForm,
-                    estado: est,
-                    avance: est === 'Aprobado' || est === 'Entregado' ? 100 : deliveryForm.avance
-                  });
-                }}
-              >
-                <option value="Pendiente">Pendiente</option>
-                <option value="En proceso">En proceso</option>
-                <option value="Entregado">Entregado (en revisión)</option>
-                <option value="Aprobado">Aprobado a satisfacción</option>
-                <option value="Rechazado">Rechazado con observaciones</option>
-                <option value="Suspendido">Suspendido</option>
-              </Select>
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">% Avance actual (0-100)</label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={deliveryForm.avance}
-                onChange={(e) => setDeliveryForm({ ...deliveryForm, avance: Number(e.target.value) })}
-                required
-              />
-            </Field>
-            <Field className="f span2">
-              <label className="font-medium text-xs">Fecha real de radicación o entrega</label>
-              <Input
-                type="date"
-                value={deliveryForm.fechaReal}
-                onChange={(e) => setDeliveryForm({ ...deliveryForm, fechaReal: e.target.value })}
-              />
-            </Field>
-            <Field className="f span2">
-              <label className="font-medium text-xs">Radicado / Soporte documental</label>
-              <Input
-                value={deliveryForm.evidencia}
-                onChange={(e) => setDeliveryForm({ ...deliveryForm, evidencia: e.target.value })}
-                placeholder="Ej. Radicado interno No. 2026-0982 o enlace a carpeta"
-              />
-            </Field>
-            <Field className="f span2">
-              <label className="font-medium text-xs">Observaciones de supervisión</label>
-              <Textarea
-                rows={2}
-                value={deliveryForm.obs}
-                onChange={(e) => setDeliveryForm({ ...deliveryForm, obs: e.target.value })}
-                placeholder="Observaciones de revisión o condiciones de subsanación..."
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
-
-      {/* Modal Editar Información Básica */}
-      {editingDeliv && (
-        <Modal
-          title={`Editar entregable · ${editingDeliv.nombre}`}
-          onClose={() => setEditingDeliv(null)}
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setEditingDeliv(null)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleUpdate}>
-                <Icon name="check" /> Guardar Cambios
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Nombre del entregable</label>
-              <Input
-                value={editingDeliv.nombre}
-                onChange={(e) => setEditingDeliv({ ...editingDeliv, nombre: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f span2">
-              <label className="font-medium text-xs">Descripción / Criterio de aceptación</label>
-              <Textarea
-                rows={2}
-                value={editingDeliv.descripcion || ''}
-                onChange={(e) => setEditingDeliv({ ...editingDeliv, descripcion: e.target.value })}
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Fecha inicio</label>
-              <Input
-                type="date"
-                value={editingDeliv.fechaInicio || ''}
-                onChange={(e) => setEditingDeliv({ ...editingDeliv, fechaInicio: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Fecha programada</label>
-              <Input
-                type="date"
-                value={editingDeliv.fechaProg || ''}
-                onChange={(e) => setEditingDeliv({ ...editingDeliv, fechaProg: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f span2">
-              <label className="font-medium text-xs">Responsable</label>
-              <Input
-                value={editingDeliv.responsable || ''}
-                onChange={(e) => setEditingDeliv({ ...editingDeliv, responsable: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
     </div>
   );
 };

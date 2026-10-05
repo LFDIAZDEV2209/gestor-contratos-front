@@ -2,19 +2,16 @@
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
-import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid, EmptyState } from '../ui/Workspace';
+import { PageHeader, Surface, Field, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { useState } from 'react';
-import type { Guarantee, Contract, Cupo } from '../../lib/types';
-import { Store, AuthService, Audit } from '../../lib/store';
+import type { Guarantee } from '../../lib/types';
+import { Store, AuthService } from '../../lib/store';
 import { CAT } from '../../lib/catalog';
-import { cupoStats } from '../../lib/metrics';
-import { money, moneyM, pct, fdate, diffDays, todayIso, uid, sum } from '../../lib/format';
+import { money, moneyM, fdate, diffDays, todayIso, sum } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
 
 const PAGE_SIZE = 10;
@@ -31,7 +28,7 @@ const chipStyle = (isActive: boolean): React.CSSProperties => ({
   borderColor: isActive ? 'var(--brand)' : 'var(--border-control)',
   fontWeight: isActive ? 600 : 500,
   transform: isActive ? 'scale(1.05)' : 'scale(1)',
-  boxShadow: isActive ? '0 2px 8px -2px rgba(11, 110, 104, 0.35)' : 'none',
+  boxShadow: isActive ? '0 2px 8px -2px rgba(6, 47, 88, 0.35)' : 'none',
   transition: 'transform var(--t-fast) cubic-bezier(0.34, 1.56, 0.64, 1), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease)',
   display: 'inline-flex',
   alignItems: 'center',
@@ -64,32 +61,10 @@ export const GarantiasView = ({
   const [filterTipo, setFilterTipo] = useState('');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
-  const [showModal, setShowModal] = useState(false);
-
-  const [form, setForm] = useState({
-    contractId: '',
-    tipo: 'Cumplimiento',
-    aseguradora: CAT('aseguradoras')[0] || 'Seguros del Estado S.A.',
-    poliza: '',
-    modalidadPoliza: 'Póliza individual',
-    cupoId: '',
-    porcentaje: 10,
-    tomador: '',
-    intermediario: '',
-    prima: 0,
-    valor: 0,
-    fechaExp: todayIso(),
-    fechaInicio: todayIso(),
-    fechaVenc: todayIso(),
-    estado: 'Aprobada',
-    documento: ''
-  });
 
   const allGuarantees = (Store.all('guarantees') as Guarantee[]).slice().sort((a, b) =>
     (a.fechaVenc || '') < (b.fechaVenc || '') ? -1 : 1
   );
-  const allContracts = (Store.all('contracts') as Contract[]).filter((c) => !c.anulado);
-  const allCupos = Store.all('cupos') as Cupo[];
 
   const now = todayIso();
   const totalGarantias = allGuarantees.length;
@@ -138,63 +113,6 @@ export const GarantiasView = ({
     setFilterTipo('');
     setQ('');
     setPage(1);
-  };
-
-  const availableCupos = allCupos.filter(
-    (cp) => cp.aseguradora === form.aseguradora && cp.estado === 'Vigente'
-  );
-
-  const handleCreate = async () => {
-    if (!AuthService.guard('crear')) return;
-    if (!form.contractId) return notify('Seleccione un contrato');
-    if (!form.poliza.trim()) return notify('Ingrese el número de la póliza');
-    if (!form.valor) return notify('Ingrese el valor asegurado');
-
-    if (form.modalidadPoliza === 'Póliza por cupo' && form.cupoId) {
-      const cupoObj = Store.get('cupos', form.cupoId);
-      if (cupoObj) {
-        const stats = cupoStats(cupoObj);
-        if (Number(form.valor) > stats.disponible) {
-          const proceed = await confirmAction(
-            `El valor asegurado (${money(form.valor)}) supera el saldo disponible del cupo (${money(
-              stats.disponible
-            )}).\n\n¿Desea registrar la póliza de todas formas?`
-          );
-          if (!proceed) return;
-        }
-      }
-    }
-
-    const newG: Guarantee = {
-      id: uid('GR'),
-      contractId: form.contractId,
-      tipo: form.tipo,
-      aseguradora: form.aseguradora,
-      poliza: form.poliza.trim(),
-      modalidadPoliza: form.modalidadPoliza,
-      cupoId: form.modalidadPoliza === 'Póliza por cupo' ? form.cupoId : undefined,
-      porcentaje: Number(form.porcentaje) || 10,
-      tomador: form.tomador,
-      intermediario: form.intermediario,
-      prima: Number(form.prima) || 0,
-      valor: Number(form.valor),
-      fechaExp: form.fechaExp,
-      fechaInicio: form.fechaInicio,
-      fechaVenc: form.fechaVenc,
-      estado: form.estado,
-      documento: form.documento || `${form.poliza.trim()}.pdf`
-    };
-
-    Store.insert('guarantees', newG);
-    Audit.log({
-      contractId: form.contractId,
-      modulo: 'Garantías',
-      accion: 'Creación',
-      campo: 'Póliza ' + newG.poliza,
-      nuevo: `${newG.tipo} - ${newG.aseguradora} - ${money(newG.valor)}`
-    });
-
-    setShowModal(false);
   };
 
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv') => {
@@ -294,9 +212,11 @@ export const GarantiasView = ({
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
-            <Icon name="plus" /> Nueva póliza
-          </Button>
+          {AuthService.can('crear') && (
+            <Link href="/garantias/nueva" className="btn sm pri">
+              <Icon name="plus" /> Nueva póliza
+            </Link>
+          )}
         </div>
       </PageHeader>
 
@@ -565,173 +485,6 @@ export const GarantiasView = ({
         </TableViewport>
       </Surface>
 
-      {/* Modal for New Policy */}
-      {showModal && (
-        <Modal
-          title="Nueva póliza de garantía"
-          onClose={() => setShowModal(false)}
-          size="lg"
-          footer={
-            <>
-              <Button className="btn" onClick={() => setShowModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                <Icon name="check" /> Registrar póliza
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="lbl required">Contrato</label>
-              <Select
-                className="inp"
-                value={form.contractId}
-                onChange={(e) => setForm({ ...form, contractId: e.target.value })}
-              >
-                <option value="">— Seleccione contrato —</option>
-                {allContracts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.numero} · {c.contratista} · {moneyM(c.valorBase)}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="lbl required">Aseguradora</label>
-              <Select
-                className="inp"
-                value={form.aseguradora}
-                onChange={(e) => setForm({ ...form, aseguradora: e.target.value, cupoId: '' })}
-              >
-                {CAT('aseguradoras').map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="lbl required">Tipo de garantía</label>
-              <Select
-                className="inp"
-                value={form.tipo}
-                onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-              >
-                {CAT('tiposGarantia').map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="lbl required">Número de póliza</label>
-              <Input
-                className="inp"
-                value={form.poliza}
-                placeholder="Ej. POL-984321"
-                onChange={(e) => setForm({ ...form, poliza: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl required">Modalidad de expedición</label>
-              <Select
-                className="inp"
-                value={form.modalidadPoliza}
-                onChange={(e) => setForm({ ...form, modalidadPoliza: e.target.value })}
-              >
-                <option value="Póliza individual">Póliza individual</option>
-                <option value="Póliza por cupo">Póliza por cupo</option>
-              </Select>
-            </div>
-
-            {form.modalidadPoliza === 'Póliza por cupo' && (
-              <div style={{ gridColumn: 'span 2' }}>
-                <label className="lbl required">
-                  Cupo de la aseguradora ({availableCupos.length} disponibles)
-                </label>
-                <Select
-                  className="inp"
-                  value={form.cupoId}
-                  onChange={(e) => setForm({ ...form, cupoId: e.target.value })}
-                >
-                  <option value="">— Seleccione un cupo vigente —</option>
-                  {availableCupos.map((cp) => {
-                    const st = cupoStats(cp);
-                    return (
-                      <option key={cp.id} value={cp.id}>
-                        {cp.numero} · Total {moneyM(cp.valor)} · Disp: {moneyM(st.disponible)} ({pct(st.pct, 0)} usado)
-                      </option>
-                    );
-                  })}
-                </Select>
-                {availableCupos.length === 0 && (
-                  <div className="small text-danger mt-1" style={{ color: 'var(--crit)' }}>
-                    No hay cupos vigentes registrados para {form.aseguradora}.
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div>
-              <label className="lbl required">Valor asegurado</label>
-              <Input
-                type="number"
-                className="inp"
-                value={form.valor}
-                onChange={(e) => setForm({ ...form, valor: Number(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label className="lbl">Prima</label>
-              <Input
-                type="number"
-                className="inp"
-                value={form.prima}
-                onChange={(e) => setForm({ ...form, prima: Number(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label className="lbl required">Fecha inicio vigencia</label>
-              <Input
-                type="date"
-                className="inp"
-                value={form.fechaInicio}
-                onChange={(e) => setForm({ ...form, fechaInicio: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl required">Fecha fin vigencia</label>
-              <Input
-                type="date"
-                className="inp"
-                value={form.fechaVenc}
-                onChange={(e) => setForm({ ...form, fechaVenc: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl">Tomador</label>
-              <Input
-                className="inp"
-                value={form.tomador}
-                placeholder="Razón social o contratista"
-                onChange={(e) => setForm({ ...form, tomador: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl">Intermediario / Corredor</label>
-              <Input
-                className="inp"
-                value={form.intermediario}
-                placeholder="Corredor de seguros"
-                onChange={(e) => setForm({ ...form, intermediario: e.target.value })}
-              />
-            </div>
-          </FormGrid>
-        </Modal>
-      )}
     </div>
   );
 };

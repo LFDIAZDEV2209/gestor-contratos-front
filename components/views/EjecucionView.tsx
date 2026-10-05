@@ -2,19 +2,17 @@
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
 import { PBar } from '../ui/PBar';
-import { Input, Select, Textarea } from '../ui/Controls';
-import { notify } from '../ui/Feedback';
+import { Input } from '../ui/Controls';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, TableViewport, DataTable, FormGrid, EmptyState, WorkspaceSkeleton } from '../ui/Workspace';
+import { PageHeader, Surface, TableViewport, DataTable, EmptyState, WorkspaceSkeleton } from '../ui/Workspace';
 import { useState, useEffect } from 'react';
 import type { Contract, Exec } from '../../lib/types';
-import { Store, AuthService, Audit } from '../../lib/store';
+import { Store, AuthService } from '../../lib/store';
 import { M, activeContracts, companyName } from '../../lib/metrics';
-import { money, moneyM, pct, fdate, sum, monthKey, monthLabel, lastMonths, groupBy, todayIso } from '../../lib/format';
+import { money, moneyM, pct, fdate, sum, monthKey, monthLabel, lastMonths, groupBy } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Kpi } from '../ui/Kpi';
 import { Chart } from '../ui/Chart';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
 
 // Color de gráfica leído del token compartido (sin hex por pantalla y siempre con la marca vigente)
@@ -45,25 +43,14 @@ export const EjecucionView = ({
 }) => {
   const [q, setQ] = useState('');
   const [filterGap, setFilterGap] = useState(false);
-  const [showModal, setShowModal] = useState(false);
   // Paginación real sobre el consolidado
   const [page, setPage] = useState(1);
   const pageSize = 12;
-  // Guardia de hidratación (store en localStorage) + refresco tras mutaciones
+  // Guardia de hidratación (store en localStorage)
   const [mounted, setMounted] = useState(false);
-  const [tick, setTick] = useState(0);
-  const refresh = () => setTick((t) => t + 1);
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const [form, setForm] = useState({
-    contractId: '',
-    periodo: todayIso().slice(0, 7),
-    valor: 0,
-    avanceFisico: 0,
-    obs: ''
-  });
 
   // Lectura tolerante a fallos del almacenamiento local (manejo de error)
   let loadError: string | null = null;
@@ -133,6 +120,13 @@ export const EjecucionView = ({
   const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const hasActiveFilters = Boolean(q || filterGap);
 
+  // Restablece de una sola vez todos los criterios del listado
+  const clearFilters = () => {
+    setQ('');
+    setFilterGap(false);
+    setPage(1);
+  };
+
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv') => {
     const cols = [
       { l: 'Contrato', k: 'numero' },
@@ -151,34 +145,6 @@ export const EjecucionView = ({
       }
     ];
     exportRows('Consolidado de Ejecución Contractual', cols, filtered, format);
-  };
-
-  const handleRegisterExec = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!form.contractId) return notify('Seleccione un contrato');
-    if (!form.periodo) return notify('Seleccione el periodo');
-    if (!form.valor) return notify('Ingrese el valor ejecutado');
-
-    const newExec: Exec = {
-      id: 'EX_' + Date.now(),
-      contractId: form.contractId,
-      periodo: form.periodo,
-      valor: Number(form.valor),
-      avanceFisico: Number(form.avanceFisico) || 0,
-      obs: form.obs
-    };
-
-    Store.insert('execs', newExec);
-    Audit.log({
-      contractId: form.contractId,
-      modulo: 'Ejecución',
-      accion: 'Creación',
-      campo: 'Periodo ' + form.periodo,
-      nuevo: `${money(newExec.valor)} (${newExec.avanceFisico}% físico)`
-    });
-
-    setShowModal(false);
-    refresh();
   };
 
   return (
@@ -249,9 +215,11 @@ export const EjecucionView = ({
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
-            <Icon name="plus" /> Registrar ejecución
-          </Button>
+          {AuthService.can('crear') && (
+            <Link href="/ejecucion/nueva" className="btn sm pri">
+              <Icon name="plus" /> Registrar ejecución
+            </Link>
+          )}
         </div>
       </PageHeader>
 
@@ -300,11 +268,16 @@ export const EjecucionView = ({
             color: 'var(--crit-text)'
           }}
         >
-          <div className="flex items-center gap-2 font-semibold" style={{ color: 'var(--crit-text)' }}>
-            <Icon name="triangle-exclamation" />
+          <div
+            className="flex font-semibold"
+            style={{ color: 'var(--crit-text)', display: 'flex', alignItems: 'flex-start', gap: 8 }}
+          >
+            <span style={{ flexShrink: 0, display: 'inline-flex', marginTop: 2 }}>
+              <Icon name="triangle-exclamation" />
+            </span>
             <span>
-              {agotaAntesList.length} contrato(s) presentan ritmo de gasto superior al plazo y
-              agotarán recursos antes de la fecha de terminación:
+              {agotaAntesList.length === 1 ? '1 contrato presenta' : `${agotaAntesList.length} contratos presentan`} ritmo
+              de gasto superior al plazo y agotarán recursos antes de la fecha de terminación:
             </span>
           </div>
           <div className="mt-2" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -350,7 +323,7 @@ export const EjecucionView = ({
 
       {/* Table */}
       <Surface className="panel">
-        <div className="filters mb" style={{ padding: '12px 16px' }}>
+        <div className={`filters ${hasActiveFilters ? '' : 'mb'}`} style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
             <Input
@@ -396,7 +369,60 @@ export const EjecucionView = ({
             <span>Solo brecha física vs financiera ≥ 15%</span>
             {filterGap && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--brand)' }} />}
           </button>
+
+          {hasActiveFilters && (
+            <Button
+              className="btn sm ghost"
+              onClick={clearFilters}
+              style={{ alignSelf: 'flex-end', height: 38 }}
+            >
+              <Icon name="trash" /> Limpiar filtros
+            </Button>
+          )}
         </div>
+
+        {/* Chips de filtros activos: cada criterio se puede quitar por separado */}
+        {hasActiveFilters && (
+          <div className="filter-chips" role="group" aria-label="Filtros activos" style={{ marginBottom: 16 }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginRight: 2 }}>
+              Filtros activos:
+            </span>
+            {q && (
+              <span className="filter-chip">
+                <Icon name="search" size={11} /> Búsqueda: «{q}»
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => {
+                    setQ('');
+                    setPage(1);
+                  }}
+                  aria-label="Quitar el filtro de búsqueda"
+                  title="Quitar filtro"
+                >
+                  <Icon name="xmark" size={12} />
+                </button>
+              </span>
+            )}
+            {filterGap && (
+              <span className="filter-chip">
+                <Icon name="scale-balanced" size={11} /> Brecha física vs financiera ≥ 15 %
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => {
+                    setFilterGap(false);
+                    setPage(1);
+                  }}
+                  aria-label="Quitar el filtro de brecha"
+                  title="Quitar filtro"
+                >
+                  <Icon name="xmark" size={12} />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
 
         <TableViewport className="tbl-wrap">
           <DataTable className="tbl">
@@ -440,7 +466,7 @@ export const EjecucionView = ({
                         {c.numero}
                       </Link>
                     </td>
-                    <td className="clip" style={{ maxWidth: '160px' }}>
+                    <td className="clip" style={{ maxWidth: '160px' }} title={companyName(c.companyId)}>
                       {companyName(c.companyId)}
                     </td>
                     <td className="clip" style={{ maxWidth: '180px' }} title={c.contratista}>
@@ -496,11 +522,7 @@ export const EjecucionView = ({
                           <Button
                             className="btn sm"
                             style={{ marginTop: 8 }}
-                            onClick={() => {
-                              setQ('');
-                              setFilterGap(false);
-                              setPage(1);
-                            }}
+                            onClick={clearFilters}
                           >
                             <Icon name="trash" /> Restablecer filtros
                           </Button>
@@ -550,80 +572,6 @@ export const EjecucionView = ({
           </DataTable>
         </TableViewport>
       </Surface>
-
-      {/* Modal for Registering Execution */}
-      {showModal && (
-        <Modal
-          title="Registrar avance de ejecución"
-          onClose={() => setShowModal(false)}
-          size="md"
-          footer={
-            <>
-              <Button className="btn" onClick={() => setShowModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleRegisterExec}>
-                <Icon name="save" /> Guardar registro
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="grid g-1" style={{ gap: '14px' }}>
-            <div>
-              <label className="lbl required">Contrato</label>
-              <Select
-                className="inp"
-                value={form.contractId}
-                onChange={(e) => setForm({ ...form, contractId: e.target.value })}
-              >
-                <option value="">— Seleccione contrato —</option>
-                {cs.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.numero} · {c.contratista}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="lbl required">Periodo (Año - Mes)</label>
-              <Input
-                type="month"
-                className="inp"
-                value={form.periodo}
-                onChange={(e) => setForm({ ...form, periodo: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl required">Valor ejecutado / facturado en el periodo</label>
-              <Input
-                type="number"
-                className="inp"
-                value={form.valor}
-                onChange={(e) => setForm({ ...form, valor: Number(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label className="lbl">% Avance físico acumulado</label>
-              <Input
-                type="number"
-                className="inp"
-                value={form.avanceFisico}
-                onChange={(e) => setForm({ ...form, avanceFisico: Number(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label className="lbl">Observaciones</label>
-              <Textarea
-                className="inp"
-                rows={2}
-                value={form.obs}
-                placeholder="Hitos o actividades ejecutadas en este periodo..."
-                onChange={(e) => setForm({ ...form, obs: e.target.value })}
-              />
-            </div>
-          </FormGrid>
-        </Modal>
-      )}
         </>
       )}
     </div>

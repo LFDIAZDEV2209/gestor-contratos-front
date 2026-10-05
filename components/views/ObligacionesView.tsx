@@ -5,14 +5,11 @@ import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable, EmptyState, WorkspaceSkeleton } from '../ui/Workspace';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { obligationHref, contractHref } from '../app/routes';
-import { DetailFrame } from '../ui/DetailFrame';
-import { obligationPresentation } from '../ui/presentation';
 import type { Obligation, Contract } from '../../lib/types';
-import { Store, AuthService, Audit } from '../../lib/store';
+import { Store } from '../../lib/store';
 import { effOblig } from '../../lib/metrics';
-import { fdate, pct, sum, todayIso } from '../../lib/format';
+import { fdate, pct, sum } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
@@ -34,13 +31,10 @@ const HOVER_LIFT = {
 };
 
 export const ObligacionesView = ({
-  onSelectContract,
-  detailId
+  onSelectContract
 }: {
   onSelectContract: (cid: string, tab?: string) => void;
-  detailId?: string;
 }) => {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'todas' | 'pendientes' | 'vencidas' | 'cumplidas'>('todas');
   const [filterTipo, setFilterTipo] = useState('');
   const [filterContract, setFilterContract] = useState('');
@@ -53,12 +47,6 @@ export const ObligacionesView = ({
   useEffect(() => {
     setMounted(true);
   }, []);
-  const [selectedObl, setSelectedObl] = useState<Obligation | null>(() => {
-    const obligation = detailId ? Store.get('obligations', detailId) : null;
-    return obligation ? obligationPresentation(obligation) : null;
-  });
-  const closeDetail = () => detailId ? router.push('/obligaciones') : setSelectedObl(null);
-  const [newComment, setNewComment] = useState('');
 
   // Lectura tolerante a fallos del almacenamiento local (manejo de error)
   let loadError: string | null = null;
@@ -110,96 +98,13 @@ export const ObligacionesView = ({
   const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const hasActiveFilters = Boolean(q || filterTipo || filterContract || activeTab !== 'todas');
 
-  const handleVerify = (ob: Obligation) => {
-    if (!AuthService.guard('aprobar')) return;
-    const u = AuthService.currentUser();
-    Store.update('obligations', ob.id, {
-      estado: 'Cumplida',
-      cumplimiento: 100,
-      verificadoPor: u.nombre,
-      verificadoFecha: todayIso()
-    });
-
-    Audit.log({
-      contractId: ob.contractId,
-      modulo: 'Obligaciones',
-      accion: 'Aprobación',
-      campo: 'Verificación de obligación ' + ob.id,
-      anterior: ob.estado,
-      nuevo: 'Cumplida (100%)'
-    });
-
-    if (selectedObl && selectedObl.id === ob.id) {
-      setSelectedObl({
-        ...selectedObl,
-        estado: 'Cumplida',
-        cumplimiento: 100,
-        verificadoPor: u.nombre,
-        verificadoFecha: todayIso()
-      });
-    }
+  // Restablece de una sola vez todos los criterios del listado
+  const clearFilters = () => {
+    setQ('');
+    setFilterTipo('');
+    setFilterContract('');
+    setActiveTab('todas');
     setPage(1);
-  };
-
-  // Crea de verdad el checklist estándar en el Store (reemplaza el seed demo)
-  const handleCreateChecklist = () => {
-    if (!selectedObl) return;
-    if (!AuthService.guard('editar')) return;
-    const base = [
-      { id: `${selectedObl.id}-chk-1`, texto: 'Revisión y verificación técnica del entregable', listo: false },
-      { id: `${selectedObl.id}-chk-2`, texto: 'Aporte de soportes documentales y actas', listo: false },
-      { id: `${selectedObl.id}-chk-3`, texto: 'Visto bueno del supervisor técnico', listo: false }
-    ];
-    Store.update('obligations', selectedObl.id, { checklist: base });
-    Audit.log({
-      contractId: selectedObl.contractId,
-      modulo: 'Obligaciones',
-      accion: 'Edición',
-      campo: 'Checklist de obligación ' + selectedObl.id,
-      nuevo: 'Checklist estándar creado (3 ítems)'
-    });
-    setSelectedObl({ ...selectedObl, checklist: base });
-  };
-
-  const handleAddComment = () => {
-    if (!selectedObl || !newComment.trim()) return;
-    const u = AuthService.currentUser();
-    const commentItem = {
-      id: 'c_' + Date.now(),
-      usuario: u.nombre,
-      fecha: todayIso(),
-      texto: newComment.trim()
-    };
-    const currentList = selectedObl.comentarios || [];
-    const updated = [...currentList, commentItem];
-    Store.update('obligations', selectedObl.id, { comentarios: updated });
-    setSelectedObl({ ...selectedObl, comentarios: updated });
-    setNewComment('');
-  };
-
-  const handleToggleChecklist = (checkId: string) => {
-    if (!selectedObl) return;
-    const list = selectedObl.checklist || [];
-    const updated = list.map((item) =>
-      item.id === checkId ? { ...item, listo: !item.listo } : item
-    );
-    const completedCount = updated.filter((i) => i.listo).length;
-    const autoCumpl = updated.length
-      ? Math.round((completedCount / updated.length) * 100)
-      : (Number(selectedObl.cumplimiento) || 0);
-
-    Store.update('obligations', selectedObl.id, {
-      checklist: updated,
-      cumplimiento: autoCumpl,
-      estado: autoCumpl === 100 ? 'Cumplida' : autoCumpl > 0 ? 'En proceso' : 'Pendiente'
-    });
-
-    setSelectedObl({
-      ...selectedObl,
-      checklist: updated,
-      cumplimiento: autoCumpl,
-      estado: autoCumpl === 100 ? 'Cumplida' : autoCumpl > 0 ? 'En proceso' : 'Pendiente'
-    });
   };
 
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv') => {
@@ -237,7 +142,6 @@ export const ObligacionesView = ({
         </div>
       ) : (
         <>
-      {!detailId && <>
       {/* Page Header (variante hero con gradiente de marca) */}
       <PageHeader variant="hero" className="ph">
         <div>
@@ -387,7 +291,7 @@ export const ObligacionesView = ({
         </div>
 
         {/* Filter Toolbar */}
-        <div className="filters mb" style={{ padding: '12px 16px' }}>
+        <div className={`filters ${hasActiveFilters ? '' : 'mb'}`} style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
             <Input
@@ -401,10 +305,10 @@ export const ObligacionesView = ({
             />
           </div>
           <Field className="f">
+            <label>Contrato</label>
             <Select
               className="inp sm"
               value={filterContract}
-              aria-label="Filtrar por contrato"
               onChange={(e) => {
                 setFilterContract(e.target.value);
                 setPage(1);
@@ -419,10 +323,10 @@ export const ObligacionesView = ({
             </Select>
           </Field>
           <Field className="f">
+            <label>Tipo</label>
             <Select
               className="inp sm"
               value={filterTipo}
-              aria-label="Filtrar por tipo de obligación"
               onChange={(e) => {
                 setFilterTipo(e.target.value);
                 setPage(1);
@@ -436,7 +340,95 @@ export const ObligacionesView = ({
               ))}
             </Select>
           </Field>
+
+          {hasActiveFilters && (
+            <Button
+              className="btn sm ghost"
+              onClick={clearFilters}
+              style={{ alignSelf: 'flex-end', height: 38 }}
+            >
+              <Icon name="trash" /> Limpiar filtros
+            </Button>
+          )}
         </div>
+
+        {/* Chips de filtros activos: cada criterio se puede quitar por separado */}
+        {hasActiveFilters && (
+          <div className="filter-chips" role="group" aria-label="Filtros activos" style={{ marginBottom: 16 }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginRight: 2 }}>
+              Filtros activos:
+            </span>
+            {activeTab !== 'todas' && (
+              <span className="filter-chip">
+                <Icon name="eye" size={11} /> Vista: {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => {
+                    setActiveTab('todas');
+                    setPage(1);
+                  }}
+                  aria-label="Quitar el filtro de vista"
+                  title="Quitar filtro"
+                >
+                  <Icon name="xmark" size={12} />
+                </button>
+              </span>
+            )}
+            {q && (
+              <span className="filter-chip">
+                <Icon name="search" size={11} /> Búsqueda: «{q}»
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => {
+                    setQ('');
+                    setPage(1);
+                  }}
+                  aria-label="Quitar el filtro de búsqueda"
+                  title="Quitar filtro"
+                >
+                  <Icon name="xmark" size={12} />
+                </button>
+              </span>
+            )}
+            {filterContract && (
+              <span className="filter-chip">
+                <Icon name="file-signature" size={11} /> Contrato:{' '}
+                {Store.get('contracts', filterContract)?.numero || 'seleccionado'}
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => {
+                    setFilterContract('');
+                    setPage(1);
+                  }}
+                  aria-label="Quitar el filtro de contrato"
+                  title="Quitar filtro"
+                >
+                  <Icon name="xmark" size={12} />
+                </button>
+              </span>
+            )}
+            {filterTipo && (
+              <span className="filter-chip">
+                <Icon name="list-check" size={11} /> Tipo: {filterTipo}
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => {
+                    setFilterTipo('');
+                    setPage(1);
+                  }}
+                  aria-label="Quitar el filtro de tipo"
+                  title="Quitar filtro"
+                >
+                  <Icon name="xmark" size={12} />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Table */}
         <TableViewport className="tbl-wrap">
@@ -486,13 +478,24 @@ export const ObligacionesView = ({
                     </td>
                     <td
                       className="clip"
-                      style={{ maxWidth: '280px', cursor: 'pointer' }}
+                      style={{ maxWidth: '280px' }}
                       title={o.descripcion}
-                      onClick={() => setSelectedObl(o)}
                     >
-                      <b>{o.descripcion}</b>
+                      <Link
+                        href={obligationHref(o.id)}
+                        style={{ cursor: 'pointer', color: 'inherit' }}
+                        title="Abrir la ficha de la obligación"
+                      >
+                        <b>{o.descripcion}</b>
+                      </Link>
                     </td>
-                    <td>{o.responsable}</td>
+                    <td
+                      className="clip"
+                      style={{ maxWidth: '190px' }}
+                      title={o.responsable}
+                    >
+                      {o.responsable}
+                    </td>
                     <td className="nw">
                       {vencidaEff ? (
                         <span className="badge b-crit" style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -551,13 +554,7 @@ export const ObligacionesView = ({
                           <Button
                             className="btn sm"
                             style={{ marginTop: 8 }}
-                            onClick={() => {
-                              setQ('');
-                              setFilterTipo('');
-                              setFilterContract('');
-                              setActiveTab('todas');
-                              setPage(1);
-                            }}
+                            onClick={clearFilters}
                           >
                             <Icon name="trash" /> Restablecer filtros
                           </Button>
@@ -607,155 +604,6 @@ export const ObligacionesView = ({
           </DataTable>
         </TableViewport>
       </Surface>
-
-      {/* Obligation Detail & Checklist Modal */}
-      </>}
-      {detailId && <div className="crumb"><Link href="/obligaciones">Obligaciones</Link> / Ficha</div>}
-      {selectedObl && (
-        <DetailFrame
-          inline={Boolean(detailId)}
-          title={`Obligación ${selectedObl.id} · Detalle y Verificación`}
-          onClose={closeDetail}
-          size="lg"
-          footer={
-            <>
-              {selectedObl.estado !== 'Cumplida' && (
-                <Button className="btn pri" onClick={() => handleVerify(selectedObl)}>
-                  <Icon name="check-circle" /> Aprobar cumplimiento (100%)
-                </Button>
-              )}
-              <span style={{ flex: 1 }}></span>
-              <Button className="btn" onClick={closeDetail}>
-                Cerrar
-              </Button>
-            </>
-          }
-        >
-          <div>
-            <div className="mb-4 p-3" style={{ background: 'var(--bg-sub)', borderRadius: '6px' }}>
-              <div className="flex justify-between items-center mb-2">
-                <span className="badge">{selectedObl.tipo}</span>
-                <span className="small muted">Límite: {fdate(selectedObl.fechaLimite)}</span>
-              </div>
-              <p style={{ margin: 0, fontWeight: 500 }}>{selectedObl.descripcion}</p>
-              <div className="mt-2 pbar">
-                <div className="bar sm">
-                  <i
-                    style={{
-                      width: `${Number(selectedObl.cumplimiento) || 0}%`,
-                      background:
-                        (Number(selectedObl.cumplimiento) || 0) >= 100
-                          ? 'var(--ok)'
-                          : (Number(selectedObl.cumplimiento) || 0) >= 50
-                          ? 'var(--warn)'
-                          : 'var(--crit)'
-                    }}
-                  />
-                </div>
-                <span className="mono small">{pct(Number(selectedObl.cumplimiento) || 0, 0)}</span>
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span>
-                  Responsable: <b>{selectedObl.responsable}</b>
-                </span>
-                <span>·</span>
-                <span>
-                  Estado: <b>{selectedObl.estado}</b>
-                </span>
-                {selectedObl.verificadoPor && (
-                  <span className="badge b-ok" style={{ marginLeft: 'auto' }}>
-                    <Icon name="check-circle" size={11} /> Verificada por {selectedObl.verificadoPor} ({fdate(selectedObl.verificadoFecha)})
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Checklist */}
-            <h4 style={{ fontSize: '13px', marginBottom: '8px' }}>
-              Checklist de actividades ({selectedObl.checklist?.length || 0})
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
-              {(selectedObl.checklist || []).map((chk) => (
-                <label
-                  key={chk.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 12px',
-                    border: '1px solid var(--line)',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Input
-                    type="checkbox"
-                    checked={chk.listo}
-                    onChange={() => handleToggleChecklist(chk.id)}
-                  />
-                  <span style={{ textDecoration: chk.listo ? 'line-through' : 'none' }}>
-                    {chk.texto}
-                  </span>
-                </label>
-              ))}
-              {(!selectedObl.checklist || selectedObl.checklist.length === 0) && (
-                <EmptyState
-                  title="Sin checklist de verificación"
-                  description="Crea el checklist estándar (revisión técnica, soportes documentales y visto bueno del supervisor) para registrar el avance."
-                  action={
-                    <Button className="btn sm pri" style={{ marginTop: 8 }} onClick={handleCreateChecklist}>
-                      <Icon name="list-check" /> Crear checklist base
-                    </Button>
-                  }
-                />
-              )}
-            </div>
-
-            {/* Comments */}
-            <h4 style={{ fontSize: '13px', marginBottom: '8px' }}>
-              Bitácora y comentarios ({selectedObl.comentarios?.length || 0})
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
-              {(selectedObl.comentarios || []).map((com) => (
-                <div
-                  key={com.id}
-                  style={{
-                    padding: '8px 12px',
-                    background: 'var(--bg-sub)',
-                    borderRadius: '4px',
-                    fontSize: '12px'
-                  }}
-                >
-                  <div className="flex justify-between text-muted-foreground mb-1">
-                    <b>{com.usuario}</b>
-                    <span>{fdate(com.fecha)}</span>
-                  </div>
-                  <div>{com.texto}</div>
-                </div>
-              ))}
-              {(!selectedObl.comentarios || selectedObl.comentarios.length === 0) && (
-                <div className="small muted">Sin observaciones adicionales registradas.</div>
-              )}
-            </div>
-
-            <div className="row-flex" style={{ gap: '8px' }}>
-              <Input
-                className="inp sm"
-                placeholder="Escribir comentario u observación..."
-                aria-label="Nuevo comentario de la obligación"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAddComment();
-                }}
-              />
-              <Button className="btn sm pri" onClick={handleAddComment}>
-                Agregar
-              </Button>
-            </div>
-          </div>
-        </DetailFrame>
-      )}
         </>
       )}
     </div>

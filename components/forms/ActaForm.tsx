@@ -1,0 +1,260 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { Input, Select, Textarea } from '../ui/Controls';
+import { notify } from '../ui/Feedback';
+import { Button } from '../ui/button';
+import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import type { Acta } from '../../lib/types';
+import { Store, Audit, AuthService } from '../../lib/store';
+import { CAT } from '../../lib/catalog';
+import { todayIso, uid } from '../../lib/format';
+import { Icon } from '../icons';
+
+/**
+ * Acta contractual en VISTA dedicada (reemplaza al modal de ActasView).
+ * Mismas reglas del handler original: contrato, número y fecha obligatorios.
+ */
+export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
+  const [intentado, setIntentado] = useState(false);
+  const [form, setForm] = useState({
+    contractId: '',
+    tipo: 'Acta de inicio',
+    numero: '',
+    fecha: todayIso(),
+    descripcion: '',
+    firmantes: '',
+    estado: 'Firmada',
+    archivo: ''
+  });
+
+  const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+
+  const contracts = Store.all('contracts').filter((c) => !c.anulado);
+  const tiposCatalogo = CAT('tiposActa');
+
+  const numero = form.numero.trim();
+  const errCampo: Record<string, string> = {};
+  const errores: string[] = [];
+  if (!form.contractId) {
+    errCampo.contractId = 'Selecciona el contrato al que pertenece el acta.';
+    errores.push('El contrato es obligatorio.');
+  }
+  if (!numero) {
+    errCampo.numero = 'Ingresa el número o consecutivo del acta.';
+    errores.push('El número del acta es obligatorio.');
+  }
+  if (!form.fecha) {
+    errCampo.fecha = 'Indica la fecha de elaboración o firma.';
+    errores.push('La fecha del acta es obligatoria.');
+  }
+
+  const guardar = () => {
+    setIntentado(true);
+    if (errores.length) {
+      notify('Corrige los errores del formulario antes de guardar.');
+      return;
+    }
+    if (!AuthService.guard('crear')) return;
+
+    const newActa: Acta = {
+      id: uid('AC'),
+      contractId: form.contractId,
+      tipo: form.tipo,
+      numero,
+      fecha: form.fecha,
+      descripcion: form.descripcion,
+      firmantes: form.firmantes,
+      estado: form.estado,
+      archivo: form.archivo || `${numero.replace(/\s+/g, '_')}.pdf`
+    };
+
+    Store.insert('actas', newActa);
+    Audit.log({
+      contractId: form.contractId,
+      modulo: 'Actas',
+      accion: 'Creación',
+      campo: 'Acta ' + newActa.numero,
+      nuevo: `${newActa.tipo} - ${newActa.fecha}`
+    });
+
+    notify(`Acta «${numero}» registrada exitosamente.`);
+    onDone(newActa.id);
+  };
+
+  const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
+
+  return (
+    <>
+      <PageHeader className="ph">
+        <div>
+          <div className="crumb" style={{ width: '100%', marginBottom: 6 }}>
+            <Link href="/actas">Actas</Link>
+            <span style={{ color: 'var(--muted)' }}> / </span>
+            <span>Nueva acta</span>
+          </div>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+            Nueva acta contractual
+          </h1>
+          <p style={{ margin: '4px 0 0' }}>
+            Formaliza un hito del contrato: inicio, recibo, suspensión, prórroga o liquidación, con
+            sus firmantes y soporte.
+          </p>
+        </div>
+      </PageHeader>
+
+      <Surface className="panel mb">
+        <div className="panel-h">
+          <div>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+              <Icon name="file-signature" /> Identificación del acta
+            </h3>
+            <span className="sub small muted">Contrato, tipo, consecutivo y fecha</span>
+          </div>
+        </div>
+
+        <FormGrid className="form-grid">
+          <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
+            <label className="req">Contrato</label>
+            <Select
+              value={form.contractId}
+              onChange={(e) => set({ contractId: e.target.value })}
+              aria-describedby={err('contractId') ? 'err-acontrato' : undefined}
+            >
+              <option value="">— Seleccione contrato —</option>
+              {contracts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.numero} · {c.contratista}
+                </option>
+              ))}
+            </Select>
+            {err('contractId') && (
+              <span className="emsg" id="err-acontrato">
+                {err('contractId')}
+              </span>
+            )}
+          </Field>
+
+          <Field className="f">
+            <label className="req">Tipo de acta</label>
+            <Select value={form.tipo} onChange={(e) => set({ tipo: e.target.value })}>
+              {tiposCatalogo.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field className={`f${err('numero') ? ' err' : ''}`}>
+            <label className="req">Número de acta</label>
+            <Input
+              value={form.numero}
+              placeholder="Ej. ACT-001"
+              onChange={(e) => set({ numero: e.target.value })}
+              aria-describedby={err('numero') ? 'err-anumero' : undefined}
+            />
+            {err('numero') && (
+              <span className="emsg" id="err-anumero">
+                {err('numero')}
+              </span>
+            )}
+          </Field>
+
+          <Field className={`f${err('fecha') ? ' err' : ''}`}>
+            <label className="req">Fecha</label>
+            <Input
+              type="date"
+              value={form.fecha}
+              onChange={(e) => set({ fecha: e.target.value })}
+              aria-describedby={err('fecha') ? 'err-afecha' : undefined}
+            />
+            {err('fecha') && (
+              <span className="emsg" id="err-afecha">
+                {err('fecha')}
+              </span>
+            )}
+          </Field>
+
+          <Field className="f span3">
+            <label>Firmantes</label>
+            <Input
+              value={form.firmantes}
+              placeholder="Nombres y cargos de quienes suscriben el acta"
+              onChange={(e) => set({ firmantes: e.target.value })}
+            />
+          </Field>
+
+          <Field className="f span3">
+            <label>Descripción / Objeto del acta</label>
+            <Textarea
+              rows={4}
+              value={form.descripcion}
+              placeholder="Detalle o acuerdos formalizados en el acta..."
+              onChange={(e) => set({ descripcion: e.target.value })}
+            />
+          </Field>
+        </FormGrid>
+      </Surface>
+
+      <Surface className="panel mb">
+        <div className="panel-h">
+          <div>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+              <Icon name="check-circle" /> Estado y soporte
+            </h3>
+            <span className="sub small muted">Situación documental y archivo de respaldo</span>
+          </div>
+        </div>
+
+        <FormGrid className="form-grid">
+          <Field className="f">
+            <label>Estado</label>
+            <Select value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
+              <option value="Borrador">Borrador</option>
+              <option value="En firmas">En firmas</option>
+              <option value="Firmada">Firmada</option>
+            </Select>
+          </Field>
+
+          <Field className="f span2">
+            <label>Documento soporte (archivo)</label>
+            <Input
+              value={form.archivo}
+              placeholder="Nombre del archivo adjunto (ej. acta_inicio_firmada.pdf)"
+              onChange={(e) => set({ archivo: e.target.value })}
+            />
+            <span className="hint">
+              Opcional: si se deja vacío se genera «
+              {numero ? numero.replace(/\s+/g, '_') : 'acta'}.pdf». No se realiza una transferencia
+              real.
+            </span>
+          </Field>
+        </FormGrid>
+      </Surface>
+
+      {intentado && errores.length > 0 && (
+        <Surface className="panel mb" role="alert" style={{ borderColor: 'var(--crit, #c0392b)' }}>
+          <b>Atención: corrige antes de guardar</b>
+          <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
+            {errores.map((e) => (
+              <li key={e} style={{ fontSize: 13 }}>
+                {e}
+              </li>
+            ))}
+          </ul>
+        </Surface>
+      )}
+
+      <div className="form-foot">
+        <Button className="btn ghost" onClick={() => window.history.back()}>
+          <Icon name="chevron-left" /> Cancelar
+        </Button>
+        <Button className="btn pri" onClick={guardar}>
+          <Icon name="check" /> Registrar acta
+        </Button>
+      </div>
+    </>
+  );
+};

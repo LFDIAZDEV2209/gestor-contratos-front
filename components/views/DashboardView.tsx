@@ -96,7 +96,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const estGroups = groupBy(P.cs, (c) => M(c).estado);
   const estKeys = Object.keys(estGroups);
   const stateColorMap: Record<string, string> = {
-    Activo: '#0F8579',
+    Activo: '#062F58',
     Vencido: '#BE3A2E',
     Suspendido: '#B98B00',
     'En liquidación': '#2F6FA3',
@@ -111,7 +111,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       datasets: [
         {
           data: estKeys.map((k) => estGroups[k].length),
-          backgroundColor: estKeys.map((k) => stateColorMap[k] || '#0F8579')
+          backgroundColor: estKeys.map((k) => stateColorMap[k] || '#062F58')
         }
       ]
     },
@@ -137,7 +137,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {
           label: 'Contratos',
           data: empKeys.map((k) => byEmp[k].length),
-          backgroundColor: '#0F8579',
+          backgroundColor: '#062F58',
           borderRadius: 4
         }
       ]
@@ -155,7 +155,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     ['1-5 d', 1, 5, '#BE3A2E'],
     ['6-15 d', 6, 15, '#D0691A'],
     ['16-30 d', 16, 30, '#B98B00'],
-    ['31-60 d', 31, 60, '#0F8579'],
+    ['31-60 d', 31, 60, '#062F58'],
     ['Vencidos', -99999, -1, '#5E6E73']
   ];
   const bucketCounts = buckets.map(
@@ -199,13 +199,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {
           label: 'Valor actualizado',
           data: topContracts.map((c) => M(c).valorActual),
-          backgroundColor: 'rgba(15, 133, 121, 0.30)',
+          backgroundColor: 'rgba(6, 47, 88, 0.30)',
           borderRadius: 3
         },
         {
           label: 'Ejecutado',
           data: topContracts.map((c) => M(c).ejecutado),
-          backgroundColor: '#0F8579',
+          backgroundColor: '#062F58',
           borderRadius: 3
         }
       ]
@@ -246,8 +246,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {
           label: 'Ejecutado',
           data: nullTrailingZeros(mesEjec),
-          borderColor: '#0F8579',
-          backgroundColor: 'rgba(15,133,121,0.10)',
+          borderColor: '#062F58',
+          backgroundColor: 'rgba(6, 47, 88,0.10)',
           fill: true,
           tension: 0.3,
           pointRadius: 3,
@@ -317,7 +317,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       datasets: [
         {
           data: ol.map((l) => obligationsList.filter((o) => effOblig(o) === l).length),
-          backgroundColor: ['#1E8E4E', '#17A08F', '#2F6FA3', '#B98B00', '#D0691A', '#BE3A2E']
+          backgroundColor: ['#1E8E4E', '#5CA6B2', '#2F6FA3', '#B98B00', '#D0691A', '#BE3A2E']
         }
       ]
     },

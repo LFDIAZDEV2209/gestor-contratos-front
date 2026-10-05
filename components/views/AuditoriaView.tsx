@@ -183,6 +183,16 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
   return (
     <div className="anim-fade-rise">
       {/* Banner de cabecera con gradiente de marca institucional */}
+      <style>
+        {`
+          /* El hero recorta (overflow:clip) cualquier menú absoluto: el desplegable
+             Exportar se expande en flujo dentro de .ph-actions (patrón Agenda/Gerencia). */
+          @media (min-width: 1024px) { .aux-dd { display: none !important; } }
+          @media (max-width: 1023.98px) { .aux-inline { display: none !important; } }
+          .aux-chev { transition: transform var(--t-fast) var(--ease); }
+          .aux-dd[open] .aux-chev { transform: rotate(180deg); }
+        `}
+      </style>
       <PageHeader variant="hero" className="ph">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -213,10 +223,15 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
             </div>
           </div>
 
-          {/* Conmutador de vista: tabla detallada o línea de tiempo */}
+          {/* Conmutador de vista: tabla detallada o línea de tiempo (contraste AA sobre el hero oscuro) */}
           <div className="row-flex" style={{ marginTop: 16 }}>
             <Button
               className={`btn sm ${modo === 'tabla' ? 'pri' : 'ghost'}`}
+              style={
+                modo === 'tabla'
+                  ? undefined
+                  : { color: 'var(--surface)', borderColor: 'rgba(255, 255, 255, 0.32)', background: 'rgba(255, 255, 255, 0.08)' }
+              }
               onClick={() => setModo('tabla')}
               aria-pressed={modo === 'tabla'}
             >
@@ -224,6 +239,11 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
             </Button>
             <Button
               className={`btn sm ${modo === 'timeline' ? 'pri' : 'ghost'}`}
+              style={
+                modo === 'timeline'
+                  ? undefined
+                  : { color: 'var(--surface)', borderColor: 'rgba(255, 255, 255, 0.32)', background: 'rgba(255, 255, 255, 0.08)' }
+              }
               onClick={() => setModo('timeline')}
               aria-pressed={modo === 'timeline'}
             >
@@ -232,19 +252,56 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
           </div>
         </div>
 
-        <div className="ph-actions">
-          <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
-            <Icon name="file-excel" /> Excel
-          </Button>
-          <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
-            <Icon name="file-pdf" /> PDF
-          </Button>
-          <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
-            <Icon name="file-csv" /> CSV
-          </Button>
-          <Button className="btn sm" onClick={() => handleExport('print')} title="Imprimir bitácora">
-            <Icon name="print" /> Imprimir
-          </Button>
+        <div
+          className="ph-actions"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
+        >
+          {/* ≥1024px: accesos directos a exportación · <1024px: un desplegable único */}
+          <div className="aux-inline" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+              <Icon name="file-excel" /> Excel
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+              <Icon name="file-pdf" /> PDF
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+              <Icon name="file-csv" /> CSV
+            </Button>
+          </div>
+          {/* <1024px: desplegable expandido en flujo dentro del hero (overflow: clip) */}
+          <details className="aux-dd" style={{ width: '100%' }}>
+            <summary
+              className="btn sm"
+              style={{ listStyle: 'none' }}
+              title="Exportar la bitácora de auditoría"
+              aria-label="Exportar la bitácora de auditoría"
+            >
+              <Icon name="download" /> Exportar <Icon name="chevron-down" size={14} className="aux-chev" />
+            </summary>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                flexWrap: 'wrap',
+                marginTop: 8,
+                padding: 8,
+                border: '1px solid rgba(255, 255, 255, 0.28)',
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.08)'
+              }}
+            >
+              <Button className="btn sm" onClick={() => handleExport('xlsx')}>
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('pdf')}>
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('csv')}>
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </div>
+          </details>
         </div>
       </PageHeader>
 
@@ -425,6 +482,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
             <Input
               className="inp"
               placeholder="Ej.: fecha, valor"
+              aria-label="Buscar por campo de la entrada de auditoría"
               value={filterCampo}
               onChange={(e) => {
                 setFilterCampo(e.target.value);
@@ -500,13 +558,13 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
                         )}
                       </td>
                       <td className="strong">{field || '—'}</td>
-                      <td style={{ maxWidth: 160 }} className="clip small muted">
+                      <td style={{ maxWidth: 160 }} className="clip small muted" title={a.anterior || '—'}>
                         {a.anterior || '—'}
                       </td>
-                      <td style={{ maxWidth: 160 }} className="clip small strong">
+                      <td style={{ maxWidth: 160 }} className="clip small strong" title={a.nuevo || '—'}>
                         {a.nuevo || '—'}
                       </td>
-                      <td style={{ maxWidth: 200 }} className="clip small">
+                      <td style={{ maxWidth: 200 }} className="clip small" title={a.obs || '—'}>
                         {a.obs || '—'}
                       </td>
                     </tr>

@@ -11,6 +11,7 @@ import { activeContracts, companyName } from '../../lib/metrics';
 import { fdate, todayIso, initials, money } from '../../lib/format';
 import { Icon } from '../icons';
 import type { User, Guarantee, Payment, Acta, Obligation, Subcontract } from '../../lib/types';
+import { BrandLogo } from './BrandLogo';
 
 interface HeaderProps {
   onUserChanged?: () => void;
@@ -212,6 +213,9 @@ export const Header: React.FC<HeaderProps> = ({
       >
         <Icon name="bars" />
       </button>
+      <Link href="/dashboard" className="mobile-brand" aria-label="Seven Safe · Inicio">
+        <BrandLogo compact />
+      </Link>
 
       {/* Buscador global con atajo Ctrl+K y chip visual */}
       <div className="gsearch">

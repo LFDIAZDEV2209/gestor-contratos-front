@@ -46,7 +46,7 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
         type: 'bar' as const,
         label: 'Ejecución mensual',
         data: mesData,
-        backgroundColor: '#0F8579',
+        backgroundColor: '#062F58',
         yAxisID: 'y',
         borderRadius: 4
       }

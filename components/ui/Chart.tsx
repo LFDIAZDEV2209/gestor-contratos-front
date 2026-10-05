@@ -9,8 +9,8 @@ ChartJS.register(...registerables);
 // Configuración de tipografía y colores institucionales por defecto
 ChartJS.defaults.font.family = '"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 ChartJS.defaults.font.size = 11;
-ChartJS.defaults.color = '#5E6E73';
-ChartJS.defaults.plugins.tooltip.backgroundColor = '#0F1C20';
+ChartJS.defaults.color = '#607284';
+ChartJS.defaults.plugins.tooltip.backgroundColor = '#062F58';
 ChartJS.defaults.plugins.tooltip.padding = 10;
 ChartJS.defaults.plugins.tooltip.cornerRadius = 8;
 ChartJS.defaults.plugins.tooltip.titleFont = { size: 12, weight: 'bold' };

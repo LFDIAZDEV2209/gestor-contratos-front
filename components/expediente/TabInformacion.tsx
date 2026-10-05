@@ -7,10 +7,11 @@ import { M } from '../../lib/metrics';
 import { deptoNames } from '../../lib/geo';
 import { money, fdate, pct } from '../../lib/format';
 import { companyHref } from '../app/routes';
+import { expHref } from './routes';
 import { Badge } from '../ui/Badge';
 import { Icon } from '../icons';
 
-export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => void }) => {
+export const TabInformacion = ({ cid }: { cid: string }) => {
   const c = Store.get('contracts', cid);
   if (!c) return <div className="empty">Contrato no encontrado</div>;
 
@@ -22,10 +23,10 @@ export const TabInformacion = ({ cid, onEdit }: { cid: string; onEdit?: () => vo
       <Surface className="panel mb">
         <div className="panel-h">
           <h3>Información General y Contratante</h3>
-          {onEdit && (
-            <Button className="btn sm ghost" onClick={onEdit}>
+          {!c.anulado && (
+            <Link className="btn sm ghost" href={expHref(cid, 'editar')}>
               <Icon name="edit" /> Editar Contrato
-            </Button>
+            </Link>
           )}
         </div>
         <div className="panel-b np">

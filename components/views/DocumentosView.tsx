@@ -1,16 +1,16 @@
 'use client';
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
-import { Input, Select, Textarea } from '../ui/Controls';
-import { notify, requestReason } from '../ui/Feedback';
+import { Input, Select } from '../ui/Controls';
+import { requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid, EmptyState } from '../ui/Workspace';
+import { PageHeader, Surface, Field, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { useState } from 'react';
-import type { Document, DocumentVersion, Contract } from '../../lib/types';
+import type { Document, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { CAT } from '../../lib/catalog';
 import { M, activeContracts, companyName } from '../../lib/metrics';
-import { fdate, todayIso, uid, sum } from '../../lib/format';
+import { fdate, sum } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
@@ -28,7 +28,7 @@ const chipStyle = (isActive: boolean): React.CSSProperties => ({
   borderColor: isActive ? 'var(--brand)' : 'var(--border-control)',
   fontWeight: isActive ? 600 : 500,
   transform: isActive ? 'scale(1.05)' : 'scale(1)',
-  boxShadow: isActive ? '0 2px 8px -2px rgba(11, 110, 104, 0.35)' : 'none',
+  boxShadow: isActive ? '0 2px 8px -2px rgba(6, 47, 88, 0.35)' : 'none',
   transition: 'transform var(--t-fast) cubic-bezier(0.34, 1.56, 0.64, 1), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease)',
   display: 'inline-flex',
   alignItems: 'center',
@@ -61,24 +61,7 @@ export const DocumentosView = ({
   const [filterCat, setFilterCat] = useState('');
   const [viewEstado, setViewEstado] = useState<'todos' | 'Activos' | 'Anulados'>('todos');
   const [page, setPage] = useState(1);
-  const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedDocHistory, setSelectedDocHistory] = useState<Document | null>(null);
-  const [newVersionDoc, setNewVersionDoc] = useState<Document | null>(null);
-
-  const [uploadForm, setUploadForm] = useState({
-    contractId: '',
-    nombre: '',
-    categoria: 'Contrato',
-    archivo: '',
-    motivo: 'Carga inicial',
-    obs: ''
-  });
-
-  const [versionForm, setVersionForm] = useState({
-    archivo: '',
-    motivo: '',
-    cambios: ''
-  });
 
   const allDocs = (Store.all('documents') as Document[]).slice();
   const allContracts = (Store.all('contracts') as Contract[]).filter((c) => !c.anulado);
@@ -120,87 +103,6 @@ export const DocumentosView = ({
     setFilterCat('');
     setQ('');
     setPage(1);
-  };
-
-  const handleUploadNew = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!uploadForm.contractId) return notify('Seleccione un contrato');
-    if (!uploadForm.nombre.trim()) return notify('Ingrese el nombre del documento');
-
-    const u = AuthService.currentUser();
-    const docId = uid('DOC');
-    const fileName = uploadForm.archivo.trim() || `${uploadForm.nombre.replace(/\s+/g, '_')}.pdf`;
-
-    const initialVersion: DocumentVersion = {
-      v: 1,
-      fecha: todayIso(),
-      usuario: u.nombre,
-      archivo: fileName,
-      motivo: uploadForm.motivo || 'Carga inicial'
-    };
-
-    const newDoc: Document = {
-      id: docId,
-      contractId: uploadForm.contractId,
-      nombre: uploadForm.nombre.trim(),
-      categoria: uploadForm.categoria,
-      estado: 'Activo',
-      obs: uploadForm.obs,
-      versions: [initialVersion]
-    };
-
-    Store.insert('documents', newDoc);
-    Audit.log({
-      contractId: uploadForm.contractId,
-      modulo: 'Documentos',
-      accion: 'Creación',
-      campo: 'Documento ' + newDoc.nombre,
-      nuevo: `v1 (${initialVersion.archivo})`
-    });
-
-    setShowUploadModal(false);
-    setUploadForm({
-      contractId: '',
-      nombre: '',
-      categoria: 'Contrato',
-      archivo: '',
-      motivo: 'Carga inicial',
-      obs: ''
-    });
-  };
-
-  const handleAddVersion = () => {
-    if (!newVersionDoc) return;
-    if (!AuthService.guard('editar')) return;
-    if (!versionForm.archivo.trim()) return notify('Ingrese el nombre del archivo');
-
-    const u = AuthService.currentUser();
-    const currentVersions = newVersionDoc.versions || [];
-    const nextV = currentVersions.length + 1;
-
-    const newVer: DocumentVersion = {
-      v: nextV,
-      fecha: todayIso(),
-      usuario: u.nombre,
-      archivo: versionForm.archivo.trim(),
-      motivo: versionForm.motivo || 'Actualización de versión',
-      cambios: versionForm.cambios
-    };
-
-    const updatedVersions = [...currentVersions, newVer];
-    Store.update('documents', newVersionDoc.id, { versions: updatedVersions });
-
-    Audit.log({
-      contractId: newVersionDoc.contractId,
-      modulo: 'Documentos',
-      accion: 'Edición',
-      campo: `Documento ${newVersionDoc.nombre}`,
-      anterior: `v${currentVersions.length}`,
-      nuevo: `v${nextV} (${newVer.archivo})`
-    });
-
-    setNewVersionDoc(null);
-    setVersionForm({ archivo: '', motivo: '', cambios: '' });
   };
 
   const handleAnular = async (doc: Document) => {
@@ -323,9 +225,11 @@ export const DocumentosView = ({
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowUploadModal(true)}>
-            <Icon name="upload" /> Cargar documento
-          </Button>
+          {AuthService.can('crear') && (
+            <Link href="/documentos/nuevo" className="btn sm pri">
+              <Icon name="upload" /> Cargar documento
+            </Link>
+          )}
         </div>
       </PageHeader>
 
@@ -535,14 +439,14 @@ export const DocumentosView = ({
                         </Button>
                         {!isVoid && (
                           <>
-                            <Button
+                            <Link
+                              href={`/documentos/${encodeURIComponent(d.id)}/versiones/nueva`}
                               className="btn sm"
-                              onClick={() => setNewVersionDoc(d)}
                               title="Subir nueva versión"
                               aria-label={`Subir nueva versión de ${d.nombre}`}
                             >
                               <Icon name="upload" />
-                            </Button>
+                            </Link>
                             <Button
                               className="icon-btn"
                               style={{ color: 'var(--crit-text)' }}
@@ -572,9 +476,13 @@ export const DocumentosView = ({
                             Restablecer filtros
                           </Button>
                         ) : (
-                          <Button className="btn sm pri" onClick={() => setShowUploadModal(true)} style={{ marginTop: 8 }}>
+                          <Link
+                            href="/documentos/nuevo"
+                            className="btn sm pri"
+                            style={{ marginTop: 8 }}
+                          >
                             <Icon name="upload" /> Cargar primer documento
-                          </Button>
+                          </Link>
                         )
                       }
                     />
@@ -621,85 +529,6 @@ export const DocumentosView = ({
           </DataTable>
         </TableViewport>
       </Surface>
-
-      {/* Upload New Document Modal */}
-      {showUploadModal && (
-        <Modal
-          title="Cargar nuevo documento"
-          onClose={() => setShowUploadModal(false)}
-          size="md"
-          footer={
-            <>
-              <Button className="btn" onClick={() => setShowUploadModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleUploadNew}>
-                <Icon name="upload" /> Subir documento
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="grid g-1" style={{ gap: '14px' }}>
-            <div>
-              <label className="lbl required">Contrato</label>
-              <Select
-                className="inp"
-                value={uploadForm.contractId}
-                onChange={(e) => setUploadForm({ ...uploadForm, contractId: e.target.value })}
-              >
-                <option value="">— Seleccione contrato —</option>
-                {allContracts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.numero} · {c.contratista}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="lbl required">Nombre del documento</label>
-              <Input
-                className="inp"
-                value={uploadForm.nombre}
-                placeholder="Ej. Minuta del contrato firmada"
-                onChange={(e) => setUploadForm({ ...uploadForm, nombre: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl required">Categoría</label>
-              <Select
-                className="inp"
-                value={uploadForm.categoria}
-                onChange={(e) => setUploadForm({ ...uploadForm, categoria: e.target.value })}
-              >
-                {CAT('categoriasDoc').map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="lbl required">Archivo (nombre o ruta simulada)</label>
-              <Input
-                className="inp"
-                value={uploadForm.archivo}
-                placeholder="Ej. contrato_firmado_final.pdf"
-                onChange={(e) => setUploadForm({ ...uploadForm, archivo: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl">Observaciones</label>
-              <Textarea
-                className="inp"
-                rows={2}
-                value={uploadForm.obs}
-                placeholder="Notas adicionales..."
-                onChange={(e) => setUploadForm({ ...uploadForm, obs: e.target.value })}
-              />
-            </div>
-          </FormGrid>
-        </Modal>
-      )}
 
       {/* Version History Modal */}
       {selectedDocHistory && (
@@ -755,55 +584,6 @@ export const DocumentosView = ({
         </Modal>
       )}
 
-      {/* Upload New Version Modal */}
-      {newVersionDoc && (
-        <Modal
-          title={`Cargar nueva versión: ${newVersionDoc.nombre}`}
-          onClose={() => setNewVersionDoc(null)}
-          size="md"
-          footer={
-            <>
-              <Button className="btn" onClick={() => setNewVersionDoc(null)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleAddVersion}>
-                <Icon name="upload" /> Guardar versión v{(newVersionDoc.versions?.length || 1) + 1}
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="grid g-1" style={{ gap: '14px' }}>
-            <div>
-              <label className="lbl required">Nuevo archivo</label>
-              <Input
-                className="inp"
-                value={versionForm.archivo}
-                placeholder="Ej. contrato_firmado_v2.pdf"
-                onChange={(e) => setVersionForm({ ...versionForm, archivo: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl required">Motivo de la nueva versión</label>
-              <Input
-                className="inp"
-                value={versionForm.motivo}
-                placeholder="Ej. Ajuste de cláusula / adición de firmas"
-                onChange={(e) => setVersionForm({ ...versionForm, motivo: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl">Descripción de cambios</label>
-              <Textarea
-                className="inp"
-                rows={2}
-                value={versionForm.cambios}
-                placeholder="Detalle de modificaciones en esta versión..."
-                onChange={(e) => setVersionForm({ ...versionForm, cambios: e.target.value })}
-              />
-            </div>
-          </FormGrid>
-        </Modal>
-      )}
     </div>
   );
 };

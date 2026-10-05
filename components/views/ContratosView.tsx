@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { Button } from '../ui/button';
@@ -14,14 +14,14 @@ import { Icon } from '../icons';
 import { Badge } from '../ui/Badge';
 import { PBar } from '../ui/PBar';
 import { Kpi } from '../ui/Kpi';
-import { ContratoFormModal } from './ContratoFormModal';
 import { money as fmtMoney, moneyM as fmtMoneyM, daysTxt } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { DEPTOS } from '../../lib/geo';
 
 export const ContratosView = () => {
-  const [contracts, setContracts] = useState<Contract[]>(Store.all('contracts'));
-  const [editing, setEditing] = useState<Partial<Contract> | null>(null);
+  const [contracts] = useState<Contract[]>(Store.all('contracts'));
+
+  // Edición/creación de contrato: navegación a la vista dedicada (sin modal)
 
   // Filtros sincronizados con la URL
   const [query, updateQuery] = useQueryFilters();
@@ -104,7 +104,7 @@ export const ContratosView = () => {
       { l: '% Avance Fin.', x: (c: Contract) => M(c).pctFin },
       { l: 'Días Restantes', x: (c: Contract) => M(c).restantes ?? '—' }
     ];
-    exportRows('Contratos Seven Save', cols, filtered, 'xlsx');
+    exportRows('Contratos Seven Safe', cols, filtered, 'xlsx');
   };
 
   const clearAllFilters = () => {
@@ -178,9 +178,9 @@ export const ContratosView = () => {
           <Button className="btn" onClick={handleExport} title="Descargar como Excel">
             <Icon name="file-excel" /> Exportar XLSX
           </Button>
-          <Button className="btn pri" onClick={() => setEditing({})}>
+          <Link className="btn pri" href="/contratos/nuevo">
             <Icon name="plus" /> Nuevo Contrato
-          </Button>
+          </Link>
         </div>
       </PageHeader>
 
@@ -369,7 +369,7 @@ export const ContratosView = () => {
                   borderColor: isActive ? 'var(--brand)' : 'var(--border-control)',
                   fontWeight: isActive ? 600 : 500,
                   transform: isActive ? 'scale(1.05)' : 'scale(1)',
-                  boxShadow: isActive ? '0 2px 8px -2px rgba(11, 110, 104, 0.35)' : 'none',
+                  boxShadow: isActive ? '0 2px 8px -2px rgba(6, 47, 88, 0.35)' : 'none',
                   transition: 'transform var(--t-fast) cubic-bezier(0.34, 1.56, 0.64, 1), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease)',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -505,14 +505,14 @@ export const ContratosView = () => {
                         >
                           <Icon name="search" />
                         </Link>
-                        <Button
+                        <Link
+                          href={`/contrato/${encodeURIComponent(c.id)}/editar`}
                           className="icon-btn"
-                          onClick={() => setEditing(c)}
                           title="Editar contrato"
                           aria-label={`Editar contrato ${num}`}
                         >
                           <Icon name="cog" />
-                        </Button>
+                        </Link>
                         <details className="action-disclosure" style={{ display: 'none' }}>
                           <summary aria-label={`Acciones adicionales para ${num}`}>
                             <Icon name="settings" />
@@ -521,9 +521,9 @@ export const ContratosView = () => {
                             <Link href={contractHref(c.id)} className="btn text-link">
                               <Icon name="eye" /> Ver expediente
                             </Link>
-                            <Button className="btn text-link" onClick={() => setEditing(c)}>
+                            <Link href={`/contrato/${encodeURIComponent(c.id)}/editar`} className="btn text-link">
                               <Icon name="cog" /> Modificar
-                            </Button>
+                            </Link>
                           </div>
                         </details>
                       </div>
@@ -593,17 +593,6 @@ export const ContratosView = () => {
           </DataTable>
         </TableViewport>
       </Surface>
-
-      {/* Modal de edición / creación de contrato */}
-      {editing && (
-        <ContratoFormModal
-          contract={editing}
-          onClose={() => {
-            setEditing(null);
-            setContracts(Store.all('contracts'));
-          }}
-        />
-      )}
     </div>
   );
 };

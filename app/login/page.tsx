@@ -4,10 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Store, AuthService } from '../../lib/store';
 import { Icon } from '../../components/icons';
 import type { User } from '../../lib/types';
-
-// Imagen corporativa (Unsplash): arquitectura corporativa moderna para la identidad de Seven Save
-const HERO_IMG =
-  'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1800&auto=format&fit=crop';
+import { BrandLogo } from '../../components/app/BrandLogo';
 
 type FieldErrors = { email?: string; password?: string };
 
@@ -75,17 +72,12 @@ export default function LoginPage() {
   return (
     <div className="login">
       {/* Panel del formulario */}
-      <main className="login-panel" aria-label="Inicio de sesión Seven Save">
+      <main className="login-panel" aria-label="Inicio de sesión Seven Safe">
         <div className="login-form-wrap">
           <div className="login-brand">
-            <div className="login-mark" aria-hidden="true">7S</div>
-            <div>
-              <div className="login-wordmark">
-                Seven <span>Save</span>
-              </div>
-              <div className="login-tag">Gestión integral de contratos</div>
-            </div>
+            <BrandLogo />
           </div>
+          <div className="login-tag">Gestión integral de contratos</div>
 
           <h1 className="login-title">Bienvenido de nuevo</h1>
           <p className="login-sub">Ingresa con tu cuenta corporativa para continuar.</p>
@@ -194,11 +186,9 @@ export default function LoginPage() {
           </form>
 
           {users.length > 0 && (
-            <section className="login-demo" aria-label="Usuarios de demostración">
-              <div className="login-demo-h">
-                <span>Acceso rápido (demo)</span>
-                <span className="login-demo-note">Contraseña: cualquier texto de 6+ caracteres</span>
-              </div>
+            <details className="login-demo">
+              <summary>Acceso rápido (demo) <Icon name="chevron-down" /></summary>
+              <p className="login-demo-note">Selecciona una cuenta para completar el formulario.</p>
               <div className="login-demo-chips">
                 {users.slice(0, 6).map((u) => (
                   <button
@@ -222,41 +212,46 @@ export default function LoginPage() {
                   </button>
                 ))}
               </div>
-            </section>
+            </details>
           )}
 
           <footer className="login-foot">
-            <span>Seven Save v2.0</span>
+            <span>Seven Safe</span>
             <span aria-hidden="true">·</span>
             <span>FYA TECH SAS</span>
           </footer>
         </div>
       </main>
 
-      {/* Panel visual con identidad Seven Save */}
+      {/* Panel visual con identidad Seven Safe */}
       <aside className="login-media" aria-hidden="true">
-        <div className="login-media-img" style={{ backgroundImage: `url(${HERO_IMG})` }} />
-        <div className="login-media-overlay" />
+        <svg className="login-waves" viewBox="0 0 1000 1000" preserveAspectRatio="none" focusable="false">
+          <defs>
+            <linearGradient id="login-wave-front" x1="0" y1="0" x2="1" y2="1">
+              <stop stopColor="#5CA6B2" />
+              <stop offset="1" stopColor="#286885" />
+            </linearGradient>
+            <linearGradient id="login-wave-back" x1="0" y1="0" x2="1" y2="1">
+              <stop stopColor="#397889" />
+              <stop offset="1" stopColor="#5CA6B2" />
+            </linearGradient>
+          </defs>
+          <path d="M0 800 C280 860 400 770 610 700 S860 660 1000 440 L1000 1000 H0Z" fill="url(#login-wave-back)" opacity=".22" />
+          <path d="M0 870 C250 920 460 870 630 740 S890 690 1000 600 L1000 1000 H0Z" fill="url(#login-wave-back)" opacity=".5" />
+          <path d="M0 950 C290 1000 380 910 610 855 S850 690 1000 750 L1000 1000 H0Z" fill="url(#login-wave-front)" />
+          <path d="M0 800 C280 860 400 770 610 700 S860 660 1000 440" fill="none" stroke="#BCE3EA" strokeOpacity=".3" />
+          <path className="login-wave-seam" d="M0 0 H65 C-30 220 145 490 65 740 S40 900 0 1000Z" fill="#FFFFFF" />
+        </svg>
         <div className="login-media-content">
           <div className="login-media-head">
-            <div className="login-mark sm">7S</div>
+            <BrandLogo inverse />
             <span className="login-media-badge">Suite contractual</span>
           </div>
           <div className="login-media-copy">
             <h2>
-              Cada contrato, <b>bajo control</b>.
+              Cada contrato, <b>bajo control.</b>
             </h2>
-            <ul>
-              <li>
-                <Icon name="check-circle" /> Semáforo contractual y alertas tempranas en tiempo real
-              </li>
-              <li>
-                <Icon name="check-circle" /> Expediente digital con trazabilidad y auditoría completa
-              </li>
-              <li>
-                <Icon name="check-circle" /> Pólizas, cupos y garantías siempre vigentes
-              </li>
-            </ul>
+            <p>Contratos, garantías y trazabilidad en un solo lugar. Más claridad para cada decisión.</p>
           </div>
         </div>
       </aside>

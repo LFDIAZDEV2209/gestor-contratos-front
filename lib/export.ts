@@ -85,7 +85,7 @@ export function exportRows(
     });
     doc.setFontSize(14);
     doc.setTextColor(23, 38, 43);
-    doc.text('Seven Save', 36, 36);
+    doc.text('Seven Safe', 36, 36);
     doc.setFontSize(11);
     doc.text(title, 36, 54);
     doc.setFontSize(8.5);
@@ -102,7 +102,7 @@ export function exportRows(
       ),
       startY: 80,
       styles: { fontSize: 7.5, cellPadding: 3 },
-      headStyles: { fillColor: [11, 110, 104] },
+      headStyles: { fillColor: [6, 47, 88] },
       alternateRowStyles: { fillColor: [246, 249, 249] }
     });
     saveFile(fname + '.pdf', doc.output('blob'));
@@ -121,7 +121,7 @@ export function exportRows(
   } else if (fmt === 'print') {
     if (typeof window === 'undefined') return;
     const w = window.open('', '_blank');
-    const html = `<html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;font-size:11px;color:#17262B;margin:24px}h1{font-size:16px;margin:0}p{color:#5E6E73}table{border-collapse:collapse;width:100%}th{background:#0F8579;color:#fff;text-align:left}th,td{padding:5px 6px;border:1px solid #dde4e6}tr:nth-child(even) td{background:#F6F9F9}</style></head><body><h1>${esc(title)}</h1><p>Seven Save · ${fdate(todayIso())} · ${esc(AuthService.currentUser().nombre)}</p><table><thead><tr>${head.map((h) => '<th>' + esc(h) + '</th>').join('')}</tr></thead><tbody>${body.map((r) => '<tr>' + r.map((v) => '<td>' + esc(typeof v === 'number' ? v.toLocaleString('es-CO') : v) + '</td>').join('') + '</tr>').join('')}</tbody></table></body></html>`;
+    const html = `<html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;font-size:11px;color:#152A3E;margin:24px}h1{font-size:16px;margin:0}p{color:#607284}table{border-collapse:collapse;width:100%}th{background:#062F58;color:#fff;text-align:left}th,td{padding:5px 6px;border:1px solid #dde4e6}tr:nth-child(even) td{background:#F6F9F9}</style></head><body><img src="${window.location.origin}/brand/seven-safe.svg" alt="Seven Safe Aseguradora" width="190" style="height:auto;display:block;margin-bottom:20px"/><h1>${esc(title)}</h1><p>Seven Safe · ${fdate(todayIso())} · ${esc(AuthService.currentUser().nombre)}</p><table><thead><tr>${head.map((h) => '<th>' + esc(h) + '</th>').join('')}</tr></thead><tbody>${body.map((r) => '<tr>' + r.map((v) => '<td>' + esc(typeof v === 'number' ? v.toLocaleString('es-CO') : v) + '</td>').join('') + '</tr>').join('')}</tbody></table></body></html>`;
     if (w) {
       w.document.write(html);
       w.document.close();

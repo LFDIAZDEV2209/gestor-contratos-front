@@ -1,95 +1,116 @@
-'use client';
-import { Input, Select } from '../ui/Controls';
-import { notify, confirmAction } from '../ui/Feedback';
-import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
+"use client";
+import { Input } from "../ui/Controls";
+import { notify, confirmAction } from "../ui/Feedback";
+import { Button } from "../ui/button";
+import {
+  PageHeader,
+  Surface,
+  FormGrid,
+  TableViewport,
+  DataTable,
+  EmptyState,
+} from "../ui/Workspace";
 
-import React, { useState } from 'react';
-import { Store, AuthService, Audit } from '@/lib/store';
-import { ROLES, PERMS, PERM_LABEL, defaultPerms, defaultCatalogs } from '@/lib/catalog';
-import { initials } from '@/lib/format';
-import { Icon } from '../icons';
-import { Badge } from '../ui/Badge';
-import { Modal } from '../ui/Modal';
-import type { User, Company } from '@/lib/types';
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Store, AuthService, Audit } from "@/lib/store";
+import {
+  ROLES,
+  PERMS,
+  PERM_LABEL,
+  defaultPerms,
+  defaultCatalogs,
+} from "@/lib/catalog";
+import { initials } from "@/lib/format";
+import { Icon } from "../icons";
+import { Badge } from "../ui/Badge";
+import type { User, Company } from "@/lib/types";
 
 const CAT_LABEL: Record<string, string> = {
-  tiposContrato: 'Tipos de contrato',
-  modalidades: 'Modalidades',
-  estados: 'Estados de contrato',
-  tiposGarantia: 'Tipos de garantía',
-  tiposActa: 'Tipos de actas',
-  tiposObligacion: 'Tipos de obligaciones',
-  categoriasRiesgo: 'Categorías de riesgos',
-  categoriasDoc: 'Categorías documentales',
-  docsRequeridos: 'Documentos requeridos por contrato',
-  areas: 'Áreas responsables',
-  aseguradoras: 'Aseguradoras'
+  tiposContrato: "Tipos de contrato",
+  modalidades: "Modalidades",
+  estados: "Estados de contrato",
+  tiposGarantia: "Tipos de garantía",
+  tiposActa: "Tipos de actas",
+  tiposObligacion: "Tipos de obligaciones",
+  categoriasRiesgo: "Categorías de riesgos",
+  categoriasDoc: "Categorías documentales",
+  docsRequeridos: "Documentos requeridos por contrato",
+  areas: "Áreas responsables",
+  aseguradoras: "Aseguradoras",
 };
 
 // Pestañas del módulo con su icono de identificación (navegación interna).
 const TABS = [
-  { id: 'alertas', label: 'Parámetros de alertas', icon: 'bell' },
-  { id: 'catalogos', label: 'Catálogos', icon: 'folder-tree' },
-  { id: 'usuarios', label: 'Usuarios', icon: 'user' },
-  { id: 'permisos', label: 'Roles y permisos', icon: 'lock' },
-  { id: 'empresas', label: 'Empresas', icon: 'building' },
-  { id: 'datos', label: 'Datos y respaldo', icon: 'file-export' }
+  { id: "alertas", label: "Parámetros de alertas", icon: "bell" },
+  { id: "catalogos", label: "Catálogos", icon: "folder-tree" },
+  { id: "usuarios", label: "Usuarios", icon: "user" },
+  { id: "permisos", label: "Roles y permisos", icon: "lock" },
+  { id: "empresas", label: "Empresas", icon: "building" },
+  { id: "datos", label: "Datos y respaldo", icon: "file-export" },
 ] as const;
 
-type TabId = (typeof TABS)[number]['id'];
+type TabId = (typeof TABS)[number]["id"];
 
 interface ConfiguracionViewProps {
   onNavigateToEmpresas?: () => void;
   onOpenCompany?: (companyId: string) => void;
+  onNewUser?: () => void;
+  onEditUser?: (userId: string) => void;
 }
 
 export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
   onNavigateToEmpresas,
-  onOpenCompany
+  onOpenCompany,
+  onNewUser,
+  onEditUser,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabId>('alertas');
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<TabId>("alertas");
   const [tick, setTick] = useState(0);
 
   const refresh = () => setTick((t) => t + 1);
 
-  const isAdmin = AuthService.currentUser()?.rol === 'ADMINISTRADOR';
+  // La pestaña activa vive también en la URL: al volver desde las vistas de
+  // usuario (/configuracion/usuarios/…) se restaura la pestaña de origen.
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab && TABS.some((t) => t.id === tab)) setActiveTab(tab as TabId);
+  }, []);
+
+  const cambiarTab = (id: TabId) => {
+    setActiveTab(id);
+    // replace evita llenar el historial con cada cambio de pestaña
+    router.replace(`${window.location.pathname}?tab=${id}`, { scroll: false });
+  };
+
+  const isAdmin = AuthService.currentUser()?.rol === "ADMINISTRADOR";
   const db = Store.getDB();
   const S = db.settings || {
     alertDays: [30, 15, 10, 5, 3, 1],
     criticalDays: 5,
     budgetPct: 15,
     gapPct: 15,
-    currentUser: 'U1',
+    currentUser: "U1",
     catalogs: defaultCatalogs(),
-    perms: defaultPerms()
+    perms: defaultPerms(),
   };
 
   // Parámetros de alertas
-  const [newAlertDay, setNewAlertDay] = useState('');
+  const [newAlertDay, setNewAlertDay] = useState("");
   const [paramsForm, setParamsForm] = useState({
     criticalDays: S.criticalDays || 5,
     budgetPct: S.budgetPct || 15,
-    gapPct: S.gapPct || 15
+    gapPct: S.gapPct || 15,
   });
 
   // Catálogos
   const [catInputs, setCatInputs] = useState<Record<string, string>>({});
 
-  // Usuarios Modal
-  const [userModalOpen, setUserModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [userForm, setUserForm] = useState({
-    nombre: '',
-    email: '',
-    rol: 'CONSULTA',
-    estado: 'Activo' as 'Activo' | 'Inactivo'
-  });
-
   // Guard Helper
   const checkAdmin = () => {
     if (isAdmin) return true;
-    notify('Solo el rol ADMINISTRADOR puede modificar la configuración.');
+    notify("Solo el rol ADMINISTRADOR puede modificar la configuración.");
     return false;
   };
 
@@ -98,25 +119,25 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
     if (!checkAdmin()) return;
     const val = parseInt(newAlertDay, 10);
     if (isNaN(val) || val <= 0 || val > 365) {
-      notify('Ingresa un número de días válido entre 1 y 365.');
+      notify("Ingresa un número de días válido entre 1 y 365.");
       return;
     }
     const cur = S.alertDays || [30, 15, 10, 5, 3, 1];
     if (cur.includes(val)) {
-      notify('Ese umbral ya existe.');
+      notify("Ese umbral ya existe.");
       return;
     }
     const updated = [...cur, val].sort((a, b) => b - a);
     S.alertDays = updated;
     Audit.log({
-      modulo: 'Configuración',
-      accion: 'Modificación',
-      campo: 'Días de alerta',
-      anterior: cur.join('/'),
-      nuevo: updated.join('/')
+      modulo: "Configuración",
+      accion: "Modificación",
+      campo: "Días de alerta",
+      anterior: cur.join("/"),
+      nuevo: updated.join("/"),
     });
     Store.persist();
-    setNewAlertDay('');
+    setNewAlertDay("");
     refresh();
   };
 
@@ -126,11 +147,11 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
     const updated = cur.filter((x: number) => x !== d);
     S.alertDays = updated;
     Audit.log({
-      modulo: 'Configuración',
-      accion: 'Modificación',
-      campo: 'Días de alerta',
-      anterior: cur.join('/'),
-      nuevo: updated.join('/')
+      modulo: "Configuración",
+      accion: "Modificación",
+      campo: "Días de alerta",
+      anterior: cur.join("/"),
+      nuevo: updated.join("/"),
     });
     Store.persist();
     refresh();
@@ -141,10 +162,10 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
     const def = [30, 15, 10, 5, 3, 1];
     S.alertDays = def;
     Audit.log({
-      modulo: 'Configuración',
-      accion: 'Modificación',
-      campo: 'Días de alerta',
-      nuevo: def.join('/')
+      modulo: "Configuración",
+      accion: "Modificación",
+      campo: "Días de alerta",
+      nuevo: def.join("/"),
     });
     Store.persist();
     refresh();
@@ -156,37 +177,37 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
     S.budgetPct = Number(paramsForm.budgetPct) || 15;
     S.gapPct = Number(paramsForm.gapPct) || 15;
     Audit.log({
-      modulo: 'Configuración',
-      accion: 'Modificación',
-      campo: 'Parámetros de alerta y agotamiento',
-      nuevo: `Crítica: ${S.criticalDays}d, Presupuesto: ${S.budgetPct}%, Brecha: ${S.gapPct}%`
+      modulo: "Configuración",
+      accion: "Modificación",
+      campo: "Parámetros de alerta y agotamiento",
+      nuevo: `Crítica: ${S.criticalDays}d, Presupuesto: ${S.budgetPct}%, Brecha: ${S.gapPct}%`,
     });
     Store.persist();
-    notify('Parámetros guardados correctamente.');
+    notify("Parámetros guardados correctamente.");
     refresh();
   };
 
   // 2. Catalogs Handlers
   const addCatItem = (catKey: string) => {
     if (!checkAdmin()) return;
-    const val = (catInputs[catKey] || '').trim();
+    const val = (catInputs[catKey] || "").trim();
     if (!val) return;
     if (!S.catalogs) S.catalogs = defaultCatalogs();
     const list = S.catalogs[catKey] || [];
     if (list.includes(val)) {
-      notify('Ese elemento ya existe en el catálogo.');
+      notify("Ese elemento ya existe en el catálogo.");
       return;
     }
     list.push(val);
     S.catalogs[catKey] = list;
     Audit.log({
-      modulo: 'Configuración',
-      accion: 'Modificación',
+      modulo: "Configuración",
+      accion: "Modificación",
       campo: `Catálogo ${CAT_LABEL[catKey] || catKey}`,
-      nuevo: val
+      nuevo: val,
     });
     Store.persist();
-    setCatInputs({ ...catInputs, [catKey]: '' });
+    setCatInputs({ ...catInputs, [catKey]: "" });
     refresh();
   };
 
@@ -198,102 +219,50 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
     list.splice(index, 1);
     S.catalogs[catKey] = list;
     Audit.log({
-      modulo: 'Configuración',
-      accion: 'Modificación',
+      modulo: "Configuración",
+      accion: "Modificación",
       campo: `Catálogo ${CAT_LABEL[catKey] || catKey}`,
       anterior: removed,
-      nuevo: '(eliminado)'
+      nuevo: "(eliminado)",
     });
     Store.persist();
     refresh();
   };
 
-  // 3. Usuarios Handlers
-  const openNewUserModal = () => {
-    if (!checkAdmin()) return;
-    setEditingUser(null);
-    setUserForm({
-      nombre: '',
-      email: '',
-      rol: 'CONSULTA',
-      estado: 'Activo'
-    });
-    setUserModalOpen(true);
-  };
-
-  const openEditUserModal = (u: User) => {
-    if (!checkAdmin()) return;
-    setEditingUser(u);
-    setUserForm({
-      nombre: u.nombre,
-      email: u.email,
-      rol: u.rol,
-      estado: (u.estado as any) || 'Activo'
-    });
-    setUserModalOpen(true);
-  };
-
+  // 3. Usuarios — la creación/edición se hace en VISTAS dedicadas
+  // (/configuracion/usuarios/nuevo y /configuracion/usuarios/[userId]/editar)
   const toggleUserStatus = (u: User) => {
     if (!checkAdmin()) return;
     if (u.id === S.currentUser) {
-      notify('No puedes inactivar el usuario con la sesión activa.');
+      notify("No puedes inactivar el usuario con la sesión activa.");
       return;
     }
-    const newEst = u.estado === 'Activo' ? 'Inactivo' : 'Activo';
-    Store.update('users', u.id, { estado: newEst });
+    const newEst = u.estado === "Activo" ? "Inactivo" : "Activo";
+    Store.update("users", u.id, { estado: newEst });
     Audit.log({
-      modulo: 'Configuración',
-      accion: 'Modificación',
+      modulo: "Configuración",
+      accion: "Modificación",
       campo: `Estado de usuario ${u.nombre}`,
       anterior: u.estado,
-      nuevo: newEst
+      nuevo: newEst,
     });
-    refresh();
-  };
-
-  const saveUser = () => {
-    if (!userForm.nombre.trim() || !userForm.email.trim()) {
-      notify('Por favor ingresa nombre y correo del usuario.');
-      return;
-    }
-    if (editingUser) {
-      Store.update('users', editingUser.id, userForm);
-      Audit.log({
-        modulo: 'Configuración',
-        accion: 'Modificación',
-        campo: `Usuario ${editingUser.nombre}`,
-        nuevo: `${userForm.nombre} (${userForm.rol})`
-      });
-    } else {
-      Store.insert('users', {
-        ...userForm,
-        id: 'U' + (Store.all('users').length + 1)
-      });
-      Audit.log({
-        modulo: 'Configuración',
-        accion: 'Creación',
-        campo: 'Usuario',
-        nuevo: `${userForm.nombre} (${userForm.rol})`
-      });
-    }
-    setUserModalOpen(false);
     refresh();
   };
 
   // 4. Permisos Handlers
   const togglePermission = (role: string, perm: string) => {
     if (!checkAdmin()) return;
-    if (role === 'ADMINISTRADOR') return;
+    if (role === "ADMINISTRADOR") return;
     if (!S.perms) S.perms = defaultPerms();
     if (!S.perms[role]) S.perms[role] = {};
     const curVal = Boolean(S.perms[role][perm]);
     S.perms[role][perm] = curVal ? 0 : 1;
     Audit.log({
-      modulo: 'Configuración',
-      accion: 'Modificación',
+      modulo: "Configuración",
+      accion: "Modificación",
       campo: `Permiso ${perm} para ${role}`,
-      anterior: curVal ? '1' : '0',
-      nuevo: curVal ? '0' : '1'
+      anterior: curVal ? "1" : "0",
+      nuevo: curVal ? "0" : "1",
     });
     Store.persist();
     refresh();
@@ -303,33 +272,35 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
     if (!checkAdmin()) return;
     S.perms = defaultPerms();
     Audit.log({
-      modulo: 'Configuración',
-      accion: 'Modificación',
-      campo: 'Permisos por rol',
-      nuevo: 'Restablecidos por defecto'
+      modulo: "Configuración",
+      accion: "Modificación",
+      campo: "Permisos por rol",
+      nuevo: "Restablecidos por defecto",
     });
     Store.persist();
-    notify('Permisos restablecidos a los valores por defecto.');
+    notify("Permisos restablecidos a los valores por defecto.");
     refresh();
   };
 
   // 6. Datos y respaldo Handlers
   const downloadBackup = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(db, null, 2));
-    const dlAnchor = document.createElement('a');
-    dlAnchor.setAttribute('href', dataStr);
-    dlAnchor.setAttribute('download', 'gic_backup.json');
+    const dataStr =
+      "data:text/json;charset=utf-8," +
+      encodeURIComponent(JSON.stringify(db, null, 2));
+    const dlAnchor = document.createElement("a");
+    dlAnchor.setAttribute("href", dataStr);
+    dlAnchor.setAttribute("download", "gic_backup.json");
     dlAnchor.click();
   };
 
   const resetDemo = async () => {
     if (!checkAdmin()) return;
     const ok = await confirmAction(
-      '¿Estás seguro de restablecer todos los datos a la demostración inicial? Se borrarán todos los cambios locales.'
+      "¿Estás seguro de restablecer todos los datos a la demostración inicial? Se borrarán todos los cambios locales.",
     );
     if (!ok) return;
     Store.reset();
-    notify('Datos demo restablecidos.');
+    notify("Datos demo restablecidos.");
     window.location.reload();
   };
 
@@ -339,8 +310,8 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
     storageSizeKb = Math.round(JSON.stringify(db).length / 1024);
   } catch {}
 
-  const companies: Company[] = Store.all('companies');
-  const users: User[] = Store.all('users');
+  const companies: Company[] = Store.all("companies");
+  const users: User[] = Store.all("users");
   const catalogKeys = Object.keys(CAT_LABEL);
 
   return (
@@ -348,46 +319,53 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
       {/* Banner de cabecera con gradiente de marca institucional */}
       <PageHeader variant="hero" className="ph">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <span
               aria-hidden="true"
               style={{
                 width: 44,
                 height: 44,
-                borderRadius: 'var(--r)',
-                background: 'rgba(255, 255, 255, 0.16)',
-                color: 'var(--surface)',
-                display: 'grid',
-                placeItems: 'center',
-                backdropFilter: 'blur(8px)',
-                flexShrink: 0
+                borderRadius: "var(--r)",
+                background: "rgba(255, 255, 255, 0.16)",
+                color: "var(--surface)",
+                display: "grid",
+                placeItems: "center",
+                backdropFilter: "blur(8px)",
+                flexShrink: 0,
               }}
             >
               <Icon name="gear" size={24} />
             </span>
             <div>
-              <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+              <h1
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  margin: 0,
+                }}
+              >
                 Configuración
                 {!isAdmin && (
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: "11px",
                       fontWeight: 600,
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                      padding: '2px 8px',
-                      borderRadius: 'var(--r-pill)',
-                      background: 'rgba(255, 255, 255, 0.18)',
-                      color: 'var(--surface)'
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      padding: "2px 8px",
+                      borderRadius: "var(--r-pill)",
+                      background: "rgba(255, 255, 255, 0.18)",
+                      color: "var(--surface)",
                     }}
                   >
                     Solo lectura
                   </span>
                 )}
               </h1>
-              <p style={{ margin: '4px 0 0' }}>
+              <p style={{ margin: "4px 0 0" }}>
                 Parámetros del sistema, catálogos, usuarios, roles y permisos.
-                {!isAdmin && ' Se requiere rol ADMINISTRADOR para modificar.'}
+                {!isAdmin && " Se requiere rol ADMINISTRADOR para modificar."}
               </p>
             </div>
           </div>
@@ -395,7 +373,11 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
 
         {/* Acciones reales del módulo alineadas a la derecha */}
         <div className="ph-actions">
-          <Button className="btn" onClick={downloadBackup} title="Descarga toda la información en formato JSON">
+          <Button
+            className="btn"
+            onClick={downloadBackup}
+            title="Descarga toda la información en formato JSON"
+          >
             <Icon name="download" /> Descargar respaldo
           </Button>
         </div>
@@ -405,7 +387,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
       <Surface className="panel">
         <div
           className="tabs"
-          style={{ padding: '0 8px' }}
+          style={{ padding: "0 8px" }}
           role="tablist"
           aria-label="Secciones de configuración"
         >
@@ -417,15 +399,15 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
               aria-selected={activeTab === t.id}
               aria-controls="conf-panel"
               tabIndex={activeTab === t.id ? 0 : -1}
-              className={`tab ${activeTab === t.id ? 'on' : ''}`}
-              onClick={() => setActiveTab(t.id)}
+              className={`tab ${activeTab === t.id ? "on" : ""}`}
+              onClick={() => cambiarTab(t.id)}
               onKeyDown={(e) => {
                 // Navegación con flechas entre pestañas (patrón WAI-ARIA).
-                if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
                   e.preventDefault();
-                  const dir = e.key === 'ArrowRight' ? 1 : -1;
+                  const dir = e.key === "ArrowRight" ? 1 : -1;
                   const next = TABS[(i + dir + TABS.length) % TABS.length];
-                  setActiveTab(next.id);
+                  cambiarTab(next.id);
                   document.getElementById(`conf-tab-${next.id}`)?.focus();
                 }
               }}
@@ -435,19 +417,25 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
           ))}
         </div>
 
-        <div className="panel-b anim-fade-rise" key={activeTab} role="tabpanel" id="conf-panel" aria-labelledby={`conf-tab-${activeTab}`}>
+        <div
+          className="panel-b anim-fade-rise"
+          key={activeTab}
+          role="tabpanel"
+          id="conf-panel"
+          aria-labelledby={`conf-tab-${activeTab}`}
+        >
           {/* TAB 1: ALERTAS */}
-          {activeTab === 'alertas' && (
+          {activeTab === "alertas" && (
             <div className="grid g2">
               <div>
-                <h4 style={{ fontSize: '13px', marginBottom: 6 }}>
+                <h4 style={{ fontSize: "13px", marginBottom: 6 }}>
                   Días de alerta antes del vencimiento
                 </h4>
-                <p className="small muted" style={{ margin: '0 0 8px' }}>
-                  Se generan alertas de contratos y garantías al cruzar cada umbral. Por defecto: 30 /
-                  15 / 10 / 5 / 3 / 1.
+                <p className="small muted" style={{ margin: "0 0 8px" }}>
+                  Se generan alertas de contratos y garantías al cruzar cada
+                  umbral. Por defecto: 30 / 15 / 10 / 5 / 3 / 1.
                 </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   {(S.alertDays || [])
                     .slice()
                     .sort((a: number, b: number) => b - a)
@@ -500,12 +488,19 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     max={365}
                     disabled={!isAdmin}
                     value={paramsForm.criticalDays}
-                    onChange={(e) => setParamsForm({ ...paramsForm, criticalDays: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setParamsForm({
+                        ...paramsForm,
+                        criticalDays: Number(e.target.value),
+                      })
+                    }
                   />
                   <span className="small muted">Por defecto 5 días</span>
                 </div>
                 <div>
-                  <label className="form-label">Presupuesto próximo a agotarse (% de saldo)</label>
+                  <label className="form-label">
+                    Presupuesto próximo a agotarse (% de saldo)
+                  </label>
                   <Input
                     type="number"
                     className="inp"
@@ -513,12 +508,21 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     max={100}
                     disabled={!isAdmin}
                     value={paramsForm.budgetPct}
-                    onChange={(e) => setParamsForm({ ...paramsForm, budgetPct: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setParamsForm({
+                        ...paramsForm,
+                        budgetPct: Number(e.target.value),
+                      })
+                    }
                   />
-                  <span className="small muted">Alerta cuando el saldo disponible es menor a este %</span>
+                  <span className="small muted">
+                    Alerta cuando el saldo disponible es menor a este %
+                  </span>
                 </div>
                 <div>
-                  <label className="form-label">Brecha máxima ejecución financiera vs. física (%)</label>
+                  <label className="form-label">
+                    Brecha máxima ejecución financiera vs. física (%)
+                  </label>
                   <Input
                     type="number"
                     className="inp"
@@ -526,9 +530,16 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     max={100}
                     disabled={!isAdmin}
                     value={paramsForm.gapPct}
-                    onChange={(e) => setParamsForm({ ...paramsForm, gapPct: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setParamsForm({
+                        ...paramsForm,
+                        gapPct: Number(e.target.value),
+                      })
+                    }
                   />
-                  <span className="small muted">Alerta cuando la diferencia supera este %</span>
+                  <span className="small muted">
+                    Alerta cuando la diferencia supera este %
+                  </span>
                 </div>
                 {isAdmin && (
                   <div style={{ marginTop: 8 }}>
@@ -542,7 +553,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
           )}
 
           {/* TAB 2: CATÁLOGOS */}
-          {activeTab === 'catalogos' && (
+          {activeTab === "catalogos" && (
             <div className="grid g2">
               {catalogKeys.map((catKey) => {
                 const list: string[] = (S.catalogs && S.catalogs[catKey]) || [];
@@ -553,7 +564,14 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                       <span className="sub">{list.length}</span>
                     </div>
                     <div className="panel-b">
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 6,
+                          marginBottom: 10,
+                        }}
+                      >
                         {list.map((item, idx) => (
                           <span key={idx} className="badge b-brand">
                             {item}
@@ -570,7 +588,9 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                           </span>
                         ))}
                         {list.length === 0 && (
-                          <span className="small muted">Catálogo vacío: agrega el primer valor.</span>
+                          <span className="small muted">
+                            Catálogo vacío: agrega el primer valor.
+                          </span>
                         )}
                       </div>
                       {isAdmin && (
@@ -580,15 +600,21 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                             placeholder="Nuevo valor"
                             aria-label={`Nuevo valor para ${CAT_LABEL[catKey] || catKey}`}
                             style={{ flex: 1 }}
-                            value={catInputs[catKey] || ''}
+                            value={catInputs[catKey] || ""}
                             onChange={(e) =>
-                              setCatInputs({ ...catInputs, [catKey]: e.target.value })
+                              setCatInputs({
+                                ...catInputs,
+                                [catKey]: e.target.value,
+                              })
                             }
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') addCatItem(catKey);
+                              if (e.key === "Enter") addCatItem(catKey);
                             }}
                           />
-                          <Button className="btn sm" onClick={() => addCatItem(catKey)}>
+                          <Button
+                            className="btn sm"
+                            onClick={() => addCatItem(catKey)}
+                          >
                             <Icon name="plus" /> Agregar
                           </Button>
                         </div>
@@ -601,16 +627,22 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
           )}
 
           {/* TAB 3: USUARIOS */}
-          {activeTab === 'usuarios' && (
+          {activeTab === "usuarios" && (
             <div>
-              <div className="row-flex mb" style={{ alignItems: 'center' }}>
+              <div className="row-flex mb" style={{ alignItems: "center" }}>
                 <span className="small muted">
-                  <Icon name="info" /> Punto de conexión: autenticación (SSO / Azure AD / Keycloak).
-                  Aquí se simula el login con el selector de usuario del encabezado.
+                  <Icon name="info" /> Punto de conexión: autenticación (SSO /
+                  Azure AD / Keycloak). Aquí se simula el login con el selector
+                  de usuario del encabezado.
                 </span>
                 <span className="sp" style={{ flex: 1 }} />
                 {isAdmin && (
-                  <Button className="btn pri sm" onClick={openNewUserModal}>
+                  <Button
+                    className="btn pri sm"
+                    onClick={() =>
+                      onNewUser ? onNewUser() : notify("Acción no disponible.")
+                    }
+                  >
                     <Icon name="plus" /> Nuevo usuario
                   </Button>
                 )}
@@ -621,106 +653,126 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                   title="Sin usuarios registrados"
                   description="Crea el primer usuario para asignar roles y permisos del sistema."
                   action={
-                    isAdmin ? (
-                      <Button className="btn pri sm" onClick={openNewUserModal}>
+                    isAdmin && onNewUser ? (
+                      <Button className="btn pri sm" onClick={onNewUser}>
                         <Icon name="plus" /> Nuevo usuario
                       </Button>
                     ) : undefined
                   }
                 />
               ) : (
-              <TableViewport className="tbl-wrap">
-                <DataTable className="tbl">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Nombre</th>
-                      <th>Email</th>
-                      <th>Rol</th>
-                      <th>Estado</th>
-                      {isAdmin && <th className="acts">Acciones</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u) => {
-                      const isCurrent = u.id === S.currentUser;
-                      return (
-                        <tr key={u.id}>
-                          <td className="strong">{u.id}</td>
-                          <td>
-                            <div className="row-flex" style={{ flexWrap: 'nowrap', gap: 8 }}>
+                <TableViewport className="tbl-wrap">
+                  <DataTable className="tbl">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        {isAdmin && <th className="acts">Acciones</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((u) => {
+                        const isCurrent = u.id === S.currentUser;
+                        return (
+                          <tr key={u.id}>
+                            <td className="strong">{u.id}</td>
+                            <td>
                               <div
-                                className="avatar"
-                                style={{
-                                  width: 26,
-                                  height: 26,
-                                  fontSize: 10.5,
-                                  borderRadius: '50%',
-                                  backgroundColor: 'var(--brand-soft)',
-                                  color: 'var(--brand-2)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontWeight: 700
-                                }}
+                                className="row-flex"
+                                style={{ flexWrap: "nowrap", gap: 8 }}
                               >
-                                {initials(u.nombre)}
+                                <div
+                                  className="avatar"
+                                  style={{
+                                    width: 26,
+                                    height: 26,
+                                    fontSize: 10.5,
+                                    borderRadius: "50%",
+                                    backgroundColor: "var(--brand-soft)",
+                                    color: "var(--brand-2)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {initials(u.nombre)}
+                                </div>
+                                <span className="strong">{u.nombre}</span>
+                                {isCurrent && (
+                                  <span
+                                    className="badge b-brand"
+                                    style={{ fontSize: "10px" }}
+                                  >
+                                    sesión actual
+                                  </span>
+                                )}
                               </div>
-                              <span className="strong">{u.nombre}</span>
-                              {isCurrent && (
-                                <span className="badge b-brand" style={{ fontSize: '10px' }}>
-                                  sesión actual
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td>{u.email}</td>
-                          <td>
-                            <span className="badge b-info">{u.rol}</span>
-                          </td>
-                          <td>
-                            <Badge state={u.estado === 'Activo' ? 'Activo' : 'Anulado'} />
-                          </td>
-                          {isAdmin && (
-                            <td className="acts">
-                              <Button
-                                className="icon-btn"
-                                title="Editar"
-                                aria-label={`Editar usuario ${u.nombre}`}
-                                onClick={() => openEditUserModal(u)}
-                              >
-                                <Icon name="edit" />
-                              </Button>
-                              {!isCurrent && (
+                            </td>
+                            <td>{u.email}</td>
+                            <td>
+                              <span className="badge b-info">{u.rol}</span>
+                            </td>
+                            <td>
+                              <Badge
+                                state={
+                                  u.estado === "Activo" ? "Activo" : "Anulado"
+                                }
+                              />
+                            </td>
+                            {isAdmin && (
+                              <td className="acts">
                                 <Button
                                   className="icon-btn"
-                                  title={u.estado === 'Activo' ? 'Inactivar' : 'Activar'}
-                                  aria-label={`${u.estado === 'Activo' ? 'Inactivar' : 'Activar'} a ${u.nombre}`}
-                                  onClick={() => toggleUserStatus(u)}
+                                  title="Editar"
+                                  aria-label={`Editar usuario ${u.nombre}`}
+                                  onClick={() => onEditUser?.(u.id)}
                                 >
-                                  <Icon name={u.estado === 'Activo' ? 'x' : 'check'} />
+                                  <Icon name="edit" />
                                 </Button>
-                              )}
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </DataTable>
-              </TableViewport>
+                                {!isCurrent && (
+                                  <Button
+                                    className="icon-btn"
+                                    title={
+                                      u.estado === "Activo"
+                                        ? "Inactivar"
+                                        : "Activar"
+                                    }
+                                    aria-label={`${u.estado === "Activo" ? "Inactivar" : "Activar"} a ${u.nombre}`}
+                                    onClick={() => toggleUserStatus(u)}
+                                  >
+                                    <Icon
+                                      name={
+                                        u.estado === "Activo" ? "x" : "check"
+                                      }
+                                    />
+                                  </Button>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </DataTable>
+                </TableViewport>
               )}
             </div>
           )}
 
           {/* TAB 4: ROLES Y PERMISOS */}
-          {activeTab === 'permisos' && (
+          {activeTab === "permisos" && (
             <div>
               <p className="small muted" style={{ marginTop: 0 }}>
-                La eliminación se maneja como <b>anulación</b>: el registro se conserva, cambia de estado
-                y queda en auditoría. El rol ADMINISTRADOR conserva todos los permisos. Cada columna
-                habilita una capacidad del rol (Ver, Crear, Editar, Aprobar, Eliminar, Exportar o
-                Auditar); los cambios se guardan al instante y quedan en la bitácora.
+                La eliminación se maneja como <b>anulación</b>: el registro se
+                conserva, cambia de estado y queda en auditoría. El rol
+                ADMINISTRADOR conserva todos los permisos. Cada columna habilita
+                una capacidad del rol (Ver, Crear, Editar, Aprobar, Eliminar,
+                Exportar o Auditar); los cambios se guardan al instante y quedan
+                en la bitácora.
               </p>
 
               <TableViewport className="tbl-wrap">
@@ -729,36 +781,40 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     <tr>
                       <th>Rol</th>
                       {PERMS.map((p) => (
-                        <th key={p} style={{ textAlign: 'center' }}>
+                        <th key={p} style={{ textAlign: "center" }}>
                           {PERM_LABEL[p]}
                         </th>
                       ))}
-                      <th style={{ textAlign: 'center' }}>Usuarios</th>
+                      <th style={{ textAlign: "center" }}>Usuarios</th>
                     </tr>
                   </thead>
                   <tbody>
                     {ROLES.map((r) => {
                       const userCount = users.filter((u) => u.rol === r).length;
-                      const isAdmRow = r === 'ADMINISTRADOR';
+                      const isAdmRow = r === "ADMINISTRADOR";
                       return (
                         <tr key={r}>
                           <td className="strong">{r}</td>
                           {PERMS.map((p) => {
-                            const isChecked = isAdmRow || Boolean(S.perms?.[r]?.[p]);
+                            const isChecked =
+                              isAdmRow || Boolean(S.perms?.[r]?.[p]);
                             return (
-                              <td key={p} style={{ textAlign: 'center' }}>
+                              <td key={p} style={{ textAlign: "center" }}>
                                 <Input
                                   type="checkbox"
                                   checked={isChecked}
                                   disabled={isAdmRow || !isAdmin}
                                   onChange={() => togglePermission(r, p)}
-                                  aria-label={`${PERM_LABEL[p]} para rol ${r}${isChecked ? ' (activado)' : ' (desactivado)'}`}
+                                  aria-label={`${PERM_LABEL[p]} para rol ${r}${isChecked ? " (activado)" : " (desactivado)"}`}
                                 />
                               </td>
                             );
                           })}
-                          <td style={{ textAlign: 'center' }}>
-                            <span className="badge b-info" title={`${userCount} usuario(s) con rol ${r}`}>
+                          <td style={{ textAlign: "center" }}>
+                            <span
+                              className="badge b-info"
+                              title={`${userCount} usuario(s) con rol ${r}`}
+                            >
                               {userCount}
                             </span>
                           </td>
@@ -780,10 +836,11 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
           )}
 
           {/* TAB 5: EMPRESAS */}
-          {activeTab === 'empresas' && (
+          {activeTab === "empresas" && (
             <div>
               <p className="small muted" style={{ marginTop: 0 }}>
-                Las empresas se administran en su módulo dedicado. Resumen de empresas registradas:
+                Las empresas se administran en su módulo dedicado. Resumen de
+                empresas registradas:
               </p>
 
               {companies.length === 0 ? (
@@ -792,45 +849,55 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                   description="Las empresas contratantes aparecerán aquí cuando se registren en su módulo."
                   action={
                     onNavigateToEmpresas ? (
-                      <Button className="btn pri sm" onClick={onNavigateToEmpresas}>
+                      <Button
+                        className="btn pri sm"
+                        onClick={onNavigateToEmpresas}
+                      >
                         <Icon name="building" /> Ir al módulo de empresas
                       </Button>
                     ) : undefined
                   }
                 />
               ) : (
-              <TableViewport className="tbl-wrap">
-                <DataTable className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Razón social</th>
-                      <th>NIT</th>
-                      <th>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {companies.map((c) => (
-                      <tr key={c.id}>
-                        <td>
-                          <Button
-                            variant="link"
-                            className="link"
-                            style={{ padding: 0, border: 'none', background: 'transparent', boxShadow: 'none', whiteSpace: 'normal', textAlign: 'left' }}
-                            onClick={() => onOpenCompany?.(c.id)}
-                            aria-label={`Abrir expediente de ${c.razon || (c as any).name}`}
-                          >
-                            {c.razon || (c as any).name}
-                          </Button>
-                        </td>
-                        <td>{c.nit}</td>
-                        <td>
-                          <Badge state={c.estado || 'Activo'} />
-                        </td>
+                <TableViewport className="tbl-wrap">
+                  <DataTable className="tbl">
+                    <thead>
+                      <tr>
+                        <th>Razón social</th>
+                        <th>NIT</th>
+                        <th>Estado</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </DataTable>
-              </TableViewport>
+                    </thead>
+                    <tbody>
+                      {companies.map((c) => (
+                        <tr key={c.id}>
+                          <td>
+                            <Button
+                              variant="link"
+                              className="link"
+                              style={{
+                                padding: 0,
+                                border: "none",
+                                background: "transparent",
+                                boxShadow: "none",
+                                whiteSpace: "normal",
+                                textAlign: "left",
+                              }}
+                              onClick={() => onOpenCompany?.(c.id)}
+                              aria-label={`Abrir expediente de ${c.razon || (c as any).name}`}
+                            >
+                              {c.razon || (c as any).name}
+                            </Button>
+                          </td>
+                          <td>{c.nit}</td>
+                          <td>
+                            <Badge state={c.estado || "Activo"} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </DataTable>
+                </TableViewport>
               )}
 
               {onNavigateToEmpresas && (
@@ -844,15 +911,18 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
           )}
 
           {/* TAB 6: DATOS Y RESPALDO */}
-          {activeTab === 'datos' && (
+          {activeTab === "datos" && (
             <div className="grid g3">
               <Surface className="panel">
                 <div className="panel-h">
-                  <h3><Icon name="layers" /> Almacenamiento local</h3>
+                  <h3>
+                    <Icon name="layers" /> Almacenamiento local
+                  </h3>
                 </div>
                 <div className="panel-b">
                   <p className="small muted">
-                    Adaptador activo: <b>localStorage</b> · {storageSizeKb} KB · clave «gic_store_v2».
+                    Adaptador activo: <b>localStorage</b> · {storageSizeKb} KB ·
+                    clave «gic_store_v2».
                     <br />
                     Para producción cambie el adaptador por API REST (API_BASE).
                   </p>
@@ -861,11 +931,14 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
 
               <Surface className="panel">
                 <div className="panel-h">
-                  <h3><Icon name="download" /> Respaldo JSON</h3>
+                  <h3>
+                    <Icon name="download" /> Respaldo JSON
+                  </h3>
                 </div>
                 <div className="panel-b">
                   <p className="small muted">
-                    Descarga toda la información (incluida la auditoría inmutable) para respaldo o migración.
+                    Descarga toda la información (incluida la auditoría
+                    inmutable) para respaldo o migración.
                   </p>
                   <Button className="btn sm" onClick={downloadBackup}>
                     <Icon name="download" /> Descargar respaldo
@@ -875,13 +948,20 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
 
               <Surface className="panel">
                 <div className="panel-h">
-                  <h3 style={{ color: 'var(--crit-text)' }}><Icon name="trash" /> Restablecer datos de demostración</h3>
+                  <h3 style={{ color: "var(--crit-text)" }}>
+                    <Icon name="trash" /> Restablecer datos de demostración
+                  </h3>
                 </div>
                 <div className="panel-b">
                   <p className="small muted">
-                    Borra los datos locales y recarga el seed inicial de demostración (5 empresas, 10 contratos).
+                    Borra los datos locales y recarga el seed inicial de
+                    demostración (5 empresas, 10 contratos).
                   </p>
-                  <Button className="btn sm dan" onClick={resetDemo} disabled={!isAdmin}>
+                  <Button
+                    className="btn sm dan"
+                    onClick={resetDemo}
+                    disabled={!isAdmin}
+                  >
                     <Icon name="upload" /> Restablecer demo
                   </Button>
                 </div>
@@ -890,74 +970,6 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
           )}
         </div>
       </Surface>
-
-      {/* Modal Usuario */}
-      {userModalOpen && (
-        <Modal
-          title={editingUser ? 'Editar usuario' : 'Nuevo usuario'}
-          onClose={() => setUserModalOpen(false)}
-          footer={
-            <>
-              <Button className="btn" onClick={() => setUserModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={saveUser}>
-                Guardar usuario
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="form-grid" style={{ gap: 12 }}>
-            <div>
-              <label className="form-label">Nombre completo *</label>
-              <Input
-                className="inp"
-                value={userForm.nombre}
-                onChange={(e) => setUserForm({ ...userForm, nombre: e.target.value })}
-                placeholder="Nombre del usuario"
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Correo electrónico *</label>
-              <Input
-                type="email"
-                className="inp"
-                value={userForm.email}
-                onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                placeholder="usuario@empresa.co"
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Rol del sistema *</label>
-              <Select
-                className="inp"
-                value={userForm.rol}
-                onChange={(e) => setUserForm({ ...userForm, rol: e.target.value })}
-              >
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div>
-              <label className="form-label">Estado</label>
-              <Select
-                className="inp"
-                value={userForm.estado}
-                onChange={(e) => setUserForm({ ...userForm, estado: e.target.value as any })}
-              >
-                <option value="Activo">Activo</option>
-                <option value="Inactivo">Inactivo</option>
-              </Select>
-            </div>
-          </FormGrid>
-        </Modal>
-      )}
     </div>
   );
 };

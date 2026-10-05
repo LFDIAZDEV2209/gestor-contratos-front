@@ -1,22 +1,20 @@
 'use client';
-import { Select, Input, Textarea } from '../ui/Controls';
-import { notify, requestReason } from '../ui/Feedback';
+import { Select, Input } from '../ui/Controls';
+import { requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, TableViewport, DataTable, FormGrid, EmptyState, Field } from '../ui/Workspace';
+import { PageHeader, Surface, TableViewport, DataTable, EmptyState, Field } from '../ui/Workspace';
 import { Kpi } from '../ui/Kpi';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Store, AuthService, Audit } from '@/lib/store';
-import { activeContracts } from '@/lib/metrics';
 import { fdate, money, moneyM, todayIso } from '@/lib/format';
 import { exportRows } from '@/lib/export';
 import { Icon } from '../icons';
 import { Badge } from '../ui/Badge';
-import { Modal } from '../ui/Modal';
 import { PBar } from '../ui/PBar';
 import { contractHref } from '../app/routes';
-import type { Breach, Plan, Contract } from '@/lib/types';
+import type { Breach, Plan } from '@/lib/types';
 
 interface IncumplimientosViewProps {
   onSelectContract?: (contractId: string, tab?: string) => void;
@@ -72,36 +70,8 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
   const [pageP, setPageP] = useState(1);
   const pageSize = 12;
 
-  // Modales
-  const [breachModalOpen, setBreachModalOpen] = useState(false);
-  const [editingBreach, setEditingBreach] = useState<Breach | null>(null);
-  const [breachForm, setBreachForm] = useState({
-    contractId: '',
-    fecha: todayIso(),
-    tipo: 'Retraso en cronograma',
-    descripcion: '',
-    impacto: 'Medio',
-    multa: 0,
-    planAccion: '',
-    responsable: '',
-    estado: 'Abierto'
-  });
-
-  const [planModalOpen, setPlanModalOpen] = useState(false);
-  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
-  const [planForm, setPlanForm] = useState({
-    contractId: '',
-    accion: '',
-    responsable: '',
-    fechaInicio: todayIso(),
-    fechaFin: todayIso(),
-    avance: 0,
-    estado: 'En curso'
-  });
-
   const refresh = () => setTick((t) => t + 1);
 
-  const contracts: Contract[] = activeContracts();
   const breaches: Breach[] = Store.all('breaches');
   const openBreaches = breaches.filter((b) => b.estado !== 'Cerrado' && b.estado !== 'Subsanado');
   const totalMultas = breaches.reduce((acc, b) => acc + (Number(b.multa) || 0), 0);
@@ -187,69 +157,6 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
     exportRows('Planes de mejoramiento', cols, plans, format);
   };
 
-  // Handlers Breach
-  const openNewBreachModal = () => {
-    if (!AuthService.guard('crear')) return;
-    setEditingBreach(null);
-    setBreachForm({
-      contractId: contracts[0]?.id || '',
-      fecha: todayIso(),
-      tipo: 'Retraso en cronograma',
-      descripcion: '',
-      impacto: 'Medio',
-      multa: 0,
-      planAccion: '',
-      responsable: '',
-      estado: 'Abierto'
-    });
-    setBreachModalOpen(true);
-  };
-
-  const openEditBreachModal = (b: Breach) => {
-    if (!AuthService.guard('editar')) return;
-    setEditingBreach(b);
-    setBreachForm({
-      contractId: b.contractId || '',
-      fecha: b.fecha || todayIso(),
-      tipo: b.tipo || 'Retraso en cronograma',
-      descripcion: b.descripcion || '',
-      impacto: b.impacto || 'Medio',
-      multa: Number(b.multa) || 0,
-      planAccion: b.planAccion || '',
-      responsable: b.responsable || '',
-      estado: b.estado || 'Abierto'
-    });
-    setBreachModalOpen(true);
-  };
-
-  const handleSaveBreach = () => {
-    if (!breachForm.descripcion.trim()) {
-      notify('Ingresa la descripción del incumplimiento.');
-      return;
-    }
-    if (editingBreach) {
-      Store.update('breaches', editingBreach.id, breachForm);
-      Audit.log({
-        contractId: breachForm.contractId,
-        modulo: 'Incumplimientos',
-        accion: 'Modificación',
-        campo: 'Incumplimiento ' + editingBreach.id,
-        nuevo: breachForm.descripcion
-      });
-    } else {
-      Store.insert('breaches', breachForm);
-      Audit.log({
-        contractId: breachForm.contractId,
-        modulo: 'Incumplimientos',
-        accion: 'Creación',
-        campo: 'Incumplimiento',
-        nuevo: breachForm.descripcion
-      });
-    }
-    setBreachModalOpen(false);
-    refresh();
-  };
-
   const handleAnularBreach = async (b: Breach) => {
     if (!AuthService.guard('anular')) return;
     const motivo = await requestReason('Motivo del cierre / anulación del incumplimiento:');
@@ -264,65 +171,6 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
       nuevo: 'Subsanado',
       obs: motivo
     });
-    refresh();
-  };
-
-  // Handlers Plan
-  const openNewPlanModal = () => {
-    if (!AuthService.guard('crear')) return;
-    setEditingPlan(null);
-    setPlanForm({
-      contractId: contracts[0]?.id || '',
-      accion: '',
-      responsable: '',
-      fechaInicio: todayIso(),
-      fechaFin: todayIso(),
-      avance: 0,
-      estado: 'En curso'
-    });
-    setPlanModalOpen(true);
-  };
-
-  const openEditPlanModal = (p: Plan) => {
-    if (!AuthService.guard('editar')) return;
-    setEditingPlan(p);
-    setPlanForm({
-      contractId: p.contractId || '',
-      accion: p.accion || '',
-      responsable: p.responsable || '',
-      fechaInicio: p.fechaInicio || todayIso(),
-      fechaFin: p.fechaFin || todayIso(),
-      avance: Number(p.avance) || 0,
-      estado: p.estado || 'En curso'
-    });
-    setPlanModalOpen(true);
-  };
-
-  const handleSavePlan = () => {
-    if (!planForm.accion.trim()) {
-      notify('Ingresa la acción o título del plan de mejoramiento.');
-      return;
-    }
-    if (editingPlan) {
-      Store.update('plans', editingPlan.id, planForm);
-      Audit.log({
-        contractId: planForm.contractId,
-        modulo: 'Incumplimientos',
-        accion: 'Modificación',
-        campo: 'Plan ' + editingPlan.id,
-        nuevo: planForm.accion
-      });
-    } else {
-      Store.insert('plans', planForm);
-      Audit.log({
-        contractId: planForm.contractId,
-        modulo: 'Incumplimientos',
-        accion: 'Creación',
-        campo: 'Plan de mejoramiento',
-        nuevo: planForm.accion
-      });
-    }
-    setPlanModalOpen(false);
     refresh();
   };
 
@@ -385,12 +233,16 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
         </div>
 
         <div className="ph-actions">
-          <Button className="btn sm" onClick={openNewPlanModal}>
-            <Icon name="clipboard-check" /> Plan de mejoramiento
-          </Button>
-          <Button className="btn sm pri" onClick={openNewBreachModal}>
-            <Icon name="plus" /> Registrar incumplimiento
-          </Button>
+          {AuthService.can('crear') && (
+            <Link className="btn sm" href="/incumplimientos/planes/nuevo">
+              <Icon name="clipboard-check" /> Plan de mejoramiento
+            </Link>
+          )}
+          {AuthService.can('crear') && (
+            <Link className="btn sm pri" href="/incumplimientos/nuevo">
+              <Icon name="plus" /> Registrar incumplimiento
+            </Link>
+          )}
         </div>
       </PageHeader>
 
@@ -458,7 +310,24 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
             </h3>
             <span className="sub">Hechos, impacto, multas y plan de acción exigido</span>
           </div>
+          {/* Exportación agrupada en un disclosure para no saturar la cabecera de la tabla */}
           <div className="row-flex">
+            <details className="action-disclosure" style={{ display: 'none' }}>
+              <summary title="Exportar incumplimientos" aria-label="Exportar incumplimientos">
+                <Icon name="download" />
+              </summary>
+              <div className="action-disclosure-content">
+                <Button className="btn sm" onClick={() => exportBreaches('xlsx')}>
+                  <Icon name="file-excel" /> Excel (XLSX)
+                </Button>
+                <Button className="btn sm" onClick={() => exportBreaches('pdf')}>
+                  <Icon name="file-pdf" /> PDF
+                </Button>
+                <Button className="btn sm" onClick={() => exportBreaches('csv')}>
+                  <Icon name="file-csv" /> CSV
+                </Button>
+              </div>
+            </details>
             <Button className="btn sm xs" onClick={() => exportBreaches('xlsx')} title="Exportar a Excel">
               <Icon name="file-excel" /> Excel
             </Button>
@@ -468,25 +337,25 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
             <Button className="btn sm xs" onClick={() => exportBreaches('csv')} title="Exportar a CSV">
               <Icon name="file-csv" /> CSV
             </Button>
-            <Button className="btn sm xs" onClick={() => exportBreaches('print')} title="Imprimir">
-              <Icon name="print" /> Imprimir
-            </Button>
           </div>
         </div>
 
         <div className="filters">
-          <div className="gsearch" style={{ minWidth: 240 }}>
-            <Icon name="search" />
-            <Input
-              aria-label="Buscar incumplimientos por descripción, tipo, contrato o responsable"
-              value={qB}
-              onChange={(e) => {
-                setQB(e.target.value);
-                setPageB(1);
-              }}
-              placeholder="Buscar por descripción, tipo, contrato o responsable..."
-            />
-          </div>
+          <Field className="f" style={{ flex: 1, minWidth: 240 }}>
+            <label>Buscar</label>
+            <div className="gsearch">
+              <Icon name="search" />
+              <Input
+                aria-label="Buscar incumplimientos por descripción, tipo, contrato o responsable"
+                value={qB}
+                onChange={(e) => {
+                  setQB(e.target.value);
+                  setPageB(1);
+                }}
+                placeholder="Descripción, tipo, contrato o responsable..."
+              />
+            </div>
+          </Field>
           <Field className="f">
             <label>Estado</label>
             <Select
@@ -554,7 +423,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                     onMouseEnter={rowLift}
                     onMouseLeave={rowReset}
                   >
-                    <td className="strong mono">{b.id}</td>
+                    <td className="strong mono" style={{ whiteSpace: 'nowrap' }}>{b.id}</td>
                     <td>
                       {c ? (
                         <Link
@@ -588,14 +457,14 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                       <Badge state={b.estado} style={badgePop} />
                     </td>
                     <td className="acts">
-                      <Button
+                      <Link
                         className="icon-btn"
+                        href={`/incumplimientos/${encodeURIComponent(b.id)}/editar`}
                         title="Editar incumplimiento"
                         aria-label={`Editar incumplimiento ${b.id}`}
-                        onClick={() => openEditBreachModal(b)}
                       >
                         <Icon name="edit" />
-                      </Button>
+                      </Link>
                       {b.estado !== 'Subsanado' && b.estado !== 'Cerrado' && (
                         <Button
                           className="icon-btn"
@@ -627,9 +496,11 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                             Limpiar filtros
                           </Button>
                         ) : (
-                          <Button className="btn sm pri" onClick={openNewBreachModal} style={{ marginTop: 8 }}>
-                            <Icon name="plus" /> Registrar incumplimiento
-                          </Button>
+                          AuthService.can('crear') && (
+                            <Link className="btn sm pri" href="/incumplimientos/nuevo" style={{ marginTop: 8 }}>
+                              <Icon name="plus" /> Registrar incumplimiento
+                            </Link>
+                          )
                         )
                       }
                     />
@@ -703,7 +574,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
           </div>
         </div>
 
-        <TableViewport className="tbl-wrap">
+        <TableViewport className="tbl-wrap" aria-label="Tabla de planes de mejoramiento">
           <DataTable className="tbl">
             <thead>
               <tr>
@@ -729,7 +600,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                     onMouseEnter={rowLift}
                     onMouseLeave={rowReset}
                   >
-                    <td className="strong mono">{p.id}</td>
+                    <td className="strong mono" style={{ whiteSpace: 'nowrap' }}>{p.id}</td>
                     <td>
                       {c ? (
                         <Link
@@ -760,14 +631,14 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                       <Badge state={p.estado} style={badgePop} />
                     </td>
                     <td className="acts">
-                      <Button
+                      <Link
                         className="icon-btn"
+                        href={`/incumplimientos/planes/${encodeURIComponent(p.id)}/editar`}
                         title="Editar plan"
                         aria-label={`Editar plan ${p.id}`}
-                        onClick={() => openEditPlanModal(p)}
                       >
                         <Icon name="edit" />
-                      </Button>
+                      </Link>
                       {p.estado !== 'Cerrado' && (
                         <Button
                           className="icon-btn"
@@ -790,9 +661,15 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                       title="No se registran planes de mejoramiento"
                       description="Los compromisos de mejora derivados de los incumplimientos se gestionan aquí."
                       action={
-                        <Button className="btn sm pri" onClick={openNewPlanModal} style={{ marginTop: 8 }}>
-                          <Icon name="plus" /> Nuevo plan
-                        </Button>
+                        AuthService.can('crear') ? (
+                          <Link
+                            className="btn sm pri"
+                            href="/incumplimientos/planes/nuevo"
+                            style={{ marginTop: 8 }}
+                          >
+                            <Icon name="plus" /> Nuevo plan
+                          </Link>
+                        ) : undefined
                       }
                     />
                   </td>
@@ -838,238 +715,6 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
           </DataTable>
         </TableViewport>
       </Surface>
-
-      {/* Modal Incumplimiento */}
-      {breachModalOpen && (
-        <Modal
-          title={editingBreach ? 'Editar incumplimiento' : 'Registrar incumplimiento'}
-          onClose={() => setBreachModalOpen(false)}
-          footer={
-            <>
-              <Button className="btn" onClick={() => setBreachModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleSaveBreach}>
-                Guardar incumplimiento
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="form-grid" style={{ gap: 12 }}>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Contrato *</label>
-              <Select
-                className="inp"
-                value={breachForm.contractId}
-                onChange={(e) => setBreachForm({ ...breachForm, contractId: e.target.value })}
-              >
-                {contracts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.numero} — {c.contratista}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div>
-              <label className="form-label">Fecha del hecho *</label>
-              <Input
-                type="date"
-                className="inp"
-                value={breachForm.fecha}
-                onChange={(e) => setBreachForm({ ...breachForm, fecha: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Tipo de incumplimiento *</label>
-              <Select
-                className="inp"
-                value={breachForm.tipo}
-                onChange={(e) => setBreachForm({ ...breachForm, tipo: e.target.value })}
-              >
-                <option value="Retraso en cronograma">Retraso en cronograma</option>
-                <option value="Calidad del entregable">Calidad del entregable</option>
-                <option value="Incumplimiento de obligación">Incumplimiento de obligación</option>
-                <option value="No renovación de garantía">No renovación de garantía</option>
-                <option value="Falta de personal">Falta de personal</option>
-                <option value="Otro">Otro</option>
-              </Select>
-            </div>
-
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Descripción detallada *</label>
-              <Textarea
-                className="inp"
-                rows={2}
-                value={breachForm.descripcion}
-                onChange={(e) => setBreachForm({ ...breachForm, descripcion: e.target.value })}
-                placeholder="Hechos que configuran el presunto incumplimiento"
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Nivel de impacto *</label>
-              <Select
-                className="inp"
-                value={breachForm.impacto}
-                onChange={(e) => setBreachForm({ ...breachForm, impacto: e.target.value })}
-              >
-                <option value="Bajo">Bajo</option>
-                <option value="Medio">Medio</option>
-                <option value="Alto">Alto</option>
-              </Select>
-            </div>
-
-            <div>
-              <label className="form-label">Multa / sanción económica (COP)</label>
-              <Input
-                type="number"
-                min={0}
-                className="inp"
-                value={breachForm.multa}
-                onChange={(e) => setBreachForm({ ...breachForm, multa: Number(e.target.value) })}
-              />
-            </div>
-
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Plan de acción requerido</label>
-              <Textarea
-                className="inp"
-                rows={2}
-                value={breachForm.planAccion}
-                onChange={(e) => setBreachForm({ ...breachForm, planAccion: e.target.value })}
-                placeholder="Medidas de mitigación o plan exigido al contratista"
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Responsable del seguimiento</label>
-              <Input
-                className="inp"
-                value={breachForm.responsable}
-                onChange={(e) => setBreachForm({ ...breachForm, responsable: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Estado</label>
-              <Select
-                className="inp"
-                value={breachForm.estado}
-                onChange={(e) => setBreachForm({ ...breachForm, estado: e.target.value })}
-              >
-                <option value="Abierto">Abierto</option>
-                <option value="En descargos">En descargos</option>
-                <option value="Sancionado">Sancionado</option>
-                <option value="Subsanado">Subsanado</option>
-                <option value="Cerrado">Cerrado</option>
-              </Select>
-            </div>
-          </FormGrid>
-        </Modal>
-      )}
-
-      {/* Modal Plan de Mejoramiento */}
-      {planModalOpen && (
-        <Modal
-          title={editingPlan ? 'Editar plan de mejoramiento' : 'Nuevo plan de mejoramiento'}
-          onClose={() => setPlanModalOpen(false)}
-          footer={
-            <>
-              <Button className="btn" onClick={() => setPlanModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleSavePlan}>
-                Guardar plan
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="form-grid" style={{ gap: 12 }}>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Contrato *</label>
-              <Select
-                className="inp"
-                value={planForm.contractId}
-                onChange={(e) => setPlanForm({ ...planForm, contractId: e.target.value })}
-              >
-                {contracts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.numero} — {c.contratista}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Acción / Compromiso *</label>
-              <Textarea
-                className="inp"
-                rows={2}
-                value={planForm.accion}
-                onChange={(e) => setPlanForm({ ...planForm, accion: e.target.value })}
-                placeholder="Descripción del compromiso de mejora o plan de choque"
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Responsable *</label>
-              <Input
-                className="inp"
-                value={planForm.responsable}
-                onChange={(e) => setPlanForm({ ...planForm, responsable: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="form-label">% de Avance (0 a 100)</label>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                className="inp"
-                value={planForm.avance}
-                onChange={(e) => setPlanForm({ ...planForm, avance: Number(e.target.value) })}
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Fecha de inicio</label>
-              <Input
-                type="date"
-                className="inp"
-                value={planForm.fechaInicio}
-                onChange={(e) => setPlanForm({ ...planForm, fechaInicio: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Fecha límite / compromiso</label>
-              <Input
-                type="date"
-                className="inp"
-                value={planForm.fechaFin}
-                onChange={(e) => setPlanForm({ ...planForm, fechaFin: e.target.value })}
-              />
-            </div>
-
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Estado</label>
-              <Select
-                className="inp"
-                value={planForm.estado}
-                onChange={(e) => setPlanForm({ ...planForm, estado: e.target.value })}
-              >
-                <option value="En curso">En curso</option>
-                <option value="Cumplido">Cumplido</option>
-                <option value="Incumplido">Incumplido</option>
-                <option value="Cerrado">Cerrado</option>
-              </Select>
-            </div>
-          </FormGrid>
-        </Modal>
-      )}
     </div>
   );
 };

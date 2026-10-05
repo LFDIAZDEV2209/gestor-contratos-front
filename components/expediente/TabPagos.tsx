@@ -1,17 +1,17 @@
 'use client';
-import { Input } from '../ui/Controls';
+import Link from 'next/link';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid, Field } from '../ui/Workspace';
+import { Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Payment } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
-import { money, moneyM, pct, fdate, monthLabel, sum, todayIso, uid } from '../../lib/format';
+import { money, moneyM, pct, fdate, monthLabel, todayIso, sum } from '../../lib/format';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+import { nuevoHref } from './routes';
 
 type VistaRapida = 'todas' | 'porGestionar' | 'pagadosSinSoporte';
 
@@ -19,21 +19,11 @@ type VistaRapida = 'todas' | 'porGestionar' | 'pagadosSinSoporte';
 const nb = (s: string) => s.replace('mil M', 'mil\u00A0M');
 
 export const TabPagos = ({ cid }: { cid: string }) => {
-  const [showNewModal, setShowNewModal] = useState(false);
   const [vista, setVista] = useState<VistaRapida>('todas');
-  const [newPay, setNewPay] = useState({
-    numero: '',
-    factura: '',
-    fecha: todayIso(),
-    periodo: '',
-    bruto: 0,
-    iva: 0,
-    retenciones: 0,
-    soporte: ''
-  });
 
   const c = Store.get('contracts', cid);
-  if (!c) return <div className="empty">Contrato no encontrado</div>;
+  if (!c)
+    return <EmptyState title="Contrato no encontrado" description="No se encontró el expediente del contrato solicitado." />;
 
   const m = M(c);
   const payments = (Store.byContract('payments', cid) as Payment[]).sort((a, b) =>
@@ -73,41 +63,6 @@ export const TabPagos = ({ cid }: { cid: string }) => {
     notify(`Pago ${pay.numero} → ${newStatus}`);
   };
 
-  const handleCreate = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!newPay.numero) return notify('Ingrese el número del pago o cuenta');
-    if (!newPay.bruto) return notify('Ingrese el valor bruto');
-
-    const neto = Number(newPay.bruto) + Number(newPay.iva) - Number(newPay.retenciones);
-    const payObj: Payment = {
-      id: uid('PG'),
-      contractId: cid,
-      numero: newPay.numero,
-      factura: newPay.factura,
-      fecha: newPay.fecha,
-      periodo: newPay.periodo,
-      bruto: Number(newPay.bruto),
-      iva: Number(newPay.iva),
-      retenciones: Number(newPay.retenciones),
-      neto,
-      estado: 'Pendiente',
-      soporte: newPay.soporte || `${newPay.numero}.pdf`
-    };
-
-    Store.insert('payments', payObj);
-    Audit.log({
-      contractId: cid,
-      modulo: 'Pagos',
-      accion: 'Creación',
-      campo: 'Pago ' + newPay.numero,
-      nuevo: money(neto)
-    });
-    notify('Pago registrado (Pendiente)');
-    setShowNewModal(false);
-  };
-
-  const calcNeto = Number(newPay.bruto) + Number(newPay.iva) - Number(newPay.retenciones);
-
   return (
     <div>
       <div className="panel-h mb-3">
@@ -116,9 +71,9 @@ export const TabPagos = ({ cid }: { cid: string }) => {
           <span className="sub">{payments.length} pagos registrados</span>
         </div>
         <div className="row-flex">
-          <Button className="btn sm pri" onClick={() => setShowNewModal(true)}>
+          <Link className="btn sm pri" href={nuevoHref(cid, 'pagos')} aria-label="Registrar nuevo pago o cuenta de cobro">
             <Icon name="plus" /> Registrar pago
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -137,13 +92,25 @@ export const TabPagos = ({ cid }: { cid: string }) => {
 
       {/* Vistas rápidas */}
       <div className="row-flex px-4 py-2" style={{ gap: '6px', flexWrap: 'wrap' }}>
-        <Button className={`btn sm ${vista === 'todas' ? 'pri' : 'ghost'}`} onClick={() => setVista('todas')}>
+        <Button
+          className={`btn sm ${vista === 'todas' ? 'pri' : 'ghost'}`}
+          onClick={() => setVista('todas')}
+          aria-pressed={vista === 'todas'}
+        >
           Todos ({payments.length})
         </Button>
-        <Button className={`btn sm ${vista === 'porGestionar' ? 'pri' : 'ghost'}`} onClick={() => setVista('porGestionar')}>
+        <Button
+          className={`btn sm ${vista === 'porGestionar' ? 'pri' : 'ghost'}`}
+          onClick={() => setVista('porGestionar')}
+          aria-pressed={vista === 'porGestionar'}
+        >
           Pendientes / en revisión ({pendientes.length})
         </Button>
-        <Button className={`btn sm ${vista === 'pagadosSinSoporte' ? 'pri' : 'ghost'}`} onClick={() => setVista('pagadosSinSoporte')}>
+        <Button
+          className={`btn sm ${vista === 'pagadosSinSoporte' ? 'pri' : 'ghost'}`}
+          onClick={() => setVista('pagadosSinSoporte')}
+          aria-pressed={vista === 'pagadosSinSoporte'}
+        >
           Pagados sin soporte ({pagadosSinSoporte})
         </Button>
       </div>
@@ -238,103 +205,19 @@ export const TabPagos = ({ cid }: { cid: string }) => {
         </TableViewport>
       </Surface>
 
-      {showNewModal && (
-        <Modal
-          title="Registrar pago o cuenta de cobro"
-          onClose={() => setShowNewModal(false)}
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setShowNewModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                Guardar Pago
-              </Button>
-            </div>
+      {payments.length === 0 && (
+        <EmptyState
+          title="Sin pagos registrados"
+          description="Radicar las cuentas de cobro u órdenes de pago del periodo permite trazar la ejecución presupuestal."
+          action={
+            <Link className="btn sm pri" href={nuevoHref(cid, 'pagos')}>
+              <Icon name="plus" /> Registrar primer pago
+            </Link>
           }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req">Número de pago</label>
-              <Input
-                value={newPay.numero}
-                onChange={(e) => setNewPay({ ...newPay, numero: e.target.value })}
-                placeholder="Ej. OP-044-01"
-              />
-            </Field>
-            <Field className="f">
-              <label>Factura de venta</label>
-              <Input
-                value={newPay.factura}
-                onChange={(e) => setNewPay({ ...newPay, factura: e.target.value })}
-                placeholder="Ej. FE-8891"
-              />
-            </Field>
-            <Field className="f">
-              <label className="req">Fecha de radicación</label>
-              <Input
-                type="date"
-                value={newPay.fecha}
-                onChange={(e) => setNewPay({ ...newPay, fecha: e.target.value })}
-              />
-            </Field>
-            <Field className="f">
-              <label>Periodo de ejecución (AAAA-MM)</label>
-              <Input
-                type="month"
-                value={newPay.periodo}
-                onChange={(e) => setNewPay({ ...newPay, periodo: e.target.value })}
-              />
-            </Field>
-            <Field className="f">
-              <label className="req">Valor bruto</label>
-              <Input
-                type="number"
-                value={newPay.bruto || ''}
-                onChange={(e) => {
-                  const b = Number(e.target.value);
-                  setNewPay({ ...newPay, bruto: b, iva: Math.round(b * 0.19) });
-                }}
-              />
-            </Field>
-            <Field className="f">
-              <label>IVA</label>
-              <Input
-                type="number"
-                value={newPay.iva || ''}
-                onChange={(e) => setNewPay({ ...newPay, iva: Number(e.target.value) })}
-              />
-            </Field>
-            <Field className="f">
-              <label>Retenciones (ReteFuente / ReteICA)</label>
-              <Input
-                type="number"
-                value={newPay.retenciones || ''}
-                onChange={(e) => setNewPay({ ...newPay, retenciones: Number(e.target.value) })}
-              />
-            </Field>
-            <Field className="f">
-              <label>Archivo soporte</label>
-              <Input
-                value={newPay.soporte}
-                onChange={(e) => setNewPay({ ...newPay, soporte: e.target.value })}
-                placeholder="Factura_01.pdf"
-              />
-            </Field>
-            <Field className="f span2">
-              <div
-                className="calc p-3 rounded flex justify-between items-center text-sm"
-                style={{ background: 'var(--bg-sub)', border: '1px solid var(--line)' }}
-              >
-                <span>
-                  Neto a pagar: <b className="mono">{money(calcNeto)}</b>
-                </span>
-                <span className="small muted mono">Bruto + IVA − Retenciones</span>
-              </div>
-            </Field>
-          </FormGrid>
-        </Modal>
+        />
       )}
+
+      {/* Alta en vista dedicada: /contrato/[id]/pagos/nueva (modal cero) */}
     </div>
   );
 };

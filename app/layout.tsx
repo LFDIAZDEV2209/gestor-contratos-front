@@ -29,8 +29,9 @@ const ibmMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'Seven Save · Gestión Integral de Contratos',
-  description: 'Seven Save — plataforma de gestión, seguimiento, control, alertas y auditoría contractual de FYA TECH SAS.',
+  icons: { icon: '/icon.svg', shortcut: '/icon.svg' },
+  title: 'Seven Safe · Gestión Integral de Contratos',
+  description: 'Seven Safe — plataforma de gestión, seguimiento, control, alertas y auditoría contractual de FYA TECH SAS.',
 };
 
 export default function RootLayout({

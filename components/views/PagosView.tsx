@@ -2,18 +2,16 @@
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
-import { notify } from '../ui/Feedback';
+import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid, EmptyState, WorkspaceSkeleton } from '../ui/Workspace';
+import { PageHeader, Surface, Field, TableViewport, DataTable, EmptyState, WorkspaceSkeleton } from '../ui/Workspace';
 import { useState, useEffect } from 'react';
 import type { Payment, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
-import { M } from '../../lib/metrics';
-import { money, moneyM, fdate, monthLabel, sum, todayIso, uid } from '../../lib/format';
+import { money, moneyM, fdate, monthLabel, sum, todayIso } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
 
 // Hover lift de filas (mismo patrón que ContratosView)
@@ -39,7 +37,6 @@ export const PagosView = ({
   const [activeTab, setActiveTab] = useState<string>('todos');
   const [filterContract, setFilterContract] = useState('');
   const [q, setQ] = useState('');
-  const [showModal, setShowModal] = useState(false);
   // Paginación real + guardia de hidratación + refresco tras mutaciones
   const [page, setPage] = useState(1);
   const pageSize = 12;
@@ -49,18 +46,6 @@ export const PagosView = ({
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const [form, setForm] = useState({
-    contractId: '',
-    numero: '',
-    factura: '',
-    fecha: todayIso(),
-    periodo: todayIso().slice(0, 7),
-    bruto: 0,
-    iva: 0,
-    retenciones: 0,
-    soporte: ''
-  });
 
   // Lectura tolerante a fallos del almacenamiento local (manejo de error)
   let loadError: string | null = null;
@@ -110,8 +95,24 @@ export const PagosView = ({
   const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const hasActiveFilters = Boolean(q || filterContract || activeTab !== 'todos');
 
-  const handleUpdateStatus = (pay: Payment, newStatus: string) => {
+  // Restablece de una sola vez todos los criterios del listado
+  const clearFilters = () => {
+    setQ('');
+    setFilterContract('');
+    setActiveTab('todos');
+    setPage(1);
+  };
+
+  const handleUpdateStatus = async (pay: Payment, newStatus: string) => {
     if (!AuthService.guard('aprobar')) return;
+    // Las transiciones financieras irreversibles se confirman en modal (se conservan como modal)
+    const ok = await confirmAction(
+      newStatus === 'Pagado'
+        ? `¿Confirmar el desembolso del pago «${pay.numero}» por ${money(pay.neto)}? Esta acción quedará registrada en auditoría.`
+        : `¿${newStatus === 'Aprobado' ? 'Aprobar' : 'Enviar a revisión'} el pago «${pay.numero}» por ${money(pay.neto)}?`
+    );
+    if (!ok) return;
+
     const patch: any = { estado: newStatus };
     if (newStatus === 'Aprobado') patch.fechaAprob = todayIso();
     if (newStatus === 'Pagado') patch.fechaPago = todayIso();
@@ -125,53 +126,8 @@ export const PagosView = ({
       anterior: pay.estado,
       nuevo: newStatus
     });
+    notify(`Pago ${pay.numero} → ${newStatus}`);
     refresh();
-  };
-
-  const handleCreate = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!form.contractId) return notify('Seleccione un contrato');
-    if (!form.numero.trim()) return notify('Ingrese el número del pago o cuenta');
-    if (!form.bruto) return notify('Ingrese el valor bruto');
-
-    const neto = Number(form.bruto) + Number(form.iva) - Number(form.retenciones);
-    const payObj: Payment = {
-      id: uid('PG'),
-      contractId: form.contractId,
-      numero: form.numero.trim(),
-      factura: form.factura.trim(),
-      fecha: form.fecha,
-      periodo: form.periodo,
-      bruto: Number(form.bruto),
-      iva: Number(form.iva),
-      retenciones: Number(form.retenciones),
-      neto,
-      estado: 'Pendiente',
-      soporte: form.soporte || `${form.numero.trim()}.pdf`
-    };
-
-    Store.insert('payments', payObj);
-    Audit.log({
-      contractId: form.contractId,
-      modulo: 'Pagos',
-      accion: 'Creación',
-      campo: 'Nuevo pago ' + payObj.numero,
-      nuevo: `${money(payObj.neto)} (Factura ${payObj.factura})`
-    });
-
-    setShowModal(false);
-    refresh();
-    setForm({
-      contractId: '',
-      numero: '',
-      factura: '',
-      fecha: todayIso(),
-      periodo: todayIso().slice(0, 7),
-      bruto: 0,
-      iva: 0,
-      retenciones: 0,
-      soporte: ''
-    });
   };
 
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv') => {
@@ -197,8 +153,6 @@ export const PagosView = ({
     ];
     exportRows('Relación Global de Pagos', cols, filtered, format);
   };
-
-  const calcNeto = Number(form.bruto) + Number(form.iva) - Number(form.retenciones);
 
   return (
     <div className="anim-fade-rise">
@@ -268,9 +222,11 @@ export const PagosView = ({
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
-            <Icon name="plus" /> Registrar pago
-          </Button>
+          {AuthService.can('crear') && (
+            <Link href="/pagos/nuevo" className="btn sm pri">
+              <Icon name="plus" /> Registrar pago
+            </Link>
+          )}
         </div>
       </PageHeader>
 
@@ -365,7 +321,7 @@ export const PagosView = ({
         </div>
 
         {/* Filters */}
-        <div className="filters mb" style={{ padding: '12px 16px' }}>
+        <div className={`filters ${hasActiveFilters ? '' : 'mb'}`} style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
             <Input
@@ -379,10 +335,10 @@ export const PagosView = ({
             />
           </div>
           <Field className="f">
+            <label>Contrato</label>
             <Select
               className="inp sm"
               value={filterContract}
-              aria-label="Filtrar por contrato"
               onChange={(e) => {
                 setFilterContract(e.target.value);
                 setPage(1);
@@ -396,7 +352,78 @@ export const PagosView = ({
               ))}
             </Select>
           </Field>
+
+          {hasActiveFilters && (
+            <Button
+              className="btn sm ghost"
+              onClick={clearFilters}
+              style={{ alignSelf: 'flex-end', height: 38 }}
+            >
+              <Icon name="trash" /> Limpiar filtros
+            </Button>
+          )}
         </div>
+
+        {/* Chips de filtros activos: cada criterio se puede quitar por separado */}
+        {hasActiveFilters && (
+          <div className="filter-chips" role="group" aria-label="Filtros activos" style={{ marginBottom: 16 }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginRight: 2 }}>
+              Filtros activos:
+            </span>
+            {activeTab !== 'todos' && (
+              <span className="filter-chip">
+                <Icon name="eye" size={11} /> Estado: {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => {
+                    setActiveTab('todos');
+                    setPage(1);
+                  }}
+                  aria-label="Quitar el filtro de estado"
+                  title="Quitar filtro"
+                >
+                  <Icon name="xmark" size={12} />
+                </button>
+              </span>
+            )}
+            {q && (
+              <span className="filter-chip">
+                <Icon name="search" size={11} /> Búsqueda: «{q}»
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => {
+                    setQ('');
+                    setPage(1);
+                  }}
+                  aria-label="Quitar el filtro de búsqueda"
+                  title="Quitar filtro"
+                >
+                  <Icon name="xmark" size={12} />
+                </button>
+              </span>
+            )}
+            {filterContract && (
+              <span className="filter-chip">
+                <Icon name="file-signature" size={11} /> Contrato:{' '}
+                {Store.get('contracts', filterContract)?.numero || 'seleccionado'}
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => {
+                    setFilterContract('');
+                    setPage(1);
+                  }}
+                  aria-label="Quitar el filtro de contrato"
+                  title="Quitar filtro"
+                >
+                  <Icon name="xmark" size={12} />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Table */}
         <TableViewport className="tbl-wrap">
@@ -534,12 +561,7 @@ export const PagosView = ({
                           <Button
                             className="btn sm"
                             style={{ marginTop: 8 }}
-                            onClick={() => {
-                              setQ('');
-                              setFilterContract('');
-                              setActiveTab('todos');
-                              setPage(1);
-                            }}
+                            onClick={clearFilters}
                           >
                             <Icon name="trash" /> Restablecer filtros
                           </Button>
@@ -589,125 +611,6 @@ export const PagosView = ({
           </DataTable>
         </TableViewport>
       </Surface>
-
-      {/* Modal for New Payment */}
-      {showModal && (
-        <Modal
-          title="Registrar nuevo pago o cuenta de cobro"
-          onClose={() => setShowModal(false)}
-          size="lg"
-          footer={
-            <>
-              <Button className="btn" onClick={() => setShowModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                <Icon name="save" /> Registrar pago
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="lbl required">Contrato</label>
-              <Select
-                className="inp"
-                value={form.contractId}
-                onChange={(e) => setForm({ ...form, contractId: e.target.value })}
-              >
-                <option value="">— Seleccione contrato —</option>
-                {allContracts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.numero} · {c.contratista} · Saldo: {moneyM(M(c).saldo)}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="lbl required">Número de pago o cuenta</label>
-              <Input
-                className="inp"
-                value={form.numero}
-                placeholder="Ej. Pago 03"
-                onChange={(e) => setForm({ ...form, numero: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl">Número de factura</label>
-              <Input
-                className="inp"
-                value={form.factura}
-                placeholder="Ej. FE-10492"
-                onChange={(e) => setForm({ ...form, factura: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl required">Fecha</label>
-              <Input
-                type="date"
-                className="inp"
-                value={form.fecha}
-                onChange={(e) => setForm({ ...form, fecha: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl required">Periodo de facturación</label>
-              <Input
-                type="month"
-                className="inp"
-                value={form.periodo}
-                onChange={(e) => setForm({ ...form, periodo: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl required">Valor bruto (antes de IVA)</label>
-              <Input
-                type="number"
-                className="inp"
-                value={form.bruto}
-                onChange={(e) => setForm({ ...form, bruto: Number(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label className="lbl">IVA (19% o aplicable)</label>
-              <Input
-                type="number"
-                className="inp"
-                value={form.iva}
-                onChange={(e) => setForm({ ...form, iva: Number(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label className="lbl">Retenciones tributarias</label>
-              <Input
-                type="number"
-                className="inp"
-                value={form.retenciones}
-                onChange={(e) => setForm({ ...form, retenciones: Number(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label className="lbl">Valor neto a pagar</label>
-              <Input
-                className="inp font-bold"
-                value={money(calcNeto)}
-                disabled
-                readOnly
-                style={{ background: 'var(--bg-sub)' }}
-              />
-            </div>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="lbl">Documento soporte (factura / cuenta)</label>
-              <Input
-                className="inp"
-                value={form.soporte}
-                placeholder="Nombre del archivo (ej. factura_pago_03.pdf)"
-                onChange={(e) => setForm({ ...form, soporte: e.target.value })}
-              />
-            </div>
-          </FormGrid>
-        </Modal>
-      )}
         </>
       )}
     </div>

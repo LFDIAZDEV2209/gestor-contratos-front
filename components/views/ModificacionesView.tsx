@@ -1,19 +1,17 @@
 'use client';
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
-import { Input, Select, Textarea } from '../ui/Controls';
-import { notify } from '../ui/Feedback';
+import { Input, Select } from '../ui/Controls';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid, EmptyState, WorkspaceSkeleton } from '../ui/Workspace';
+import { PageHeader, Surface, Field, TableViewport, DataTable, EmptyState, WorkspaceSkeleton } from '../ui/Workspace';
 import { useState, useEffect } from 'react';
 import type { Modification, Contract } from '../../lib/types';
-import { Store, AuthService, Audit } from '../../lib/store';
+import { Store, AuthService } from '../../lib/store';
 import { M, companyName } from '../../lib/metrics';
-import { money, moneyM, fdate, diffDays, todayIso, uid } from '../../lib/format';
+import { money, moneyM, fdate, diffDays } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
 
 // Hover lift de filas (mismo patrón que ContratosView)
@@ -39,29 +37,13 @@ export const ModificacionesView = ({
   const [filterTipo, setFilterTipo] = useState('');
   const [filterContract, setFilterContract] = useState('');
   const [q, setQ] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [warningMsg, setWarningMsg] = useState<string | null>(null);
   // Paginación real + guardia de hidratación + refresco tras mutaciones
   const [page, setPage] = useState(1);
   const pageSize = 12;
   const [mounted, setMounted] = useState(false);
-  const [tick, setTick] = useState(0);
-  const refresh = () => setTick((t) => t + 1);
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const [form, setForm] = useState({
-    contractId: '',
-    tipo: 'Adición',
-    numero: '',
-    fecha: todayIso(),
-    justificacion: '',
-    valorNuevo: 0,
-    fechaNueva: '',
-    nuevoTexto: '',
-    soporte: ''
-  });
 
   // Lectura tolerante a fallos del almacenamiento local (manejo de error)
   let loadError: string | null = null;
@@ -106,94 +88,12 @@ export const ModificacionesView = ({
   const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const hasActiveFilters = Boolean(q || filterTipo || filterContract);
 
-  const selectedContract = form.contractId ? Store.get('contracts', form.contractId) : null;
-  const selectedMetrics = selectedContract ? M(selectedContract) : null;
-
-  const handleCreate = () => {
-    if (!AuthService.guard('editar')) return;
-    if (!form.contractId) return notify('Seleccione un contrato');
-    if (!form.numero.trim()) return notify('Ingrese el número de la modificación');
-    if (!form.justificacion.trim()) return notify('Ingrese la justificación');
-
-    const c = Store.get('contracts', form.contractId);
-    if (!c) return;
-
-    const before = JSON.parse(JSON.stringify(c));
-    const m = M(c);
-
-    const newMod: Modification = {
-      id: uid('MD'),
-      contractId: form.contractId,
-      numero: form.numero.trim(),
-      tipo: form.tipo,
-      fecha: form.fecha,
-      justificacion: form.justificacion.trim(),
-      soporte: form.soporte || `${form.numero.trim()}.pdf`,
-      valorAnterior: m.valorActual,
-      fechaAnterior: c.fechaFin
-    };
-
-    const contractPatch: Partial<Contract> = {};
-
-    if (form.tipo === 'Adición') {
-      const added = Number(form.valorNuevo) - m.valorActual;
-      contractPatch.adiciones = (Number(c.adiciones) || 0) + added;
-      newMod.valorNuevo = Number(form.valorNuevo);
-    } else if (form.tipo === 'Reducción') {
-      const reduced = m.valorActual - Number(form.valorNuevo);
-      contractPatch.reducciones = (Number(c.reducciones) || 0) + reduced;
-      newMod.valorNuevo = Number(form.valorNuevo);
-    } else if (form.tipo === 'Prórroga') {
-      newMod.fechaAnterior = c.fechaFin;
-      newMod.fechaNueva = form.fechaNueva;
-      contractPatch.fechaFin = form.fechaNueva;
-      if (c.estado === 'Terminado') contractPatch.estado = 'Activo';
-    } else if (form.tipo === 'Suspensión') {
-      contractPatch.estado = 'Suspendido';
-    } else if (form.tipo === 'Reinicio') {
-      contractPatch.estado = 'Activo';
-      if (form.fechaNueva) {
-        newMod.fechaAnterior = c.fechaFin;
-        newMod.fechaNueva = form.fechaNueva;
-        contractPatch.fechaFin = form.fechaNueva;
-      }
-    } else if (form.tipo === 'Cesión') {
-      newMod.valorAnterior = 0;
-      newMod.impacto = `Cesionario anterior: ${c.contratista}.`;
-      contractPatch.contratista = form.nuevoTexto;
-      newMod.nuevoTexto = form.nuevoTexto;
-    } else if (form.tipo === 'Modificación de supervisor') {
-      contractPatch.supervisor = form.nuevoTexto;
-      newMod.nuevoTexto = form.nuevoTexto;
-    } else if (form.tipo === 'Terminación anticipada') {
-      newMod.fechaAnterior = c.fechaFin;
-      newMod.fechaNueva = form.fechaNueva;
-      contractPatch.fechaFin = form.fechaNueva;
-      contractPatch.estado = 'Terminado';
-    }
-
-    Store.insert('modifications', newMod);
-    if (Object.keys(contractPatch).length > 0) {
-      Store.update('contracts', form.contractId, contractPatch);
-      Audit.diff('Modificaciones', form.contractId, before, { ...c, ...contractPatch }, {
-        adiciones: 'Adiciones',
-        reducciones: 'Reducciones',
-        fechaFin: 'Fecha de terminación',
-        estado: 'Estado',
-        contratista: 'Contratista',
-        supervisor: 'Supervisor'
-      });
-    }
-
-    const hasGuarantees = Store.byContract('guarantees', form.contractId).length > 0;
-    if (['Adición', 'Prórroga', 'Reinicio'].includes(form.tipo) && hasGuarantees) {
-      setWarningMsg(
-        `Revisa las garantías del contrato ${c.numero}: la ${form.tipo.toLowerCase()} puede exigir ajustar valor o vigencia de las pólizas.`
-      );
-    }
-
-    setShowModal(false);
-    refresh();
+  // Restablece de una sola vez todos los criterios del listado
+  const clearFilters = () => {
+    setQ('');
+    setFilterTipo('');
+    setFilterContract('');
+    setPage(1);
   };
 
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv') => {
@@ -293,9 +193,11 @@ export const ModificacionesView = ({
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
-            <Icon name="plus" /> Nueva modificación
-          </Button>
+          {AuthService.can('editar') && (
+            <Link href="/modificaciones/nueva" className="btn sm pri">
+              <Icon name="plus" /> Nueva modificación
+            </Link>
+          )}
         </div>
       </PageHeader>
 
@@ -333,29 +235,9 @@ export const ModificacionesView = ({
         />
       </div>
 
-      {warningMsg && (
-        <Surface
-          className="panel mb p-3"
-          style={{
-            background: 'var(--warn-bg)',
-            border: '1px solid var(--warn)',
-            color: 'var(--warn-text)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <Icon name="triangle-exclamation" />
-          <span>{warningMsg}</span>
-          <Button className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={() => setWarningMsg(null)}>
-            Entendido
-          </Button>
-        </Surface>
-      )}
-
       {/* Table Panel */}
       <Surface className="panel">
-        <div className="filters mb" style={{ padding: '12px 16px' }}>
+        <div className={`filters ${hasActiveFilters ? '' : 'mb'}`} style={{ padding: '12px 16px' }}>
           <div className="gsearch">
             <Icon name="search" />
             <Input
@@ -369,10 +251,10 @@ export const ModificacionesView = ({
             />
           </div>
           <Field className="f">
+            <label>Contrato</label>
             <Select
               className="inp sm"
               value={filterContract}
-              aria-label="Filtrar por contrato"
               onChange={(e) => {
                 setFilterContract(e.target.value);
                 setPage(1);
@@ -387,10 +269,10 @@ export const ModificacionesView = ({
             </Select>
           </Field>
           <Field className="f">
+            <label>Tipo</label>
             <Select
               className="inp sm"
               value={filterTipo}
-              aria-label="Filtrar por tipo de modificación"
               onChange={(e) => {
                 setFilterTipo(e.target.value);
                 setPage(1);
@@ -407,7 +289,78 @@ export const ModificacionesView = ({
               <option value="Terminación anticipada">Terminación anticipada</option>
             </Select>
           </Field>
+
+          {hasActiveFilters && (
+            <Button
+              className="btn sm ghost"
+              onClick={clearFilters}
+              style={{ alignSelf: 'flex-end', height: 38 }}
+            >
+              <Icon name="trash" /> Limpiar filtros
+            </Button>
+          )}
         </div>
+
+        {/* Chips de filtros activos: cada criterio se puede quitar por separado */}
+        {hasActiveFilters && (
+          <div className="filter-chips" role="group" aria-label="Filtros activos" style={{ marginBottom: 16 }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginRight: 2 }}>
+              Filtros activos:
+            </span>
+            {q && (
+              <span className="filter-chip">
+                <Icon name="search" size={11} /> Búsqueda: «{q}»
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => {
+                    setQ('');
+                    setPage(1);
+                  }}
+                  aria-label="Quitar el filtro de búsqueda"
+                  title="Quitar filtro"
+                >
+                  <Icon name="xmark" size={12} />
+                </button>
+              </span>
+            )}
+            {filterContract && (
+              <span className="filter-chip">
+                <Icon name="file-signature" size={11} /> Contrato:{' '}
+                {Store.get('contracts', filterContract)?.numero || 'seleccionado'}
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => {
+                    setFilterContract('');
+                    setPage(1);
+                  }}
+                  aria-label="Quitar el filtro de contrato"
+                  title="Quitar filtro"
+                >
+                  <Icon name="xmark" size={12} />
+                </button>
+              </span>
+            )}
+            {filterTipo && (
+              <span className="filter-chip">
+                <Icon name="code-compare" size={11} /> Tipo: {filterTipo}
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => {
+                    setFilterTipo('');
+                    setPage(1);
+                  }}
+                  aria-label="Quitar el filtro de tipo"
+                  title="Quitar filtro"
+                >
+                  <Icon name="xmark" size={12} />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
 
         <TableViewport className="tbl-wrap">
           <DataTable className="tbl">
@@ -418,7 +371,7 @@ export const ModificacionesView = ({
                 <th>Tipo</th>
                 <th className="nw">Fecha</th>
                 <th>Justificación / Impacto</th>
-                <th className="nw">Cambio de Valor</th>
+                <th className="nw num">Cambio de Valor</th>
                 <th className="nw">Cambio de Plazo</th>
                 <th>Nuevo Texto</th>
                 <th className="nw">Soporte</th>
@@ -482,7 +435,7 @@ export const ModificacionesView = ({
                       {m.justificacion}
                       {m.impacto && <div className="small muted">{m.impacto}</div>}
                     </td>
-                    <td className="nw">
+                    <td className="nw num">
                       {m.valorNuevo ? (
                         <div>
                           <div>{money(m.valorNuevo)}</div>
@@ -515,7 +468,7 @@ export const ModificacionesView = ({
                         '—'
                       )}
                     </td>
-                    <td className="clip" style={{ maxWidth: '160px' }}>
+                    <td className="clip" style={{ maxWidth: '160px' }} title={m.nuevoTexto || undefined}>
                       {m.nuevoTexto || '—'}
                     </td>
                     <td className="nw">
@@ -555,12 +508,7 @@ export const ModificacionesView = ({
                           <Button
                             className="btn sm"
                             style={{ marginTop: 8 }}
-                            onClick={() => {
-                              setQ('');
-                              setFilterTipo('');
-                              setFilterContract('');
-                              setPage(1);
-                            }}
+                            onClick={clearFilters}
                           >
                             <Icon name="trash" /> Restablecer filtros
                           </Button>
@@ -610,183 +558,6 @@ export const ModificacionesView = ({
           </DataTable>
         </TableViewport>
       </Surface>
-
-      {/* Modal for New Modification */}
-      {showModal && (
-        <Modal
-          title="Nueva modificación contractual"
-          onClose={() => setShowModal(false)}
-          size="lg"
-          footer={
-            <>
-              <Button className="btn" onClick={() => setShowModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                <Icon name="save" /> Aplicar modificación
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="grid g-2" style={{ gap: '14px' }}>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="lbl required">Contrato</label>
-              <Select
-                className="inp"
-                value={form.contractId}
-                onChange={(e) => {
-                  const cid = e.target.value;
-                  const c = Store.get('contracts', cid);
-                  const m = c ? M(c) : null;
-                  setForm({
-                    ...form,
-                    contractId: cid,
-                    valorNuevo: m ? m.valorActual : 0,
-                    fechaNueva: c?.fechaFin || todayIso()
-                  });
-                }}
-              >
-                <option value="">— Seleccione contrato —</option>
-                {allContracts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.numero} · {c.contratista} · {moneyM(M(c).valorActual)}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div>
-              <label className="lbl required">Tipo de modificación</label>
-              <Select
-                className="inp"
-                value={form.tipo}
-                onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-              >
-                <option value="Adición">Adición (aumentar valor)</option>
-                <option value="Reducción">Reducción (disminuir valor)</option>
-                <option value="Prórroga">Prórroga (ampliar plazo)</option>
-                <option value="Suspensión">Suspensión</option>
-                <option value="Reinicio">Reinicio</option>
-                <option value="Cesión">Cesión contractual</option>
-                <option value="Modificación de supervisor">Modificación de supervisor</option>
-                <option value="Terminación anticipada">Terminación anticipada</option>
-              </Select>
-            </div>
-
-            <div>
-              <label className="lbl required">Número / Referencia</label>
-              <Input
-                className="inp"
-                value={form.numero}
-                placeholder="Ej. MOD-01 u OTROSI-01"
-                onChange={(e) => setForm({ ...form, numero: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="lbl required">Fecha</label>
-              <Input
-                type="date"
-                className="inp"
-                value={form.fecha}
-                onChange={(e) => setForm({ ...form, fecha: e.target.value })}
-              />
-            </div>
-
-            {(form.tipo === 'Adición' || form.tipo === 'Reducción') && (
-              <>
-                {/* Field explícito: FormGrid no recorre fragmentos y dejaría el label sin asociar */}
-                <Field className="f">
-                  <label className="lbl">Valor actual</label>
-                  <Input
-                    className="inp"
-                    value={selectedMetrics ? money(selectedMetrics.valorActual) : '—'}
-                    disabled
-                    readOnly
-                  />
-                </Field>
-                <Field className="f">
-                  <label className="lbl required">Nuevo valor total resultante</label>
-                  <Input
-                    type="number"
-                    className="inp"
-                    value={form.valorNuevo}
-                    onChange={(e) => setForm({ ...form, valorNuevo: Number(e.target.value) })}
-                  />
-                </Field>
-              </>
-            )}
-
-            {(form.tipo === 'Prórroga' || form.tipo === 'Reinicio' || form.tipo === 'Terminación anticipada') && (
-              <>
-                <Field className="f">
-                  <label className="lbl">Fecha fin actual</label>
-                  <Input
-                    className="inp"
-                    value={selectedContract?.fechaFin ? fdate(selectedContract.fechaFin) : '—'}
-                    disabled
-                    readOnly
-                  />
-                </Field>
-                <Field className="f">
-                  <label className="lbl required">Nueva fecha de terminación</label>
-                  <Input
-                    type="date"
-                    className="inp"
-                    value={form.fechaNueva}
-                    onChange={(e) => setForm({ ...form, fechaNueva: e.target.value })}
-                  />
-                </Field>
-              </>
-            )}
-
-            {form.tipo === 'Cesión' && (
-              <div style={{ gridColumn: 'span 2' }}>
-                <label className="lbl required">Nuevo contratista (Razón social y NIT)</label>
-                <Input
-                  className="inp"
-                  value={form.nuevoTexto}
-                  placeholder="Ej. NUEVA EMPRESA SAS - NIT 901.000.000-1"
-                  onChange={(e) => setForm({ ...form, nuevoTexto: e.target.value })}
-                />
-              </div>
-            )}
-
-            {form.tipo === 'Modificación de supervisor' && (
-              <div style={{ gridColumn: 'span 2' }}>
-                <label className="lbl required">Nuevo supervisor</label>
-                <Input
-                  className="inp"
-                  value={form.nuevoTexto}
-                  placeholder="Nombre y cargo del nuevo supervisor"
-                  onChange={(e) => setForm({ ...form, nuevoTexto: e.target.value })}
-                />
-              </div>
-            )}
-
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="lbl required">Justificación</label>
-              <Textarea
-                className="inp"
-                rows={2}
-                value={form.justificacion}
-                placeholder="Motivo técnico o jurídico de la modificación..."
-                onChange={(e) => setForm({ ...form, justificacion: e.target.value })}
-              />
-            </div>
-
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="lbl">Documento soporte (archivo)</label>
-              <Input
-                className="inp"
-                value={form.soporte}
-                placeholder="Nombre del archivo adjunto (ej. otrosi_01.pdf)"
-                onChange={(e) => setForm({ ...form, soporte: e.target.value })}
-              />
-            </div>
-          </FormGrid>
-        </Modal>
-      )}
         </>
       )}
     </div>

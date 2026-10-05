@@ -1,28 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { Input, Textarea } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
+import { Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import type { Modification, Acta, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
-import { fdate, todayIso, uid, addDays, diffDays } from '../../lib/format';
+import { fdate, diffDays } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+import Link from 'next/link';
+import { nuevoHref } from './routes';
 
 export const TabSuspensiones = ({ cid }: { cid: string }) => {
-  const [showModal, setShowModal] = useState(false);
-  const [actionType, setActionType] = useState<'Suspensión' | 'Reinicio'>('Suspensión');
-  const [fecha, setFecha] = useState(todayIso());
-  const [diasProrroga, setDiasProrroga] = useState(0);
-  const [nuevaFechaFin, setNuevaFechaFin] = useState('');
-  const [justificacion, setJustificacion] = useState('');
-  const [soporte, setSoporte] = useState('');
-
   const c = Store.get('contracts', cid) as Contract | undefined;
   if (!c) {
     return (
@@ -54,112 +45,6 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
     }
   }
 
-  const handleOpenAction = (tipo: 'Suspensión' | 'Reinicio') => {
-    setActionType(tipo);
-    setFecha(todayIso());
-    setJustificacion('');
-    setSoporte('');
-    if (tipo === 'Reinicio') {
-      const lastSusp = modSusp.find((m) => m.tipo === 'Suspensión' && !m.anulada);
-      if (lastSusp && lastSusp.fecha) {
-        const dias = Math.max(0, diffDays(lastSusp.fecha, todayIso()));
-        setDiasProrroga(dias);
-        setNuevaFechaFin(addDays(c.fechaFin || todayIso(), dias));
-      } else {
-        setDiasProrroga(0);
-        setNuevaFechaFin(c.fechaFin || todayIso());
-      }
-    }
-    setShowModal(true);
-  };
-
-  const handleExecute = () => {
-    if (!AuthService.guard('editar')) return;
-    if (!justificacion.trim()) return notify('Ingrese la justificación de la actuación');
-
-    const before = JSON.parse(JSON.stringify(c));
-    const modId = uid('MD');
-    const actaId = uid('AC');
-    const modNum = `MOD-${actionType.slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-4)}`;
-    const actaNum = `ACT-${actionType.slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-4)}`;
-
-    if (actionType === 'Suspensión') {
-      const newMod: Modification = {
-        id: modId,
-        contractId: cid,
-        numero: modNum,
-        tipo: 'Suspensión',
-        fecha,
-        justificacion: justificacion.trim(),
-        soporte: soporte.trim() || `${modNum}.pdf`,
-        fechaAnterior: c.fechaFin,
-        anulada: false
-      };
-      Store.insert('modifications', newMod);
-
-      const newActa: Acta = {
-        id: actaId,
-        contractId: cid,
-        tipo: 'Acta de suspensión',
-        numero: actaNum,
-        fecha,
-        descripcion: justificacion.trim(),
-        firmantes: `${c.contratista} / ${c.supervisor || 'Supervisor'}`,
-        estado: 'Firmada',
-        archivo: soporte.trim() || `${actaNum}.pdf`
-      };
-      Store.insert('actas', newActa);
-
-      Store.update('contracts', cid, { estado: 'Suspendido' });
-      Audit.diff('Contratos', cid, before, { ...c, estado: 'Suspendido' }, {
-        estado: 'Estado contractual (Suspensión)'
-      });
-
-      notify(`Contrato ${c.numero} suspendido formalmente`);
-    } else {
-      // Reinicio
-      const newMod: Modification = {
-        id: modId,
-        contractId: cid,
-        numero: modNum,
-        tipo: 'Reinicio',
-        fecha,
-        justificacion: `${justificacion.trim()} (Ampliación por días de suspensión: ${diasProrroga} días)`,
-        soporte: soporte.trim() || `${modNum}.pdf`,
-        fechaAnterior: c.fechaFin,
-        fechaNueva: nuevaFechaFin,
-        anulada: false
-      };
-      Store.insert('modifications', newMod);
-
-      const newActa: Acta = {
-        id: actaId,
-        contractId: cid,
-        tipo: 'Acta de reinicio',
-        numero: actaNum,
-        fecha,
-        descripcion: justificacion.trim(),
-        firmantes: `${c.contratista} / ${c.supervisor || 'Supervisor'}`,
-        estado: 'Firmada',
-        archivo: soporte.trim() || `${actaNum}.pdf`
-      };
-      Store.insert('actas', newActa);
-
-      const patch: Partial<Contract> = { estado: 'Activo' };
-      if (nuevaFechaFin) patch.fechaFin = nuevaFechaFin;
-
-      Store.update('contracts', cid, patch);
-      Audit.diff('Contratos', cid, before, { ...c, ...patch }, {
-        estado: 'Estado contractual (Reinicio)',
-        fechaFin: 'Nueva fecha de terminación contractual'
-      });
-
-      notify(`Reinicio formal registrado. Contrato ${c.numero} pasa a estado Activo`);
-    }
-
-    setShowModal(false);
-  };
-
   const handleAnular = async (item: Modification) => {
     if (!AuthService.guard('editar')) return;
     const ok = await confirmAction(
@@ -175,6 +60,15 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
       Store.update('contracts', cid, { fechaFin: item.fechaAnterior });
     }
 
+    Audit.log({
+      contractId: cid,
+      modulo: 'Suspensiones',
+      accion: 'Anulación',
+      campo: 'Actuación ' + item.numero,
+      anterior: 'Vigente',
+      nuevo: 'Anulada'
+    });
+
     notify(`Registro de ${item.tipo} anulado correctamente`);
   };
 
@@ -186,6 +80,13 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
     const db = Store.getDB();
     db.modifications = (db.modifications || []).filter((m) => m.id !== item.id);
     Store.persist();
+    Audit.log({
+      contractId: cid,
+      modulo: 'Suspensiones',
+      accion: 'Eliminación',
+      campo: 'Actuación ' + item.numero,
+      anterior: item.tipo
+    });
     notify(`Registro ${item.numero} eliminado`);
   };
 
@@ -229,14 +130,23 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button
-            className={`btn sm ${isSuspended ? 'btn-ok pri' : 'btn-warn pri'}`}
-            onClick={() => handleOpenAction(isSuspended ? 'Reinicio' : 'Suspensión')}
-            aria-label={isSuspended ? 'Registrar reinicio' : 'Registrar suspensión'}
-          >
-            <Icon name={isSuspended ? 'play' : 'pause'} />
-            {isSuspended ? 'Registrar reinicio' : 'Registrar suspensión'}
-          </Button>
+          {isSuspended ? (
+            <Link
+              className="btn sm btn-ok pri"
+              href={nuevoHref(cid, 'reinicios')}
+              aria-label="Registrar reinicio"
+            >
+              <Icon name="play" /> Registrar reinicio
+            </Link>
+          ) : (
+            <Link
+              className="btn sm btn-warn pri"
+              href={nuevoHref(cid, 'suspensiones')}
+              aria-label="Registrar suspensión"
+            >
+              <Icon name="pause" /> Registrar suspensión
+            </Link>
+          )}
         </div>
       </div>
 
@@ -286,9 +196,9 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
             title="Sin suspensiones ni reinicios"
             description="El contrato se ha ejecutado de manera continua sin interrupciones formales."
             action={
-              <Button className="btn pri sm" onClick={() => handleOpenAction('Suspensión')}>
+              <Link className="btn pri sm" href={nuevoHref(cid, 'suspensiones')}>
                 <Icon name="pause" /> Registrar suspensión
-              </Button>
+              </Link>
             }
           />
         ) : (
@@ -428,82 +338,7 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
         )}
       </Surface>
 
-      {/* Modal Suspensión / Reinicio */}
-      {showModal && (
-        <Modal
-          title={`Registrar ${actionType.toLowerCase()} contractual`}
-          onClose={() => setShowModal(false)}
-          size="md"
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setShowModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleExecute}>
-                <Icon name={actionType === 'Reinicio' ? 'play' : 'pause'} /> Confirmar {actionType}
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Fecha efectiva de {actionType.toLowerCase()}</label>
-              <Input
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-                required
-              />
-            </Field>
-
-            {actionType === 'Reinicio' && (
-              <>
-                <Field className="f">
-                  <label className="font-medium text-xs">Días acumulados en suspensión</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={diasProrroga}
-                    onChange={(e) => {
-                      const d = Number(e.target.value);
-                      setDiasProrroga(d);
-                      setNuevaFechaFin(addDays(c.fechaFin || todayIso(), d));
-                    }}
-                  />
-                </Field>
-                <Field className="f">
-                  <label className="font-medium text-xs">Nueva fecha de terminación resultante</label>
-                  <Input
-                    type="date"
-                    value={nuevaFechaFin}
-                    onChange={(e) => setNuevaFechaFin(e.target.value)}
-                  />
-                </Field>
-              </>
-            )}
-
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Justificación y causas motivadoras</label>
-              <Textarea
-                rows={3}
-                value={justificacion}
-                placeholder={`Detalle los motivos, hechos imprevistos o acuerdos bilaterales que justifican la ${actionType.toLowerCase()}...`}
-                onChange={(e) => setJustificacion(e.target.value)}
-                required
-              />
-            </Field>
-
-            <Field className="f span2">
-              <label className="font-medium text-xs">Acta o soporte firmado (archivo radicado)</label>
-              <Input
-                value={soporte}
-                placeholder={`Ej. acta_${actionType.toLowerCase()}_firmada.pdf`}
-                onChange={(e) => setSoporte(e.target.value)}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
+      {/* Actuaciones desde vistas dedicadas: /suspensiones/nueva y /reinicios/nueva (modal cero) */}
     </div>
   );
 };

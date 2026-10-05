@@ -16,7 +16,7 @@ interface MapaColombiaProps {
   onNavigateToContractsFilter?: (filterKey: string, filterVal: string) => void;
 }
 
-const MAP_SCALE = ['#E6F2F0', '#B9DCD7', '#7FC0B6', '#3F9A8F', '#0B6E68', '#08403C'];
+const MAP_SCALE = ['#EDF5F8', '#CDE3EA', '#92C2CD', '#5CA6B2', '#286685', '#062F58'];
 
 export const MapaColombia: React.FC<MapaColombiaProps> = ({
   onSelectContract,

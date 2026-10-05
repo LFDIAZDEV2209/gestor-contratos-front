@@ -1,34 +1,20 @@
 'use client';
-import { Input, Select } from '../ui/Controls';
+import Link from 'next/link';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
-import { useState } from 'react';
+import { Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import type { Guarantee, Cupo } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M, contractInsurers, cupoStats } from '../../lib/metrics';
-import { money, moneyM, fdate, diffDays, todayIso, sum, uid } from '../../lib/format';
+import { money, moneyM, fdate, diffDays, todayIso, sum } from '../../lib/format';
 import { CAT } from '../../lib/catalog';
 import { Badge } from '../ui/Badge';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+import { nuevoHref } from './routes';
 
 export const TabGarantias = ({ cid }: { cid: string }) => {
-  const [showNewModal, setShowNewModal] = useState(false);
-  const [newGar, setNewGar] = useState({
-    tipo: 'Cumplimiento',
-    aseguradora: 'Seguros del Estado S.A.',
-    poliza: '',
-    modalidadPoliza: 'Póliza individual',
-    cupoId: '',
-    porcentaje: 10,
-    valor: 0,
-    fechaInicio: todayIso(),
-    fechaVenc: todayIso()
-  });
-
   const c = Store.get('contracts', cid);
-  if (!c) return <div className="empty">Contrato no encontrado</div>;
+  if (!c) return <EmptyState title="Contrato no encontrado" description="No se encontró el expediente del contrato solicitado." />;
 
   const m = M(c);
   const guarantees = (Store.byContract('guarantees', cid) as Guarantee[]).sort((a, b) =>
@@ -59,48 +45,7 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
     notify(`Póliza ${g.poliza} aprobada`);
   };
 
-  const handleCreate = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!newGar.poliza) return notify('Ingrese el número de la póliza');
-    if (!newGar.valor) return notify('Ingrese el valor asegurado');
-    if (newGar.fechaVenc < newGar.fechaInicio) return notify('El vencimiento no puede ser anterior al inicio');
-
-    const garObj: Guarantee = {
-      id: uid('GR'),
-      contractId: cid,
-      tipo: newGar.tipo,
-      aseguradora: newGar.aseguradora,
-      poliza: newGar.poliza,
-      modalidadPoliza: newGar.modalidadPoliza,
-      cupoId: newGar.cupoId || '',
-      porcentaje: Number(newGar.porcentaje),
-      valor: Number(newGar.valor),
-      fechaInicio: newGar.fechaInicio,
-      fechaVenc: newGar.fechaVenc,
-      estado: 'Pendiente',
-      documento: `${newGar.poliza}.pdf`
-    };
-
-    Store.insert('guarantees', garObj);
-    Audit.log({
-      contractId: cid,
-      modulo: 'Garantías',
-      accion: 'Creación',
-      campo: 'Póliza ' + newGar.poliza,
-      nuevo: money(newGar.valor)
-    });
-    notify('Póliza registrada (Pendiente de aprobación)');
-    setShowNewModal(false);
-  };
-
   const allCupos = Store.all('cupos') as Cupo[];
-  const cuposForAseg = allCupos.filter((cp) => cp.aseguradora === newGar.aseguradora && cp.estado === 'Vigente');
-
-  // Advertencias en vivo al usar cupo (files/06): disponible insuficiente o póliza que vence tras el cupo
-  const cupoElegido = allCupos.find((cp) => cp.id === newGar.cupoId);
-  const cupoDisp = cupoElegido ? cupoStats(cupoElegido).disponible : null;
-  const excedeCupo = cupoDisp != null && newGar.valor > cupoDisp;
-  const venceTrasCupo = !!cupoElegido?.fechaVenc && newGar.fechaVenc > cupoElegido.fechaVenc;
 
   return (
     <div>
@@ -112,9 +57,9 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
           </span>
         </div>
         <div className="row-flex">
-          <Button className="btn sm pri" onClick={() => setShowNewModal(true)}>
+          <Link className="btn sm pri" href={nuevoHref(cid, 'garantias')} aria-label="Registrar nueva póliza de garantía">
             <Icon name="plus" /> Nueva póliza
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -248,13 +193,6 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
                   </tr>
                 );
               })}
-              {guarantees.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="empty">
-                    Sin garantías registradas para este contrato.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </DataTable>
         </TableViewport>
@@ -269,144 +207,11 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
               : 'Un contrato en curso exige al menos la garantía de cumplimiento. Registra la primera póliza.'
           }
           action={
-            <Button className="btn sm pri" onClick={() => setShowNewModal(true)}>
+            <Link className="btn sm pri" href={nuevoHref(cid, 'garantias')}>
               <Icon name="plus" /> Registrar primera póliza
-            </Button>
+            </Link>
           }
         />
-      )}
-
-      {showNewModal && (
-        <Modal
-          title="Registrar póliza de garantía"
-          onClose={() => setShowNewModal(false)}
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setShowNewModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                Guardar Póliza
-              </Button>
-            </div>
-          }
-        >
-          {/* Advertencias en vivo de póliza por cupo (aceptables, files/06) */}
-          {(excedeCupo || venceTrasCupo) && (
-            <div className="alert-box warn mb-3">
-              <Icon name="triangle-exclamation" />
-              <div>
-                {excedeCupo && (
-                  <div>
-                    El valor asegurado supera el disponible del cupo (<b className="mono">{money(cupoDisp || 0)}</b>). Puedes registrarla de todas formas: la decisión queda en auditoría.
-                  </div>
-                )}
-                {venceTrasCupo && (
-                  <div>
-                    La póliza vence después de la vigencia del cupo ({fdate(cupoElegido?.fechaVenc)}).
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req">Número de póliza</label>
-              <Input
-                value={newGar.poliza}
-                onChange={(e) => setNewGar({ ...newGar, poliza: e.target.value })}
-                placeholder="Ej. PL-992100"
-              />
-            </Field>
-            <Field className="f">
-              <label className="req">Tipo de garantía</label>
-              <Select
-                value={newGar.tipo}
-                onChange={(e) => setNewGar({ ...newGar, tipo: e.target.value })}
-              >
-                {CAT('tiposGarantia').map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field className="f span2">
-              <label className="req">Aseguradora</label>
-              <Select
-                value={newGar.aseguradora}
-                onChange={(e) => setNewGar({ ...newGar, aseguradora: e.target.value, cupoId: '' })}
-              >
-                {CAT('aseguradoras').map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field className="f">
-              <label>Modalidad de expedición</label>
-              <Select
-                value={newGar.modalidadPoliza}
-                onChange={(e) => setNewGar({ ...newGar, modalidadPoliza: e.target.value, cupoId: '' })}
-              >
-                <option value="Póliza individual">Póliza individual</option>
-                <option value="Póliza por cupo">Póliza por cupo</option>
-              </Select>
-            </Field>
-            {newGar.modalidadPoliza === 'Póliza por cupo' && (
-              <Field className="f">
-                <label className="req">Cupo asignado</label>
-                <Select
-                  value={newGar.cupoId}
-                  onChange={(e) => setNewGar({ ...newGar, cupoId: e.target.value })}
-                >
-                  <option value="">Seleccione cupo...</option>
-                  {cuposForAseg.map((cp) => {
-                    const st = cupoStats(cp);
-                    return (
-                      <option key={cp.id} value={cp.id}>
-                        {cp.numero} (Disp: {moneyM(st.disponible)})
-                      </option>
-                    );
-                  })}
-                </Select>
-              </Field>
-            )}
-            <Field className="f">
-              <label className="req">Valor asegurado</label>
-              <Input
-                type="number"
-                value={newGar.valor || ''}
-                onChange={(e) => setNewGar({ ...newGar, valor: Number(e.target.value) })}
-              />
-            </Field>
-            <Field className="f">
-              <label>Porcentaje (%)</label>
-              <Input
-                type="number"
-                value={newGar.porcentaje || ''}
-                onChange={(e) => setNewGar({ ...newGar, porcentaje: Number(e.target.value) })}
-              />
-            </Field>
-            <Field className="f">
-              <label className="req">Fecha de inicio</label>
-              <Input
-                type="date"
-                value={newGar.fechaInicio}
-                onChange={(e) => setNewGar({ ...newGar, fechaInicio: e.target.value })}
-              />
-            </Field>
-            <Field className="f">
-              <label className="req">Fecha de vencimiento</label>
-              <Input
-                type="date"
-                value={newGar.fechaVenc}
-                onChange={(e) => setNewGar({ ...newGar, fechaVenc: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
       )}
     </div>
   );

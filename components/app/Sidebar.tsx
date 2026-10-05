@@ -7,6 +7,7 @@ import { Icon } from '../icons';
 import { AuthService } from '../../lib/store';
 import { Alerts } from '../../lib/alerts';
 import { initials } from '../../lib/format';
+import { BrandLogo } from './BrandLogo';
 
 interface SidebarProps {
   current: string;
@@ -88,23 +89,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Header del Sidebar */}
       <div className="brand" style={{ padding: isCollapsed ? '16px 12px' : '16px 18px', justifyContent: isCollapsed ? 'center' : 'flex-start' }}>
         <Link
-          className="brand-mark"
+          className={`sidebar-brand-link${isCollapsed ? ' sidebar-brand-link--compact' : ''}`}
           href="/dashboard"
           onClick={onLinkFollow}
-          title="Seven Save · Gestión Integral de Contratos"
+          title="Seven Safe · Gestión integral de contratos"
           style={{ cursor: 'pointer' }}
         >
-          7S
+          <BrandLogo compact={isCollapsed} />
         </Link>
 
         {!isCollapsed && (
-          <div className="brand-text">
-            <div className="brand-t">Seven<br />Save</div>
-            <div className="brand-sub">
-              <span className="brand-badge">v2.0</span>
-              <span className="brand-s">Contratos</span>
-            </div>
-          </div>
+          <span className="sr-only">Seven Safe · Gestión de contratos</span>
         )}
 
         <button
@@ -200,8 +195,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {!isCollapsed && (
           <div className="side-brand-credit">
-            <span>Seven Save v2.0</span>
-            <span style={{ fontSize: '10px', color: 'var(--brand-3)', fontWeight: 600 }}>FYA TECH</span>
+            <span>Seven Safe v2.0</span>
+            <span style={{ fontSize: '10px', color: 'var(--brand)', fontWeight: 600 }}>FYA TECH</span>
           </div>
         )}
       </div>

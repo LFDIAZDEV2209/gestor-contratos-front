@@ -5,21 +5,18 @@ import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { requestReason, notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
+import { PageHeader, Surface, TableViewport, DataTable, Field, EmptyState } from '../ui/Workspace';
 import type { Company } from '../../lib/types';
 import { Store, Audit, AuthService } from '../../lib/store';
 import { Icon } from '../icons';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
-import { uid } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 
 // El Badge resuelve el color semántico con el catálogo del sistema
 // (Activa → ok, Inactiva/Anulada → crit), sin colores improvisados por vista.
 export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) => {
   const [companies, setCompanies] = useState<Company[]>(Store.all('companies'));
-  const [editing, setEditing] = useState<Partial<Company> | null>(null);
   const [q, setQ] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [statusChip, setStatusChip] = useState<string>('todas');
@@ -58,76 +55,6 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const pagedCompanies = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  const handleSave = () => {
-    if (!editing) return;
-    const razon = (editing.razon || editing.name || '').trim();
-    const nit = (editing.nit || '').trim();
-    const email = (editing.email || '').trim();
-
-    if (!nit || !razon) {
-      notify('El NIT y la razón social son obligatorios.');
-      return;
-    }
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      notify('El correo electrónico no tiene un formato válido.');
-      return;
-    }
-    // NIT único en el directorio
-    const duplicado = companies.find((c) => (c.nit || '').trim() === nit && c.id !== editing.id);
-    if (duplicado) {
-      notify(`Ya existe «${duplicado.razon || duplicado.name}» registrada con el NIT ${nit}.`);
-      return;
-    }
-
-    const estado = editing.estado || editing.status || 'Activa';
-    const payload: Partial<Company> = {
-      ...editing,
-      razon,
-      name: razon,
-      tipo: editing.tipo || editing.type || 'Sociedad comercial',
-      type: editing.tipo || editing.type || 'Sociedad comercial',
-      estado,
-      status: estado
-    };
-
-    if (editing.id) {
-      // Snapshot previo: Store.update muta el registro en sitio y falsearía el diff
-      const before = { ...Store.get('companies', editing.id) };
-      Store.update('companies', editing.id, payload);
-      Audit.diff('Empresas', '', before, payload, {
-        nit: 'NIT de empresa',
-        razon: 'Razón social de empresa',
-        name: 'Razón social de empresa',
-        rep: 'Representante legal de empresa',
-        tipo: 'Naturaleza de empresa',
-        type: 'Naturaleza de empresa',
-        direccion: 'Dirección de empresa',
-        tel: 'Teléfono de empresa',
-        email: 'Correo de empresa',
-        estado: 'Estado de empresa',
-        status: 'Estado de empresa'
-      });
-      notify(`Empresa «${razon}» actualizada.`);
-    } else {
-      const created: Company = {
-        ...payload,
-        id: uid('EMP'),
-        risk: 0,
-        level: '1'
-      } as Company;
-      Store.insert('companies', created);
-      Audit.log({
-        modulo: 'Empresas',
-        accion: 'Creación',
-        campo: 'Empresa ' + razon,
-        nuevo: 'Registro de nueva empresa'
-      });
-      notify(`Empresa «${razon}» registrada exitosamente.`);
-    }
-    setCompanies(Store.all('companies'));
-    setEditing(null);
-  };
 
   const handleAnular = async (id: string) => {
     if (!AuthService.guard('anular')) return;
@@ -177,14 +104,6 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
   };
 
   const hasFilters = Boolean(q || filterTipo || statusChip !== 'todas');
-
-  // Solo los accesos de escritura exigen permiso; la vista sigue siendo consultable.
-  const openCreate = () => {
-    if (AuthService.guard('crear')) setEditing({});
-  };
-  const openEdit = (c: Company) => {
-    if (AuthService.guard('editar')) setEditing(c);
-  };
 
   return (
     <div className="anim-fade-rise">
@@ -236,9 +155,11 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
           <Button className="btn" onClick={handleExport} title="Exportar directorio a Excel">
             <Icon name="file-excel" /> Exportar
           </Button>
-          <Button className="btn pri" onClick={openCreate}>
-            <Icon name="plus" /> Nueva Empresa
-          </Button>
+          {AuthService.can('crear') && (
+            <Link href="/empresas/nueva" className="btn pri">
+              <Icon name="plus" /> Nueva Empresa
+            </Link>
+          )}
         </div>
       </PageHeader>
 
@@ -355,7 +276,7 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                   borderColor: isActive ? 'var(--brand)' : 'var(--border-control)',
                   fontWeight: isActive ? 600 : 500,
                   transform: isActive ? 'scale(1.05)' : 'scale(1)',
-                  boxShadow: isActive ? '0 2px 8px -2px rgba(15, 133, 121, 0.35)' : 'none',
+                  boxShadow: isActive ? '0 2px 8px -2px rgba(6, 47, 88, 0.35)' : 'none',
                   transition: 'transform var(--t-fast) cubic-bezier(0.34, 1.56, 0.64, 1), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease)',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -465,14 +386,16 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
                         >
                           <Icon name="search" />
                         </Button>
-                        <Button
-                          className="icon-btn"
-                          onClick={() => openEdit(c)}
-                          title="Editar empresa"
-                          aria-label={`Editar ${nombre}`}
-                        >
-                          <Icon name="cog" />
-                        </Button>
+                        {AuthService.can('editar') && (
+                          <Link
+                            href={`/empresas/${encodeURIComponent(c.id)}/editar`}
+                            className="icon-btn"
+                            title="Editar empresa"
+                            aria-label={`Editar ${nombre}`}
+                          >
+                            <Icon name="cog" />
+                          </Link>
+                        )}
                         <Button
                           className="icon-btn"
                           onClick={() => handleAnular(c.id)}
@@ -549,109 +472,6 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
           </DataTable>
         </TableViewport>
       </Surface>
-
-      {/* Modal de edición / nueva empresa */}
-      {editing && (
-        <Modal
-          title={editing.id ? `Editar Empresa: ${editing.razon || editing.name}` : 'Nueva Empresa'}
-          subtitle="Directorio de contratistas y contrapartes contractuales"
-          size="md"
-          onClose={() => setEditing(null)}
-          footer={
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, width: '100%' }}>
-              <Button className="btn ghost" onClick={() => setEditing(null)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleSave}>
-                <Icon name="check" /> Guardar Empresa
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req">NIT / Identificación Tributaria</label>
-              <Input
-                value={editing.nit || ''}
-                onChange={(e) => setEditing({ ...editing, nit: e.target.value })}
-                placeholder="Ej. 900.876.543-1"
-              />
-            </Field>
-
-            <Field className="f">
-              <label>Estado de Actividad</label>
-              <Select
-                value={editing.estado || editing.status || 'Activa'}
-                onChange={(e) => setEditing({ ...editing, estado: e.target.value, status: e.target.value })}
-              >
-                <option value="Activa">Activa</option>
-                <option value="Inactiva">Inactiva</option>
-              </Select>
-            </Field>
-
-            <Field className="f span3">
-              <label className="req">Razón Social o Nombre Legal</label>
-              <Input
-                value={editing.razon || editing.name || ''}
-                onChange={(e) => setEditing({ ...editing, razon: e.target.value, name: e.target.value })}
-                placeholder="Nombre comercial o personería jurídica"
-              />
-            </Field>
-
-            <Field className="f">
-              <label>Representante Legal</label>
-              <Input
-                value={editing.rep || ''}
-                onChange={(e) => setEditing({ ...editing, rep: e.target.value })}
-                placeholder="Nombre del representante legal"
-              />
-            </Field>
-
-            <Field className="f">
-              <label>Naturaleza / Sector</label>
-              <Select
-                value={editing.tipo || editing.type || ''}
-                onChange={(e) => setEditing({ ...editing, tipo: e.target.value, type: e.target.value })}
-              >
-                <option value="">Sin clasificar</option>
-                {(tipos.length ? tipos : ['Sociedad comercial']).map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label>Teléfono de Contacto</label>
-              <Input
-                value={editing.tel || ''}
-                onChange={(e) => setEditing({ ...editing, tel: e.target.value })}
-                placeholder="Ej. 605 385 2210"
-              />
-            </Field>
-
-            <Field className="f">
-              <label>Correo Electrónico</label>
-              <Input
-                type="email"
-                value={editing.email || ''}
-                onChange={(e) => setEditing({ ...editing, email: e.target.value })}
-                placeholder="contratacion@empresa.co"
-              />
-            </Field>
-
-            <Field className="f span3">
-              <label>Dirección y Ciudad</label>
-              <Input
-                value={editing.direccion || ''}
-                onChange={(e) => setEditing({ ...editing, direccion: e.target.value })}
-                placeholder="Ej. Cra 54 # 72-80, Barranquilla"
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
     </div>
   );
 };

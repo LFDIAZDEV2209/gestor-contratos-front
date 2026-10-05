@@ -1,49 +1,20 @@
 'use client';
 
-import { useState } from 'react';
 import { PBar } from '../ui/PBar';
-import { Select, Input, Textarea } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
+import { Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import type { Breach, Plan, Obligation } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
-import { fdate, todayIso, uid, pct } from '../../lib/format';
+import { fdate, pct } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+import Link from 'next/link';
+import { nuevoHref, editarHref } from './routes';
 
 export const TabIncumplimientos = ({ cid }: { cid: string }) => {
-  const [showBreachModal, setShowBreachModal] = useState(false);
-  const [showPlanModal, setShowPlanModal] = useState(false);
-  const [managingBreach, setManagingBreach] = useState<Breach | null>(null);
-  const [managingPlan, setManagingPlan] = useState<Plan | null>(null);
-
-  const [breachForm, setBreachForm] = useState({
-    fecha: todayIso(),
-    obligationId: '',
-    tipo: 'Retraso en cronograma',
-    descripcion: '',
-    responsable: '',
-    impacto: 'Medio',
-    estado: 'Abierto',
-    medida: '',
-    multa: 0,
-    plan: ''
-  });
-
-  const [planForm, setPlanForm] = useState({
-    fecha: todayIso(),
-    hallazgo: '',
-    causa: '',
-    accion: '',
-    responsable: '',
-    avance: 0,
-    estado: 'Abierto'
-  });
-
   const c = Store.get('contracts', cid);
   if (!c) {
     return (
@@ -82,74 +53,18 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
     exportRows('Incumplimientos - ' + c.numero, cols, breaches, format);
   };
 
-  const handleCreateBreach = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!breachForm.descripcion.trim()) return notify('Ingrese la descripción del incumplimiento');
-
-    const newBreach: Breach = {
-      id: uid('IN'),
-      contractId: cid,
-      fecha: breachForm.fecha,
-      obligationId: breachForm.obligationId || undefined,
-      tipo: breachForm.tipo,
-      descripcion: breachForm.descripcion.trim(),
-      responsable: breachForm.responsable.trim() || c.responsable || 'Supervisor',
-      impacto: breachForm.impacto,
-      estado: breachForm.estado,
-      medida: breachForm.medida.trim(),
-      multa: Number(breachForm.multa) || undefined,
-      plan: breachForm.plan.trim()
-    };
-
-    Store.insert('breaches', newBreach);
-    Audit.log({
-      contractId: cid,
-      modulo: 'Incumplimientos',
-      accion: 'Creación',
-      campo: 'Nuevo incumplimiento ' + newBreach.id,
-      nuevo: `${newBreach.tipo}: ${newBreach.descripcion.slice(0, 40)}`
-    });
-
-    notify(`Incumplimiento registrado correctamente`);
-    setShowBreachModal(false);
-    setBreachForm({
-      fecha: todayIso(),
-      obligationId: '',
-      tipo: 'Retraso en cronograma',
-      descripcion: '',
-      responsable: '',
-      impacto: 'Medio',
-      estado: 'Abierto',
-      medida: '',
-      multa: 0,
-      plan: ''
-    });
-  };
-
-  const handleUpdateBreach = () => {
-    if (!AuthService.guard('editar')) return;
-    if (!managingBreach) return;
-
-    Store.update('breaches', managingBreach.id, {
-      tipo: managingBreach.tipo,
-      descripcion: managingBreach.descripcion?.trim(),
-      impacto: managingBreach.impacto,
-      estado: managingBreach.estado,
-      medida: managingBreach.medida?.trim(),
-      multa: Number(managingBreach.multa) || undefined,
-      plan: managingBreach.plan?.trim()
-    });
-
-    Audit.log({
-      contractId: cid,
-      modulo: 'Incumplimientos',
-      accion: 'Edición',
-      campo: 'Incumplimiento ' + managingBreach.id,
-      nuevo: `Estado: ${managingBreach.estado} · Medida: ${managingBreach.medida || '—'}`
-    });
-
-    notify(`Incumplimiento ${managingBreach.id} actualizado`);
-    setManagingBreach(null);
+  /* Alta y gestión de incumplimientos/planes en VISTAS dedicadas (modales cero). */
+  const documentosExportPlanes = (format: 'xlsx' | 'pdf' | 'csv') => {
+    const cols = [
+      { l: 'Fecha límite', k: 'fecha', r: (r: any) => fdate(r.fecha) },
+      { l: 'Hallazgo', k: 'hallazgo' },
+      { l: 'Causa', k: 'causa' },
+      { l: 'Acción', k: 'accion' },
+      { l: 'Responsable', k: 'responsable' },
+      { l: 'Avance %', k: 'avance' },
+      { l: 'Estado', k: 'estado' }
+    ];
+    exportRows('Planes de mejoramiento - ' + c.numero, cols, plans, format);
   };
 
   const handleDeleteBreach = async (b: Breach) => {
@@ -170,70 +85,6 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
     notify(`Incumplimiento ${b.id} eliminado`);
   };
 
-  const handleCreatePlan = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!planForm.hallazgo.trim()) return notify('Ingrese el hallazgo');
-    if (!planForm.accion.trim()) return notify('Ingrese la acción correctiva');
-
-    const newPlan: Plan = {
-      id: uid('PM'),
-      contractId: cid,
-      fecha: planForm.fecha,
-      hallazgo: planForm.hallazgo.trim(),
-      causa: planForm.causa.trim(),
-      accion: planForm.accion.trim(),
-      responsable: planForm.responsable.trim() || c.supervisor || 'Supervisor',
-      estado: planForm.estado,
-      avance: Number(planForm.avance) || 0
-    };
-
-    Store.insert('plans', newPlan);
-    Audit.log({
-      contractId: cid,
-      modulo: 'Planes',
-      accion: 'Creación',
-      campo: 'Nuevo plan de mejoramiento ' + newPlan.id,
-      nuevo: `${(newPlan.hallazgo || newPlan.accion || '').slice(0, 40)}`
-    });
-
-    notify(`Plan de mejoramiento registrado`);
-    setShowPlanModal(false);
-    setPlanForm({
-      fecha: todayIso(),
-      hallazgo: '',
-      causa: '',
-      accion: '',
-      responsable: '',
-      avance: 0,
-      estado: 'Abierto'
-    });
-  };
-
-  const handleUpdatePlan = () => {
-    if (!AuthService.guard('editar')) return;
-    if (!managingPlan) return;
-
-    Store.update('plans', managingPlan.id, {
-      hallazgo: managingPlan.hallazgo?.trim(),
-      causa: managingPlan.causa?.trim(),
-      accion: managingPlan.accion?.trim(),
-      responsable: managingPlan.responsable?.trim(),
-      avance: Number(managingPlan.avance) || 0,
-      estado: managingPlan.estado
-    });
-
-    Audit.log({
-      contractId: cid,
-      modulo: 'Planes',
-      accion: 'Edición',
-      campo: 'Plan ' + managingPlan.id,
-      nuevo: `Avance: ${managingPlan.avance}% (${managingPlan.estado})`
-    });
-
-    notify(`Plan de mejoramiento actualizado`);
-    setManagingPlan(null);
-  };
-
   const handleDeletePlan = async (p: Plan) => {
     if (!AuthService.guard('editar')) return;
     const ok = await confirmAction(`¿Está seguro de eliminar el plan de mejoramiento ${p.id}?`);
@@ -242,6 +93,13 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
     const db = Store.getDB();
     db.plans = (db.plans || []).filter((item) => item.id !== p.id);
     Store.persist();
+    Audit.log({
+      contractId: cid,
+      modulo: 'Planes',
+      accion: 'Eliminación',
+      campo: 'Plan ' + p.id,
+      anterior: p.hallazgo || p.accion || ''
+    });
     notify(`Plan ${p.id} eliminado`);
   };
 
@@ -267,9 +125,9 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowBreachModal(true)} aria-label="Registrar incumplimiento">
+          <Link className="btn sm pri" href={nuevoHref(cid, 'incumplimientos')} aria-label="Registrar incumplimiento">
             <Icon name="plus" /> Registrar incumplimiento
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -326,9 +184,9 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
             title="Sin incumplimientos registrados"
             description="El contrato presenta un récord de ejecución conforme a los términos y obligaciones pactadas."
             action={
-              <Button className="btn pri sm" onClick={() => setShowBreachModal(true)}>
+              <Link className="btn pri sm" href={nuevoHref(cid, 'incumplimientos')}>
                 <Icon name="plus" /> Registrar reporte
-              </Button>
+              </Link>
             }
           />
         ) : (
@@ -401,14 +259,14 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
                       </td>
                       <td className="nw text-right">
                         <div className="inline-flex items-center gap-1 justify-end">
-                          <Button
+                          <Link
                             className="btn ghost xs"
-                            onClick={() => setManagingBreach({ ...b })}
+                            href={editarHref(cid, 'incumplimientos', b.id)}
                             title="Gestionar estado o medida"
                             aria-label={`Gestionar incumplimiento ${b.id}`}
                           >
                             <Icon name="pencil" size={13} />
-                          </Button>
+                          </Link>
                           <Button
                             className="btn ghost xs text-[var(--crit)] hover:bg-[var(--crit-bg)]"
                             onClick={() => handleDeleteBreach(b)}
@@ -436,9 +294,9 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
             <span className="sub text-xs text-[var(--muted)]">{totalPlanes} plan(es) formalizado(s)</span>
           </div>
           <div className="row-flex">
-            <Button className="btn sm pri" onClick={() => setShowPlanModal(true)} aria-label="Crear nuevo plan de mejoramiento">
+            <Link className="btn sm pri" href={nuevoHref(cid, 'planes')} aria-label="Crear nuevo plan de mejoramiento">
               <Icon name="plus" /> Nuevo plan
-            </Button>
+            </Link>
           </div>
         </div>
 
@@ -447,9 +305,9 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
             title="Sin planes de mejoramiento suscritos"
             description="No se han requerido planes de acción correctiva para este contrato."
             action={
-              <Button className="btn pri sm" onClick={() => setShowPlanModal(true)}>
+              <Link className="btn pri sm" href={nuevoHref(cid, 'planes')}>
                 <Icon name="plus" /> Registrar plan
-              </Button>
+              </Link>
             }
           />
         ) : (
@@ -498,14 +356,14 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
                     </td>
                     <td className="nw text-right">
                       <div className="inline-flex items-center gap-1 justify-end">
-                        <Button
+                        <Link
                           className="btn ghost xs"
-                          onClick={() => setManagingPlan({ ...p })}
+                          href={editarHref(cid, 'planes', p.id)}
                           title="Actualizar avance del plan"
                           aria-label={`Gestionar plan ${p.id}`}
                         >
                           <Icon name="pencil" size={13} />
-                        </Button>
+                        </Link>
                         <Button
                           className="btn ghost xs text-[var(--crit)] hover:bg-[var(--crit-bg)]"
                           onClick={() => handleDeletePlan(p)}
@@ -523,339 +381,6 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           </TableViewport>
         )}
       </Surface>
-
-      {/* Modal Registrar Incumplimiento */}
-      {showBreachModal && (
-        <Modal
-          title="Registrar incumplimiento contractual"
-          onClose={() => setShowBreachModal(false)}
-          size="lg"
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setShowBreachModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreateBreach}>
-                <Icon name="check" /> Guardar Incumplimiento
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req font-medium text-xs">Tipo de falta</label>
-              <Select
-                value={breachForm.tipo}
-                onChange={(e) => setBreachForm({ ...breachForm, tipo: e.target.value })}
-              >
-                <option value="Retraso en cronograma">Retraso en cronograma</option>
-                <option value="Calidad de entregable">Deficiencia en calidad de entregable</option>
-                <option value="No aporte de pólizas">No aporte o no renovación de pólizas</option>
-                <option value="Incumplimiento de pagos a personal">Incumplimiento pagos/seguridad social</option>
-                <option value="Inobservancia técnica">Inobservancia técnica o ambiental</option>
-                <option value="Otro">Otro incumplimiento</option>
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Fecha de reporte formal</label>
-              <Input
-                type="date"
-                value={breachForm.fecha}
-                onChange={(e) => setBreachForm({ ...breachForm, fecha: e.target.value })}
-                required
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Obligación contractual asociada</label>
-              <Select
-                value={breachForm.obligationId}
-                onChange={(e) => setBreachForm({ ...breachForm, obligationId: e.target.value })}
-              >
-                <option value="">— Ninguna en particular —</option>
-                {obligations.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.id} · {o.descripcion.slice(0, 50)}...
-                  </option>
-                ))}
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Nivel de impacto</label>
-              <Select
-                value={breachForm.impacto}
-                onChange={(e) => setBreachForm({ ...breachForm, impacto: e.target.value })}
-              >
-                <option value="Bajo">Bajo</option>
-                <option value="Medio">Medio</option>
-                <option value="Alto">Alto</option>
-              </Select>
-            </Field>
-
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Descripción detallada de los hechos</label>
-              <Textarea
-                rows={3}
-                value={breachForm.descripcion}
-                placeholder="Detalle los hechos verificados, requerimientos desatendidos o evidencias recogidas..."
-                onChange={(e) => setBreachForm({ ...breachForm, descripcion: e.target.value })}
-                required
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Medida administrativa adoptada</label>
-              <Input
-                value={breachForm.medida}
-                placeholder="Ej. Requerimiento formal con apercibimiento"
-                onChange={(e) => setBreachForm({ ...breachForm, medida: e.target.value })}
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Valor tasado de sanción/multa (COP)</label>
-              <Input
-                type="number"
-                min="0"
-                value={breachForm.multa || ''}
-                placeholder="0"
-                onChange={(e) => setBreachForm({ ...breachForm, multa: Number(e.target.value) })}
-              />
-            </Field>
-
-            <Field className="f span2">
-              <label className="font-medium text-xs">Plan de mitigación o acción de choque exigida</label>
-              <Input
-                value={breachForm.plan}
-                placeholder="Ej. Radicación de cronograma acelerado en 5 días hábiles"
-                onChange={(e) => setBreachForm({ ...breachForm, plan: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
-
-      {/* Modal Gestionar Incumplimiento */}
-      {managingBreach && (
-        <Modal
-          title={`Gestionar incumplimiento · ${managingBreach.id}`}
-          onClose={() => setManagingBreach(null)}
-          size="lg"
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setManagingBreach(null)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleUpdateBreach}>
-                <Icon name="check" /> Guardar Estado
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req font-medium text-xs">Estado de trámite</label>
-              <Select
-                value={managingBreach.estado}
-                onChange={(e) => setManagingBreach({ ...managingBreach, estado: e.target.value })}
-              >
-                <option value="Abierto">Abierto</option>
-                <option value="En análisis">En análisis jurídico</option>
-                <option value="En gestión">En gestión de descargos</option>
-                <option value="Subsanado">Subsanado a conformidad</option>
-                <option value="Cerrado">Cerrado con sanción</option>
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Nivel de impacto</label>
-              <Select
-                value={managingBreach.impacto}
-                onChange={(e) => setManagingBreach({ ...managingBreach, impacto: e.target.value as any })}
-              >
-                <option value="Bajo">Bajo</option>
-                <option value="Medio">Medio</option>
-                <option value="Alto">Alto</option>
-              </Select>
-            </Field>
-
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Descripción</label>
-              <Textarea
-                rows={2}
-                value={managingBreach.descripcion || ''}
-                onChange={(e) => setManagingBreach({ ...managingBreach, descripcion: e.target.value })}
-                required
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Medida administrativa aplicada</label>
-              <Input
-                value={managingBreach.medida || ''}
-                onChange={(e) => setManagingBreach({ ...managingBreach, medida: e.target.value })}
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Multa o descuento liquidado (COP)</label>
-              <Input
-                type="number"
-                min="0"
-                value={managingBreach.multa || ''}
-                onChange={(e) => setManagingBreach({ ...managingBreach, multa: Number(e.target.value) })}
-              />
-            </Field>
-
-            <Field className="f span2">
-              <label className="font-medium text-xs">Plan de contingencia / acuerdo de subsanación</label>
-              <Input
-                value={managingBreach.plan || ''}
-                onChange={(e) => setManagingBreach({ ...managingBreach, plan: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
-
-      {/* Modal Registrar Plan de Mejoramiento */}
-      {showPlanModal && (
-        <Modal
-          title="Nuevo plan de mejoramiento"
-          onClose={() => setShowPlanModal(false)}
-          size="lg"
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setShowPlanModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreatePlan}>
-                <Icon name="check" /> Registrar Plan
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Hallazgo o hecho observado</label>
-              <Textarea
-                rows={2}
-                value={planForm.hallazgo}
-                placeholder="Hallazgo documentado en informe de supervisión o auditoría..."
-                onChange={(e) => setPlanForm({ ...planForm, hallazgo: e.target.value })}
-                required
-              />
-            </Field>
-
-            <Field className="f span2">
-              <label className="font-medium text-xs">Causa raíz identificada</label>
-              <Textarea
-                rows={2}
-                value={planForm.causa}
-                placeholder="Causa técnica, logística o administrativa que originó la desviación..."
-                onChange={(e) => setPlanForm({ ...planForm, causa: e.target.value })}
-              />
-            </Field>
-
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Acción correctiva comprometida</label>
-              <Textarea
-                rows={2}
-                value={planForm.accion}
-                placeholder="Acciones verificables para corregir el hallazgo y prevenir su recurrencia..."
-                onChange={(e) => setPlanForm({ ...planForm, accion: e.target.value })}
-                required
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Fecha límite de cumplimiento</label>
-              <Input
-                type="date"
-                value={planForm.fecha}
-                onChange={(e) => setPlanForm({ ...planForm, fecha: e.target.value })}
-                required
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Responsable asignado</label>
-              <Input
-                value={planForm.responsable}
-                placeholder={c.contratista || 'Supervisor / Contratista'}
-                onChange={(e) => setPlanForm({ ...planForm, responsable: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
-
-      {/* Modal Gestionar Plan de Mejoramiento */}
-      {managingPlan && (
-        <Modal
-          title={`Gestionar avance de plan · ${managingPlan.id}`}
-          onClose={() => setManagingPlan(null)}
-          size="lg"
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setManagingPlan(null)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleUpdatePlan}>
-                <Icon name="check" /> Guardar Avance
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req font-medium text-xs">Estado de implementación</label>
-              <Select
-                value={managingPlan.estado}
-                onChange={(e) => setManagingPlan({ ...managingPlan, estado: e.target.value })}
-              >
-                <option value="Abierto">Abierto</option>
-                <option value="En ejecución">En ejecución</option>
-                <option value="Cumplido">Cumplido a satisfacción</option>
-                <option value="Incumplido">Incumplido</option>
-                <option value="Cerrado">Cerrado formalmente</option>
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">% Avance implementado (0-100)</label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={managingPlan.avance}
-                onChange={(e) => setManagingPlan({ ...managingPlan, avance: Number(e.target.value) })}
-                required
-              />
-            </Field>
-
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Acción correctiva en curso</label>
-              <Textarea
-                rows={2}
-                value={managingPlan.accion || ''}
-                onChange={(e) => setManagingPlan({ ...managingPlan, accion: e.target.value })}
-                required
-              />
-            </Field>
-
-            <Field className="f span2">
-              <label className="font-medium text-xs">Responsable del seguimiento</label>
-              <Input
-                value={managingPlan.responsable || ''}
-                onChange={(e) => setManagingPlan({ ...managingPlan, responsable: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
     </div>
   );
 };

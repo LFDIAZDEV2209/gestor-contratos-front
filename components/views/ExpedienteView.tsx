@@ -1,21 +1,20 @@
 'use client';
 import { Select } from '../ui/Controls';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable } from '../ui/Workspace';
+import { Surface, EmptyState } from '../ui/Workspace';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { contractHref, companyHref } from '../app/routes';
-import type { Contract, VIssue, Document as DocType } from '../../lib/types';
+import { expHref } from '../expediente/routes';
+import type { Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
-import { Validator } from '../../lib/validator';
 import { LEVEL_TXT } from '../../lib/catalog';
 import { pct, clamp, fdate, nowStamp, money, moneyM } from '../../lib/format';
 import { deptoNames } from '../../lib/geo';
-import { exportRows, saveFile } from '../../lib/export';
+import { saveFile } from '../../lib/export';
 import { Badge } from '../ui/Badge';
-import { Modal } from '../ui/Modal';
 import { notify, requestReason } from '../ui/Feedback';
 import { Icon } from '../icons';
 
@@ -36,7 +35,6 @@ import { TabIncumplimientos } from '../expediente/TabIncumplimientos';
 import { TabSubcontratos } from '../expediente/TabSubcontratos';
 import { TabAuditoria } from '../expediente/TabAuditoria';
 import { TabTimeline } from '../expediente/TabTimeline';
-import { ContratoFormModal } from './ContratoFormModal';
 
 interface TabDef {
   id: string;
@@ -107,11 +105,6 @@ export const ExpedienteView = ({
     }
   }, [activeTab]);
 
-  const [showValidator, setShowValidator] = useState(false);
-  const [showReconcile, setShowReconcile] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [valResult, setValResult] = useState<{ areas: { a: string; ok: boolean }[]; issues: VIssue[] } | null>(null);
-  const [recResult, setRecResult] = useState<{ doc: DocType; diffs: number; rows: [string, string, string, boolean][] } | null>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
 
@@ -135,12 +128,17 @@ export const ExpedienteView = ({
   const c = Store.get('contracts', id) as Contract | undefined;
   if (!c) {
     return (
-      <Surface className="panel p-4">
-        <p>El contrato no existe.</p>
-        <Button className="btn pri" onClick={onBack}>
-          Volver a Contratos
-        </Button>
-      </Surface>
+      <div className="anim-fade-rise" style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <EmptyState
+          title="Contrato no encontrado"
+          description="El identificador solicitado no existe en el sistema o el registro fue anulado."
+          action={
+            <Link className="btn pri" href="/contratos" style={{ marginTop: 12 }}>
+              <Icon name="chevron-left" /> Volver a Contratos
+            </Link>
+          }
+        />
+      </div>
     );
   }
 
@@ -164,47 +162,6 @@ export const ExpedienteView = ({
       return (Store.all('audit') as any[]).filter((a) => a.contractId === c.id).length;
     }
     return (Store.byContract as any)(tab.countKey, c.id).length;
-  };
-
-  const handleOpenValidator = () => {
-    const res = Validator.contract(c);
-    setValResult(res);
-    Audit.log({
-      contractId: c.id,
-      modulo: 'Validador',
-      accion: 'Validación',
-      campo: 'Resultado',
-      nuevo: res.issues.length ? `${res.issues.length} inconsistencias` : 'Validado correctamente'
-    });
-    setShowValidator(true);
-  };
-
-  const handleOpenReconcile = () => {
-    const res = Validator.reconcile(c);
-    setRecResult(res);
-    if (res) {
-      Audit.log({
-        contractId: c.id,
-        modulo: 'Conciliación',
-        accion: 'Conciliación',
-        campo: 'Resultado',
-        nuevo: res.diffs ? `${res.diffs} diferencias` : 'Sin diferencias'
-      });
-    }
-    setShowReconcile(true);
-  };
-
-  const handleExportValidation = (format: 'xlsx' | 'pdf') => {
-    if (!valResult) return;
-    const cols = [
-      { l: 'Severidad', k: 'sev' },
-      { l: 'Área', k: 'area' },
-      { l: 'Campo', k: 'campo' },
-      { l: 'Valor actual', k: 'actual' },
-      { l: 'Valor esperado', k: 'esperado' },
-      { l: 'Recomendación', k: 'rec' }
-    ];
-    exportRows('Validación contrato ' + c.numero, cols, valResult.issues, format);
   };
 
   /* ── Acciones del menú del expediente ────────────────────────────────── */
@@ -318,18 +275,43 @@ export const ExpedienteView = ({
               )}
             </div>
             {!c.anulado && (
-              <Button className="btn" onClick={() => setShowEditModal(true)}>
+              <Link className="btn" href={expHref(id, 'editar')}>
                 <Icon name="pen" /> Editar
-              </Button>
+              </Link>
             )}
-            <Button className="btn" onClick={handleOpenReconcile}>
+            <Link className="btn" href={expHref(id, 'conciliacion')}>
               <Icon name="scale-balanced" /> Conciliación
-            </Button>
-            <Button className="btn pri" onClick={handleOpenValidator}>
+            </Link>
+            <Link className="btn pri" href={expHref(id, 'validacion')}>
               <Icon name="clipboard-check" /> VALIDAR CONTRATO
-            </Button>
+            </Link>
           </div>
         </div>
+
+        {/* Aviso crítico: contrato anulado (solo consulta) */}
+        {c.anulado && (
+          <div
+            role="alert"
+            style={{
+              marginTop: 14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '12px 14px',
+              borderRadius: 10,
+              background: 'var(--crit-s)',
+              color: 'var(--crit)',
+              fontWeight: 600,
+              fontSize: 13.5
+            }}
+          >
+            <Icon name="triangle-exclamation" />
+            <span>
+              Contrato anulado: el expediente queda en solo consulta y no admite nuevas
+              actuaciones.
+            </span>
+          </div>
+        )}
 
         {/* Cifras clave siempre visibles */}
         <div className="exp-meta" style={{ marginTop: '14px' }}>
@@ -422,12 +404,19 @@ export const ExpedienteView = ({
           <div className="exp-meta" style={{ marginTop: '12px' }}>
             <div>
               <span>Empresa</span>
-              <b
-                className="link"
-                onClick={() => company && router.push(companyHref(company.id))}
-                style={{ cursor: 'pointer' }}
-              >
-                {company ? company.razon : '—'}
+              <b>
+                {company ? (
+                  <Link
+                    className="link"
+                    href={companyHref(company.id)}
+                    title={`Abrir la ficha de ${company.razon}`}
+                    style={{ color: 'var(--brand)', textDecoration: 'underline', textUnderlineOffset: 3 }}
+                  >
+                    {company.razon}
+                  </Link>
+                ) : (
+                  '—'
+                )}
               </b>
             </div>
             <div>
@@ -454,16 +443,19 @@ export const ExpedienteView = ({
             </div>
             <div>
               <span>Aseguradoras</span>
-              <b
-                className="link"
-                style={{ cursor: 'pointer' }}
-                onClick={() => setActiveTab('garantias')}
-              >
-                {uniqueInsurers.length > 0 ? (
-                  uniqueInsurers.join(' · ')
-                ) : (
-                  <span style={{ color: 'var(--crit)' }}>Sin pólizas</span>
-                )}
+              <b>
+                <Link
+                  className="link"
+                  href={contractHref(id, 'garantias')}
+                  title="Ver la pestaña de seguros y garantías"
+                  style={{ color: 'var(--brand)', textDecoration: 'underline', textUnderlineOffset: 3 }}
+                >
+                  {uniqueInsurers.length > 0 ? (
+                    uniqueInsurers.join(' · ')
+                  ) : (
+                    <span style={{ color: 'var(--crit)' }}>Sin pólizas</span>
+                  )}
+                </Link>
               </b>
             </div>
             <div>
@@ -629,318 +621,6 @@ export const ExpedienteView = ({
           )}
         </div>
       </Surface>
-
-      {/* Validator Modal */}
-      {showValidator && valResult && (
-        <Modal
-          title="Validador contractual"
-          subtitle={`${c.numero} · ${nowStamp()}`}
-          onClose={() => setShowValidator(false)}
-          size="lg"
-          footer={
-            <>
-              <Button className="btn" onClick={() => handleExportValidation('xlsx')}>
-                <Icon name="file-excel" /> Excel
-              </Button>
-              <Button className="btn" onClick={() => handleExportValidation('pdf')}>
-                <Icon name="file-pdf" /> PDF
-              </Button>
-              <span className="sp" style={{ flex: 1 }}></span>
-              <Button className="btn pri" onClick={() => setShowValidator(false)}>
-                Cerrar
-              </Button>
-            </>
-          }
-        >
-          <div>
-            <div
-              className={`result-banner ${valResult.issues.length ? 'bad' : 'ok'}`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '12px 16px',
-                borderRadius: '10px',
-                background: valResult.issues.length ? 'var(--crit-s)' : 'var(--ok-s)',
-                color: valResult.issues.length ? 'var(--crit)' : 'var(--ok)',
-                fontWeight: 600,
-                marginBottom: '16px'
-              }}
-            >
-              <Icon
-                name={valResult.issues.length ? 'triangle-exclamation' : 'circle-check'}
-              />
-              <span>
-                {valResult.issues.length
-                  ? `Se encontraron ${valResult.issues.length} inconsistencia${
-                      valResult.issues.length === 1 ? '' : 's'
-                    }`
-                  : 'Contrato validado correctamente'}
-              </span>
-            </div>
-
-            {/* Checklist of areas */}
-            <div
-              className="check-list mb-4"
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '8px',
-                padding: '10px',
-                background: 'var(--bg-sub)',
-                borderRadius: '10px'
-              }}
-            >
-              {valResult.areas.map((a) => (
-                <span
-                  key={a.a}
-                  className={`small ${a.ok ? '' : 'bad'}`}
-                  style={{
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    background: a.ok ? 'var(--ok-bg)' : 'var(--crit-s)',
-                    color: a.ok ? 'var(--ok-text)' : 'var(--crit)',
-                    fontWeight: 600
-                  }}
-                >
-                  {a.ok ? '✓ ' : '✗ '}
-                  {a.a}
-                </span>
-              ))}
-            </div>
-
-            {/* Issues list or coherent note */}
-            {valResult.issues.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {valResult.issues.map((i, idx) => (
-                  <div
-                    key={idx}
-                    className="issue"
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '120px 1fr',
-                      gap: '12px',
-                      padding: '12px',
-                      border: '1px solid var(--line)',
-                      borderRadius: '10px'
-                    }}
-                  >
-                    <div>
-                      <Badge
-                        text={i.sev}
-                        color={i.sev === 'Alta' ? 'crit' : i.sev === 'Media' ? 'warn' : 'info'}
-                      />
-                      <div className="small muted" style={{ marginTop: '4px' }}>
-                        {i.area}
-                      </div>
-                    </div>
-                    <div>
-                      <b>{i.campo}</b>
-                      <div
-                        className="g mt-2"
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(3, 1fr)',
-                          gap: '8px',
-                          fontSize: '12px'
-                        }}
-                      >
-                        <div>
-                          <span className="muted" style={{ display: 'block' }}>
-                            Valor actual
-                          </span>
-                          <span style={{ color: 'var(--crit)' }}>{i.actual}</span>
-                        </div>
-                        <div>
-                          <span className="muted" style={{ display: 'block' }}>
-                            Valor esperado
-                          </span>
-                          <span style={{ color: 'var(--ok-text)' }}>{i.esperado}</span>
-                        </div>
-                        <div>
-                          <span className="muted" style={{ display: 'block' }}>
-                            Recomendación
-                          </span>
-                          <span>{i.rec}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="muted" style={{ margin: 0 }}>
-                Fechas, valores, porcentajes, garantías, obligaciones, pagos, documentos, ejecución,
-                modificaciones, subcontratos, riesgos, incumplimientos y liquidación son
-                completamente coherentes.
-              </p>
-            )}
-          </div>
-        </Modal>
-      )}
-
-      {/* Reconciliation Modal */}
-      {showReconcile && (
-        <Modal
-          title={`Conciliación contractual · ${c.numero}`}
-          onClose={() => setShowReconcile(false)}
-          size="lg"
-          footer={
-            <>
-              {recResult ? (
-                <Button
-                  className="btn"
-                  onClick={() => {
-                    setShowReconcile(false);
-                    setActiveTab('documentos');
-                  }}
-                >
-                  <Icon name="pen-to-square" /> Editar datos extraídos
-                </Button>
-              ) : (
-                <Button
-                  className="btn"
-                  onClick={() => {
-                    setShowReconcile(false);
-                    setActiveTab('documentos');
-                  }}
-                >
-                  <Icon name="upload" /> Cargar contrato en Documentos
-                </Button>
-              )}
-              {!c.anulado && (
-                <Button
-                  className="btn"
-                  onClick={() => {
-                    setShowReconcile(false);
-                    setShowEditModal(true);
-                  }}
-                >
-                  <Icon name="pen" /> Editar contrato
-                </Button>
-              )}
-              <span className="sp" style={{ flex: 1 }}></span>
-              <Button className="btn pri" onClick={() => setShowReconcile(false)}>
-                Cerrar
-              </Button>
-            </>
-          }
-        >
-          <div>
-            {!recResult ? (
-              <div>
-                <div
-                  className="result-banner bad"
-                  style={{
-                    background: 'var(--warn-s)',
-                    color: '#7A5C00',
-                    padding: '12px',
-                    borderRadius: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontWeight: 600
-                  }}
-                >
-                  <Icon name="file-circle-question" />
-                  <span>
-                    No hay un documento de categoría «Contrato» con datos extraídos para conciliar.
-                  </span>
-                </div>
-                <p className="small muted mt-2">
-                  Carga el contrato firmado en la pestaña Documentos y registra sus datos clave. En
-                  producción, los datos se extraen automáticamente mediante OCR e IA sobre el PDF.
-                </p>
-              </div>
-            ) : (
-              <div>
-                <div
-                  className={`result-banner ${recResult.diffs ? 'bad' : 'ok'}`}
-                  style={{
-                    background: recResult.diffs ? 'var(--crit-s)' : 'var(--ok-s)',
-                    color: recResult.diffs ? 'var(--crit)' : 'var(--ok-text)',
-                    padding: '12px',
-                    borderRadius: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontWeight: 600,
-                    marginBottom: '10px'
-                  }}
-                >
-                  <Icon
-                    name={recResult.diffs ? 'triangle-exclamation' : 'circle-check'}
-                  />
-                  <span>
-                    {recResult.diffs
-                      ? `${recResult.diffs} diferencia${recResult.diffs === 1 ? '' : 's'} detectada${
-                          recResult.diffs === 1 ? '' : 's'
-                        }`
-                      : 'La información del sistema coincide completamente con el documento'}
-                  </span>
-                </div>
-
-                <p className="small muted" style={{ margin: '-4px 0 12px' }}>
-                  Documento fuente: <b>{recResult.doc.nombre}</b> (v
-                  {recResult.doc.versions?.length || 1})
-                </p>
-
-                <TableViewport className="tbl-wrap">
-                  <DataTable className="tbl conc">
-                    <thead>
-                      <tr>
-                        <th>Campo</th>
-                        <th>Documento (contrato)</th>
-                        <th>Sistema</th>
-                        <th className="nw">Resultado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recResult.rows.map((row, idx) => {
-                        const [campo, docVal, sysVal, match] = row;
-                        return (
-                          <tr
-                            key={idx}
-                            style={{ background: match ? 'transparent' : 'var(--crit-s)' }}
-                          >
-                            <td className="strong">{campo}</td>
-                            <td>{docVal}</td>
-                            <td>{sysVal}</td>
-                            <td
-                              className={`nw ${match ? 'ok' : 'bad'}`}
-                              style={{
-                                color: match ? 'var(--ok-text)' : 'var(--crit)',
-                                fontWeight: 600
-                              }}
-                            >
-                              {match ? '✓ Coincide' : '⚠️ DIFERENCIA DETECTADA'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </DataTable>
-                </TableViewport>
-
-                <p className="small muted mt-3">
-                  <Icon name="circle-info" /> Los datos del documento provienen de la extracción
-                  registrada. Si fueron mal capturados, corrígelos con «Editar datos extraídos»; si
-                  el error está en el sistema, edita el contrato.
-                </p>
-              </div>
-            )}
-          </div>
-        </Modal>
-      )}
-
-      {/* Edit Contract Modal */}
-      {showEditModal && (
-        <ContratoFormModal
-          contract={c}
-          onClose={() => setShowEditModal(false)}
-          onSave={() => setShowEditModal(false)}
-        />
-      )}
     </div>
   );
 };

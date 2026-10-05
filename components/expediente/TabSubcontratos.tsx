@@ -1,41 +1,21 @@
 'use client';
 
-import { useState } from 'react';
 import { PBar } from '../ui/PBar';
-import { Input, Select, Textarea } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
+import { Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import type { Subcontract, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
-import { money, moneyM, pct, fdate, todayIso, uid, sum } from '../../lib/format';
+import { money, moneyM, pct, fdate, sum } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+import Link from 'next/link';
+import { nuevoHref, editarHref } from './routes';
 
 export const TabSubcontratos = ({ cid }: { cid: string }) => {
-  const [showModal, setShowModal] = useState(false);
-  const [editingSub, setEditingSub] = useState<Subcontract | null>(null);
-
-  const [form, setForm] = useState({
-    numero: '',
-    contratista: '',
-    nit: '',
-    objeto: '',
-    valor: 0,
-    fechaInicio: todayIso(),
-    fechaFin: todayIso(),
-    ejecucion: 0,
-    estado: 'Activo',
-    responsable: '',
-    documentos: '',
-    riesgos: '',
-    obligaciones: ''
-  });
-
   const c = Store.get('contracts', cid) as Contract | undefined;
   if (!c) {
     return (
@@ -78,90 +58,6 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
     exportRows('Subcontratos - ' + c.numero, cols, subcontracts, format);
   };
 
-  const handleCreate = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!form.numero.trim()) return notify('Ingrese el número del subcontrato');
-    if (!form.contratista.trim()) return notify('Ingrese el nombre del subcontratista');
-    if (!form.valor || Number(form.valor) <= 0) return notify('Ingrese un valor válido mayor a cero');
-
-    const newSub: Subcontract = {
-      id: uid('SC'),
-      contractId: cid,
-      numero: form.numero.trim(),
-      contratista: form.contratista.trim(),
-      nit: form.nit.trim(),
-      objeto: form.objeto.trim() || 'Sin objeto especificado',
-      valor: Number(form.valor),
-      fechaInicio: form.fechaInicio,
-      fechaFin: form.fechaFin,
-      ejecucion: Number(form.ejecucion) || 0,
-      estado: form.estado,
-      responsable: form.responsable || c.supervisor || 'Supervisor',
-      documentos: form.documentos,
-      riesgos: form.riesgos,
-      obligaciones: form.obligaciones
-    };
-
-    Store.insert('subcontracts', newSub);
-    Audit.log({
-      contractId: cid,
-      modulo: 'Subcontratos',
-      accion: 'Creación',
-      campo: 'Nuevo subcontrato ' + newSub.numero,
-      nuevo: `${newSub.contratista} · ${money(newSub.valor)}`
-    });
-
-    notify(`Subcontrato ${newSub.numero} registrado con éxito`);
-    setShowModal(false);
-    setForm({
-      numero: '',
-      contratista: '',
-      nit: '',
-      objeto: '',
-      valor: 0,
-      fechaInicio: todayIso(),
-      fechaFin: todayIso(),
-      ejecucion: 0,
-      estado: 'Activo',
-      responsable: '',
-      documentos: '',
-      riesgos: '',
-      obligaciones: ''
-    });
-  };
-
-  const handleUpdate = () => {
-    if (!AuthService.guard('editar')) return;
-    if (!editingSub) return;
-    if (!editingSub.numero.trim()) return notify('El número de subcontrato es requerido');
-    if (!editingSub.contratista.trim()) return notify('El nombre del contratista es requerido');
-
-    Store.update('subcontracts', editingSub.id, {
-      numero: editingSub.numero.trim(),
-      contratista: editingSub.contratista.trim(),
-      nit: editingSub.nit.trim(),
-      objeto: editingSub.objeto.trim(),
-      valor: Number(editingSub.valor) || 0,
-      fechaInicio: editingSub.fechaInicio,
-      fechaFin: editingSub.fechaFin,
-      ejecucion: Number(editingSub.ejecucion) || 0,
-      estado: editingSub.estado,
-      responsable: editingSub.responsable?.trim(),
-      documentos: editingSub.documentos
-    });
-
-    Audit.log({
-      contractId: cid,
-      modulo: 'Subcontratos',
-      accion: 'Edición',
-      campo: 'Subcontrato ' + editingSub.numero,
-      nuevo: `${editingSub.estado} · ${money(editingSub.valor)}`
-    });
-
-    notify(`Subcontrato ${editingSub.numero} actualizado`);
-    setEditingSub(null);
-  };
-
   const handleDelete = async (s: Subcontract) => {
     if (!AuthService.guard('editar')) return;
     const ok = await confirmAction(`¿Está seguro de eliminar el subcontrato ${s.numero} (${s.contratista})? Esta acción no se puede deshacer.`);
@@ -202,9 +98,9 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowModal(true)} aria-label="Crear nuevo subcontrato">
+          <Link className="btn sm pri" href={nuevoHref(cid, 'subcontratos')} aria-label="Crear nuevo subcontrato">
             <Icon name="plus" /> Nuevo subcontrato
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -313,9 +209,9 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
             title="Sin subcontratos registrados"
             description="El contrato principal no registra subcontratos ni cesiones parciales de actividades."
             action={
-              <Button className="btn pri sm" onClick={() => setShowModal(true)}>
+              <Link className="btn pri sm" href={nuevoHref(cid, 'subcontratos')}>
                 <Icon name="plus" /> Registrar primer subcontrato
-              </Button>
+              </Link>
             }
           />
         ) : (
@@ -372,14 +268,14 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
                     <td className="text-xs text-[var(--ink-2)]">{s.responsable || '—'}</td>
                     <td className="nw text-right">
                       <div className="inline-flex items-center gap-1 justify-end">
-                        <Button
+                        <Link
                           className="btn ghost xs"
-                          onClick={() => setEditingSub(s)}
+                          href={editarHref(cid, 'subcontratos', s.id)}
                           title="Editar subcontrato"
                           aria-label={`Editar subcontrato ${s.numero}`}
                         >
                           <Icon name="pencil" size={13} />
-                        </Button>
+                        </Link>
                         <Button
                           className="btn ghost xs text-[var(--crit)] hover:bg-[var(--crit-bg)]"
                           onClick={() => handleDelete(s)}
@@ -398,236 +294,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
         )}
       </Surface>
 
-      {/* Modal Nuevo Subcontrato */}
-      {showModal && (
-        <Modal
-          title="Nuevo subcontrato derivado"
-          onClose={() => setShowModal(false)}
-          size="lg"
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setShowModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                <Icon name="check" /> Guardar Subcontrato
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req font-medium text-xs">Número de subcontrato</label>
-              <Input
-                value={form.numero}
-                placeholder="Ej. SC-001 o SUB-2026-01"
-                onChange={(e) => setForm({ ...form, numero: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Nombre o Razón Social del subcontratista</label>
-              <Input
-                value={form.contratista}
-                placeholder="Nombre de la empresa subcontratada"
-                onChange={(e) => setForm({ ...form, contratista: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">NIT / Identificación tributaria</label>
-              <Input
-                value={form.nit}
-                placeholder="900.000.000-0"
-                onChange={(e) => setForm({ ...form, nit: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Valor del subcontrato (COP)</label>
-              <Input
-                type="number"
-                min="0"
-                step="1000"
-                value={form.valor || ''}
-                onChange={(e) => setForm({ ...form, valor: Number(e.target.value) })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Fecha de inicio</label>
-              <Input
-                type="date"
-                value={form.fechaInicio}
-                onChange={(e) => setForm({ ...form, fechaInicio: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Fecha de terminación</label>
-              <Input
-                type="date"
-                value={form.fechaFin}
-                onChange={(e) => setForm({ ...form, fechaFin: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="font-medium text-xs">% Ejecución actual (0-100)</label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={form.ejecucion || ''}
-                onChange={(e) => setForm({ ...form, ejecucion: Number(e.target.value) })}
-              />
-            </Field>
-            <Field className="f">
-              <label className="font-medium text-xs">Estado operativo</label>
-              <Select
-                value={form.estado}
-                onChange={(e) => setForm({ ...form, estado: e.target.value })}
-              >
-                <option value="Activo">Activo</option>
-                <option value="Suspendido">Suspendido</option>
-                <option value="Terminado">Terminado</option>
-                <option value="Liquidado">Liquidado</option>
-              </Select>
-            </Field>
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Objeto específico del subcontrato</label>
-              <Textarea
-                rows={2}
-                value={form.objeto}
-                placeholder="Alcance, labores o actividades delegadas formalmente..."
-                onChange={(e) => setForm({ ...form, objeto: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f span2">
-              <label className="font-medium text-xs">Soportes, pólizas y documentos radicados</label>
-              <Input
-                value={form.documentos}
-                placeholder="Ej. Contrato suscrito, ARL, póliza de cumplimiento..."
-                onChange={(e) => setForm({ ...form, documentos: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
-
-      {/* Modal Editar Subcontrato */}
-      {editingSub && (
-        <Modal
-          title={`Editar subcontrato · ${editingSub.numero}`}
-          onClose={() => setEditingSub(null)}
-          size="lg"
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setEditingSub(null)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleUpdate}>
-                <Icon name="check" /> Guardar Cambios
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req font-medium text-xs">Número de subcontrato</label>
-              <Input
-                value={editingSub.numero}
-                onChange={(e) => setEditingSub({ ...editingSub, numero: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Subcontratista</label>
-              <Input
-                value={editingSub.contratista}
-                onChange={(e) => setEditingSub({ ...editingSub, contratista: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">NIT</label>
-              <Input
-                value={editingSub.nit}
-                onChange={(e) => setEditingSub({ ...editingSub, nit: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Valor (COP)</label>
-              <Input
-                type="number"
-                min="0"
-                step="1000"
-                value={editingSub.valor || ''}
-                onChange={(e) => setEditingSub({ ...editingSub, valor: Number(e.target.value) })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Fecha inicio</label>
-              <Input
-                type="date"
-                value={editingSub.fechaInicio}
-                onChange={(e) => setEditingSub({ ...editingSub, fechaInicio: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Fecha terminación</label>
-              <Input
-                type="date"
-                value={editingSub.fechaFin}
-                onChange={(e) => setEditingSub({ ...editingSub, fechaFin: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="font-medium text-xs">% Ejecución (0-100)</label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={editingSub.ejecucion || ''}
-                onChange={(e) => setEditingSub({ ...editingSub, ejecucion: Number(e.target.value) })}
-              />
-            </Field>
-            <Field className="f">
-              <label className="font-medium text-xs">Estado</label>
-              <Select
-                value={editingSub.estado}
-                onChange={(e) => setEditingSub({ ...editingSub, estado: e.target.value })}
-              >
-                <option value="Activo">Activo</option>
-                <option value="Suspendido">Suspendido</option>
-                <option value="Terminado">Terminado</option>
-                <option value="Liquidado">Liquidado</option>
-              </Select>
-            </Field>
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Objeto</label>
-              <Textarea
-                rows={2}
-                value={editingSub.objeto}
-                onChange={(e) => setEditingSub({ ...editingSub, objeto: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f span2">
-              <label className="font-medium text-xs">Documentos de soporte</label>
-              <Input
-                value={editingSub.documentos || ''}
-                onChange={(e) => setEditingSub({ ...editingSub, documentos: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
+      {/* Alta/edición desde vistas dedicadas: /subcontratos/nueva y /subcontratos/[id]/editar (modal cero) */}
     </div>
   );
 };

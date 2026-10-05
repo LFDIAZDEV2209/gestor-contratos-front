@@ -1,30 +1,19 @@
 'use client';
-import { Select, Input, Textarea } from '../ui/Controls';
+import Link from 'next/link';
 import { notify, requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
+import { Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Acta } from '../../lib/types';
-import { Store, AuthService, Audit } from '../../lib/store';
-import { CAT } from '../../lib/catalog';
-import { fdate, todayIso, uid } from '../../lib/format';
+import { Store, AuthService } from '../../lib/store';
+import { fdate } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+import { nuevoHref } from './routes';
 
 export const TabActas = ({ cid }: { cid: string }) => {
-  const [showModal, setShowModal] = useState(false);
   const [filterTipo, setFilterTipo] = useState('');
-  const [form, setForm] = useState({
-    tipo: 'Acta de inicio',
-    numero: '',
-    fecha: todayIso(),
-    descripcion: '',
-    firmantes: '',
-    estado: 'Firmada',
-    archivo: ''
-  });
 
   const c = Store.get('contracts', cid);
   if (!c) return <div className="empty">Contrato no encontrado</div>;
@@ -44,45 +33,6 @@ export const TabActas = ({ cid }: { cid: string }) => {
       { l: 'Estado', k: 'estado' }
     ];
     exportRows('Actas - ' + c.numero, cols, filtered, format);
-  };
-
-  const handleCreate = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!form.numero.trim()) return notify('Ingrese el número del acta');
-    if (!form.fecha) return notify('Ingrese la fecha del acta');
-
-    const nuevaActa: Acta = {
-      id: uid('AC'),
-      contractId: cid,
-      tipo: form.tipo,
-      numero: form.numero.trim(),
-      fecha: form.fecha,
-      descripcion: form.descripcion,
-      firmantes: form.firmantes,
-      estado: form.estado,
-      archivo: form.archivo || `${form.numero.replace(/\s+/g, '_')}.pdf`
-    };
-
-    Store.insert('actas', nuevaActa);
-    Audit.log({
-      contractId: cid,
-      modulo: 'Actas',
-      accion: 'Creación',
-      campo: 'Nueva acta ' + nuevaActa.numero,
-      nuevo: `${nuevaActa.tipo} - ${nuevaActa.fecha}`
-    });
-
-    notify('Acta registrada');
-    setShowModal(false);
-    setForm({
-      tipo: 'Acta de inicio',
-      numero: '',
-      fecha: todayIso(),
-      descripcion: '',
-      firmantes: '',
-      estado: 'Firmada',
-      archivo: ''
-    });
   };
 
   /* Anulación con motivo obligatorio (files/08): pide permiso ANULAR y el motivo queda en auditoría. */
@@ -114,9 +64,9 @@ export const TabActas = ({ cid }: { cid: string }) => {
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowModal(true)}>
+          <Link className="btn sm pri" href={nuevoHref(cid, 'actas')}>
             <Icon name="plus" /> Nueva acta
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -225,97 +175,11 @@ export const TabActas = ({ cid }: { cid: string }) => {
           title="Sin actas registradas"
           description="Registra el acta de inicio y las actas parciales para soportar la ejecución del contrato."
           action={
-            <Button className="btn sm pri" onClick={() => setShowModal(true)}>
+            <Link className="btn sm pri" href={nuevoHref(cid, 'actas')}>
               <Icon name="plus" /> Registrar primera acta
-            </Button>
+            </Link>
           }
         />
-      )}
-
-      {showModal && (
-        <Modal
-          title="Nueva acta contractual"
-          onClose={() => setShowModal(false)}
-          size="lg"
-          footer={
-            <>
-              <Button className="btn" onClick={() => setShowModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                <Icon name="save" /> Registrar acta
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req">Tipo de acta</label>
-              <Select
-                value={form.tipo}
-                onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-              >
-                {CAT('tiposActa').map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field className="f">
-              <label className="req">Número de acta</label>
-              <Input
-                value={form.numero}
-                placeholder="Ej. ACT-001"
-                onChange={(e) => setForm({ ...form, numero: e.target.value })}
-              />
-            </Field>
-            <Field className="f">
-              <label className="req">Fecha</label>
-              <Input
-                type="date"
-                value={form.fecha}
-                onChange={(e) => setForm({ ...form, fecha: e.target.value })}
-              />
-            </Field>
-            <Field className="f">
-              <label>Estado</label>
-              <Select
-                value={form.estado}
-                onChange={(e) => setForm({ ...form, estado: e.target.value })}
-              >
-                <option value="Borrador">Borrador</option>
-                <option value="En firmas">En firmas</option>
-                <option value="Firmada">Firmada</option>
-              </Select>
-            </Field>
-            <Field className="f span2">
-              <label>Firmantes</label>
-              <Input
-                value={form.firmantes}
-                placeholder="Nombres y cargos de quienes suscriben el acta"
-                onChange={(e) => setForm({ ...form, firmantes: e.target.value })}
-              />
-            </Field>
-            <Field className="f span2">
-              <label>Descripción / Objeto del acta</label>
-              <Textarea
-                rows={3}
-                value={form.descripcion}
-                placeholder="Detalle o acuerdos registrados en el acta..."
-                onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-              />
-            </Field>
-            <Field className="f span2">
-              <label>Documento soporte (archivo)</label>
-              <Input
-                value={form.archivo}
-                placeholder="Nombre del archivo adjunto (ej. acta_inicio_firmada.pdf)"
-                onChange={(e) => setForm({ ...form, archivo: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
       )}
     </Surface>
   );

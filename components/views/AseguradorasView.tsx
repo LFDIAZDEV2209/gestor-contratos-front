@@ -1,20 +1,17 @@
 'use client';
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
-import { Select, Input } from '../ui/Controls';
-import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, TableViewport, DataTable, FormGrid, EmptyState } from '../ui/Workspace';
+import { PageHeader, Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { useEffect, useState } from 'react';
-import type { Guarantee, Contract, Cupo } from '../../lib/types';
-import { Store, AuthService, Audit } from '../../lib/store';
+import type { Guarantee, Cupo } from '../../lib/types';
+import { Store, AuthService } from '../../lib/store';
 import { CAT } from '../../lib/catalog';
 import { cupoStats, activeContracts, contractInsurers } from '../../lib/metrics';
-import { money, moneyM, pct, fdate, diffDays, todayIso, uid, sum, clamp, groupBy } from '../../lib/format';
+import { money, moneyM, pct, fdate, diffDays, todayIso, sum, clamp, groupBy } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
 
 const PAGE_SIZE = 10;
@@ -70,20 +67,8 @@ export const AseguradorasView = ({
   onSelectContract: (cid: string, tab?: string) => void;
   onNavigateToGarantias?: () => void;
 }) => {
-  const [showCupoModal, setShowCupoModal] = useState(false);
   const [pageMatrix, setPageMatrix] = useState(1);
   const [pageCupos, setPageCupos] = useState(1);
-  const [cupoForm, setCupoForm] = useState({
-    aseguradora: CAT('aseguradoras')[0] || 'Seguros del Estado S.A.',
-    numero: '',
-    tomador: '',
-    intermediario: '',
-    valor: 0,
-    fechaInicio: todayIso(),
-    fechaVenc: todayIso(),
-    estado: 'Vigente',
-    observaciones: ''
-  });
 
   const allGuarantees = (Store.all('guarantees') as Guarantee[]).filter((g) => {
     const c = Store.get('contracts', g.contractId);
@@ -143,35 +128,6 @@ export const AseguradorasView = ({
   const totalPagesCupos = Math.max(1, Math.ceil(allCupos.length / PAGE_SIZE));
   const currentPageCupos = Math.min(pageCupos, totalPagesCupos);
   const cupoRows = allCupos.slice((currentPageCupos - 1) * PAGE_SIZE, currentPageCupos * PAGE_SIZE);
-
-  const handleCreateCupo = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!cupoForm.numero.trim()) return notify('Ingrese el número del cupo');
-    if (!cupoForm.valor) return notify('Ingrese el valor asignado al cupo');
-
-    const newCp: Cupo = {
-      id: uid('CP'),
-      aseguradora: cupoForm.aseguradora,
-      numero: cupoForm.numero.trim(),
-      tomador: cupoForm.tomador,
-      intermediario: cupoForm.intermediario,
-      valor: Number(cupoForm.valor),
-      fechaInicio: cupoForm.fechaInicio,
-      fechaVenc: cupoForm.fechaVenc,
-      estado: cupoForm.estado,
-      observaciones: cupoForm.observaciones
-    };
-
-    Store.insert('cupos', newCp);
-    Audit.log({
-      modulo: 'Cupos',
-      accion: 'Creación',
-      campo: 'Cupo ' + newCp.numero,
-      nuevo: `${newCp.aseguradora} - ${money(newCp.valor)}`
-    });
-
-    setShowCupoModal(false);
-  };
 
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv') => {
     const cols = [
@@ -256,9 +212,11 @@ export const AseguradorasView = ({
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowCupoModal(true)}>
-            <Icon name="plus" /> Nuevo cupo
-          </Button>
+          {AuthService.can('crear') && (
+            <Link href="/aseguradoras/cupos/nuevo" className="btn sm pri">
+              <Icon name="plus" /> Nuevo cupo
+            </Link>
+          )}
         </div>
       </PageHeader>
 
@@ -310,9 +268,11 @@ export const AseguradorasView = ({
             title="Aún no hay aseguradoras con pólizas"
             description="Las tarjetas resumen aparecerán cuando registres pólizas asociadas a contratos activos."
             action={
-              <Button className="btn sm pri" onClick={() => setShowCupoModal(true)} style={{ marginTop: 8 }}>
-                <Icon name="plus" /> Registrar primer cupo
-              </Button>
+              AuthService.can('crear') ? (
+                <Link href="/aseguradoras/cupos/nuevo" className="btn sm pri" style={{ marginTop: 8 }}>
+                  <Icon name="plus" /> Registrar primer cupo
+                </Link>
+              ) : undefined
             }
           />
         </Surface>
@@ -554,9 +514,11 @@ export const AseguradorasView = ({
             </h3>
             <span className="sub small muted">Líneas globales de seguro rotativo por aseguradora</span>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowCupoModal(true)}>
-            <Icon name="plus" /> Nuevo cupo
-          </Button>
+          {AuthService.can('crear') && (
+            <Link href="/aseguradoras/cupos/nuevo" className="btn sm pri">
+              <Icon name="plus" /> Nuevo cupo
+            </Link>
+          )}
         </div>
         <TableViewport className="tbl-wrap">
           <DataTable className="tbl">
@@ -633,9 +595,13 @@ export const AseguradorasView = ({
                       title="No hay cupos registrados"
                       description="Registra la primera línea de afianzamiento para controlar el uso por aseguradora."
                       action={
-                        <Button className="btn sm pri" onClick={() => setShowCupoModal(true)} style={{ marginTop: 8 }}>
+                        <Link
+                          href="/aseguradoras/cupos/nuevo"
+                          className="btn sm pri"
+                          style={{ marginTop: 8 }}
+                        >
                           <Icon name="plus" /> Nuevo cupo
-                        </Button>
+                        </Link>
                       }
                     />
                   </td>
@@ -682,97 +648,6 @@ export const AseguradorasView = ({
         </TableViewport>
       </Surface>
 
-      {/* Modal for New Quota */}
-      {showCupoModal && (
-        <Modal
-          title="Nuevo cupo de aseguradora"
-          onClose={() => setShowCupoModal(false)}
-          size="md"
-          footer={
-            <>
-              <Button className="btn" onClick={() => setShowCupoModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreateCupo}>
-                <Icon name="check" /> Registrar cupo
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="grid g-1" style={{ gap: '14px' }}>
-            <div>
-              <label className="lbl required">Aseguradora</label>
-              <Select
-                className="inp"
-                value={cupoForm.aseguradora}
-                onChange={(e) => setCupoForm({ ...cupoForm, aseguradora: e.target.value })}
-              >
-                {CAT('aseguradoras').map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="lbl required">Número / Código de cupo</label>
-              <Input
-                className="inp"
-                value={cupoForm.numero}
-                placeholder="Ej. CUP-SURA-2026"
-                onChange={(e) => setCupoForm({ ...cupoForm, numero: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl required">Valor total asignado</label>
-              <Input
-                type="number"
-                className="inp"
-                value={cupoForm.valor}
-                onChange={(e) => setCupoForm({ ...cupoForm, valor: Number(e.target.value) })}
-              />
-            </div>
-            <FormGrid className="grid g-2" style={{ gap: '10px' }}>
-              <div>
-                <label className="lbl required">Fecha inicio</label>
-                <Input
-                  type="date"
-                  className="inp"
-                  value={cupoForm.fechaInicio}
-                  onChange={(e) => setCupoForm({ ...cupoForm, fechaInicio: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="lbl required">Fecha vencimiento</label>
-                <Input
-                  type="date"
-                  className="inp"
-                  value={cupoForm.fechaVenc}
-                  onChange={(e) => setCupoForm({ ...cupoForm, fechaVenc: e.target.value })}
-                />
-              </div>
-            </FormGrid>
-            <div>
-              <label className="lbl">Tomador / Beneficiario</label>
-              <Input
-                className="inp"
-                value={cupoForm.tomador}
-                placeholder="Razón social contratante o consorcio"
-                onChange={(e) => setCupoForm({ ...cupoForm, tomador: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="lbl">Intermediario / Corredor</label>
-              <Input
-                className="inp"
-                value={cupoForm.intermediario}
-                placeholder="Agencia o corredor de seguros"
-                onChange={(e) => setCupoForm({ ...cupoForm, intermediario: e.target.value })}
-              />
-            </div>
-          </FormGrid>
-        </Modal>
-      )}
     </div>
   );
 };

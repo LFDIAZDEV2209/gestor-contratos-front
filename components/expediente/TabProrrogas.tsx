@@ -1,27 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { Input, Textarea } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
+import { Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import type { Modification, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
-import { fdate, todayIso, uid, diffDays, addDays } from '../../lib/format';
+import { fdate, diffDays } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+import Link from 'next/link';
+import { nuevoHref } from './routes';
 
 export const TabProrrogas = ({ cid }: { cid: string }) => {
-  const [showModal, setShowModal] = useState(false);
-  const [diasAdd, setDiasAdd] = useState(30);
-  const [nuevaFecha, setNuevaFecha] = useState('');
-  const [numero, setNumero] = useState('');
-  const [justificacion, setJustificacion] = useState('');
-  const [soporte, setSoporte] = useState('');
-
   const c = Store.get('contracts', cid) as Contract | undefined;
   if (!c) {
     return (
@@ -40,54 +32,6 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
   const originalEnd = first?.fechaAnterior || c.fechaFin;
   const totalDays = originalEnd && c.fechaFin ? diffDays(originalEnd, c.fechaFin) : 0;
   const activeProrrogas = prorrogas.filter((p) => !p.anulada);
-
-  const handleOpen = () => {
-    const base = c.fechaFin || todayIso();
-    setDiasAdd(30);
-    setNuevaFecha(addDays(base, 30));
-    setNumero(`PRO-${Date.now().toString().slice(-4)}`);
-    setJustificacion('');
-    setSoporte('');
-    setShowModal(true);
-  };
-
-  const handleCreate = () => {
-    if (!AuthService.guard('editar')) return;
-    if (!nuevaFecha) return notify('Seleccione la nueva fecha de terminación');
-    if (!justificacion.trim()) return notify('Ingrese la justificación técnica de la prórroga');
-
-    const before = JSON.parse(JSON.stringify(c));
-    const newMod: Modification = {
-      id: uid('MD'),
-      contractId: cid,
-      numero: numero.trim() || `PRO-${Date.now().toString().slice(-4)}`,
-      tipo: 'Prórroga',
-      fecha: todayIso(),
-      justificacion: justificacion.trim(),
-      soporte: soporte.trim() || `${numero}.pdf`,
-      fechaAnterior: c.fechaFin,
-      fechaNueva: nuevaFecha,
-      anulada: false
-    };
-
-    Store.insert('modifications', newMod);
-
-    const patch: Partial<Contract> = { fechaFin: nuevaFecha };
-    if (c.estado === 'Terminado') patch.estado = 'Activo';
-
-    Store.update('contracts', cid, patch);
-    Audit.diff('Contratos', cid, before, { ...c, ...patch }, {
-      fechaFin: 'Fecha de terminación contractual (Prórroga)'
-    });
-
-    const hasGuarantees = Store.byContract('guarantees', cid).length > 0;
-    if (hasGuarantees) {
-      notify('Atención: La ampliación de plazo puede requerir modificar la vigencia de las pólizas de garantía.');
-    }
-
-    notify(`Prórroga ${newMod.numero} registrada exitosamente (+${diffDays(c.fechaFin, nuevaFecha)} días)`);
-    setShowModal(false);
-  };
 
   const handleAnular = async (p: Modification) => {
     if (!AuthService.guard('editar')) return;
@@ -162,9 +106,9 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={handleOpen} aria-label="Crear prórroga">
+          <Link className="btn sm pri" href={nuevoHref(cid, 'prorrogas')} aria-label="Crear prórroga">
             <Icon name="calendar-plus" /> Crear prórroga
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -214,9 +158,9 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
             title="El contrato no registra prórrogas"
             description="El plazo de ejecución se mantiene según la fecha de terminación estipulada originalmente."
             action={
-              <Button className="btn pri sm" onClick={handleOpen}>
+              <Link className="btn pri sm" href={nuevoHref(cid, 'prorrogas')}>
                 <Icon name="calendar-plus" /> Crear primera prórroga
-              </Button>
+              </Link>
             }
           />
         ) : (
@@ -302,92 +246,7 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
         )}
       </Surface>
 
-      {/* Modal Crear Prórroga */}
-      {showModal && (
-        <Modal
-          title="Crear prórroga contractual (ampliación de plazo)"
-          onClose={() => setShowModal(false)}
-          size="md"
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setShowModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                <Icon name="calendar-plus" /> Registrar prórroga
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f span2">
-              <label className="font-medium text-xs">Fecha de terminación contractual actual</label>
-              <Input value={fdate(c.fechaFin)} disabled readOnly />
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Días de ampliación</label>
-              <Input
-                type="number"
-                min="1"
-                step="1"
-                value={diasAdd}
-                onChange={(e) => {
-                  const d = Number(e.target.value);
-                  setDiasAdd(d);
-                  setNuevaFecha(addDays(c.fechaFin || todayIso(), d));
-                }}
-                required
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Nueva fecha de terminación calculada</label>
-              <Input
-                type="date"
-                value={nuevaFecha}
-                onChange={(e) => {
-                  setNuevaFecha(e.target.value);
-                  if (c.fechaFin) {
-                    setDiasAdd(Math.max(0, diffDays(c.fechaFin, e.target.value)));
-                  }
-                }}
-                required
-              />
-            </Field>
-
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Número / Referencia del Otrosí</label>
-              <Input
-                value={numero}
-                placeholder="Ej. OTROSI-02 o PRO-2026-01"
-                onChange={(e) => setNumero(e.target.value)}
-                required
-              />
-            </Field>
-
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Justificación técnica y operativa</label>
-              <Textarea
-                rows={3}
-                value={justificacion}
-                placeholder="Exposición de motivos, causas imprevistas o razones técnicas que justifican ampliar el plazo..."
-                onChange={(e) => setJustificacion(e.target.value)}
-                required
-              />
-            </Field>
-
-            <Field className="f span2">
-              <label className="font-medium text-xs">Documento soporte (archivo radicado)</label>
-              <Input
-                value={soporte}
-                placeholder="Ej. otrosi_prorroga_02_firmado.pdf"
-                onChange={(e) => setSoporte(e.target.value)}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
+      {/* Aviso normativo: prórroga desde vista dedicada /contrato/[id]/prorrogas/nueva (modal cero) */}
     </div>
   );
 };

@@ -1,39 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { Textarea, Select, Input } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
+import { Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { RiskMatrix } from '../ui/RiskMatrix';
 import { riskPresentation } from '../ui/presentation';
 import type { Risk } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
-import { CAT } from '../../lib/catalog';
 import { riskClass, riskLevel } from '../../lib/metrics';
-import { fdate, todayIso, uid } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+import Link from 'next/link';
+import { nuevoHref, editarHref } from './routes';
 
 export const TabRiesgos = ({ cid }: { cid: string }) => {
-  const [showModal, setShowModal] = useState(false);
-  const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ p: number; i: number } | null>(null);
-
-  const [form, setForm] = useState({
-    categoria: 'Operativo',
-    riesgo: '',
-    prob: 3,
-    impacto: 3,
-    responsable: '',
-    tratamiento: 'Mitigar',
-    mitigacion: '',
-    estado: 'Abierto',
-    evidencia: ''
-  });
 
   const c = Store.get('contracts', cid);
   if (!c) {
@@ -83,77 +67,6 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
       { l: 'Mitigación', k: 'mitigacion' }
     ];
     exportRows('Matriz de Riesgos - ' + c.numero, cols, filteredRisks, format);
-  };
-
-  const handleCreate = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!form.riesgo.trim()) return notify('Ingrese la descripción del riesgo');
-
-    const newRisk: Risk = {
-      id: uid('RG'),
-      contractId: cid,
-      categoria: form.categoria,
-      riesgo: form.riesgo.trim(),
-      prob: Number(form.prob),
-      impacto: Number(form.impacto),
-      responsable: form.responsable.trim() || c.responsable || 'Supervisor',
-      tratamiento: form.tratamiento,
-      mitigacion: form.mitigacion.trim(),
-      fecha: todayIso(),
-      estado: form.estado,
-      evidencia: form.evidencia.trim()
-    };
-
-    Store.insert('risks', newRisk);
-    Audit.log({
-      contractId: cid,
-      modulo: 'Riesgos',
-      accion: 'Creación',
-      campo: 'Nuevo riesgo ' + newRisk.id,
-      nuevo: `${newRisk.categoria}: ${(newRisk.riesgo || newRisk.descripcion || '').slice(0, 40)} (P${newRisk.prob}xI${newRisk.impacto})`
-    });
-
-    notify(`Riesgo registrado en la matriz`);
-    setShowModal(false);
-    setForm({
-      categoria: 'Operativo',
-      riesgo: '',
-      prob: 3,
-      impacto: 3,
-      responsable: '',
-      tratamiento: 'Mitigar',
-      mitigacion: '',
-      estado: 'Abierto',
-      evidencia: ''
-    });
-  };
-
-  const handleUpdate = () => {
-    if (!AuthService.guard('editar')) return;
-    if (!editingRisk) return;
-    if (!editingRisk.riesgo?.trim()) return notify('La descripción del riesgo es requerida');
-
-    Store.update('risks', editingRisk.id, {
-      riesgo: editingRisk.riesgo.trim(),
-      categoria: editingRisk.categoria,
-      prob: Number(editingRisk.prob),
-      impacto: Number(editingRisk.impacto),
-      responsable: editingRisk.responsable?.trim(),
-      tratamiento: editingRisk.tratamiento,
-      mitigacion: editingRisk.mitigacion?.trim(),
-      estado: editingRisk.estado
-    });
-
-    Audit.log({
-      contractId: cid,
-      modulo: 'Riesgos',
-      accion: 'Edición',
-      campo: 'Riesgo ' + editingRisk.id,
-      nuevo: `P${editingRisk.prob}xI${editingRisk.impacto} (${editingRisk.estado})`
-    });
-
-    notify(`Riesgo ${editingRisk.id} actualizado`);
-    setEditingRisk(null);
   };
 
   const handleUpdateStatus = (risk: Risk, newEstado: string) => {
@@ -210,9 +123,9 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowModal(true)} aria-label="Registrar nuevo riesgo">
+          <Link className="btn sm pri" href={nuevoHref(cid, 'riesgos')} aria-label="Registrar nuevo riesgo">
             <Icon name="plus" /> Nuevo riesgo
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -270,7 +183,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
             <RiskMatrix risks={activeRisks} selected={selectedCell} onSelect={setSelectedCell} />
           </div>
 
-          {/* Leyenda con tokens semánticos Seven Save */}
+          {/* Leyenda con tokens semánticos Seven Safe */}
           <div className="legend mt-4 pt-3 border-t flex flex-wrap gap-3 text-xs" style={{ borderColor: 'var(--line)' }}>
             <span className="inline-flex items-center gap-1.5">
               <span className="sem" style={{ background: 'var(--ok)' }}></span> Bajo (1–4)
@@ -330,9 +243,9 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
                     Mostrar todos
                   </Button>
                 ) : (
-                  <Button className="btn pri sm" onClick={() => setShowModal(true)}>
+                  <Link className="btn pri sm" href={nuevoHref(cid, 'riesgos')}>
                     <Icon name="plus" /> Registrar primer riesgo
-                  </Button>
+                  </Link>
                 )
               }
             />
@@ -412,14 +325,14 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
                             >
                               <Icon name={r.estado === 'Cerrado' ? 'rotate-ccw' : 'check'} size={13} />
                             </Button>
-                            <Button
+                            <Link
                               className="btn ghost xs"
-                              onClick={() => setEditingRisk({ ...r })}
+                              href={editarHref(cid, 'riesgos', r.id)}
                               title="Editar riesgo"
                               aria-label={`Editar riesgo ${r.riesgo}`}
                             >
                               <Icon name="pencil" size={13} />
-                            </Button>
+                            </Link>
                             <Button
                               className="btn ghost xs text-[var(--crit)] hover:bg-[var(--crit-bg)]"
                               onClick={() => handleDelete(r)}
@@ -440,238 +353,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
         </Surface>
       </div>
 
-      {/* Modal Nuevo Riesgo */}
-      {showModal && (
-        <Modal
-          title="Nuevo riesgo contractual"
-          onClose={() => setShowModal(false)}
-          size="lg"
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setShowModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                <Icon name="check" /> Registrar Riesgo
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Descripción del evento de riesgo</label>
-              <Textarea
-                rows={2}
-                value={form.riesgo}
-                placeholder="Descripción concisa de la amenaza o evento que podría impactar el contrato..."
-                onChange={(e) => setForm({ ...form, riesgo: e.target.value })}
-                required
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Categoría de riesgo</label>
-              <Select
-                value={form.categoria}
-                onChange={(e) => setForm({ ...form, categoria: e.target.value })}
-              >
-                {CAT('categoriasRiesgo').map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Responsable del monitoreo</label>
-              <Input
-                value={form.responsable}
-                placeholder={c.responsable || 'Supervisor designado'}
-                onChange={(e) => setForm({ ...form, responsable: e.target.value })}
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Probabilidad (1 a 5)</label>
-              <Select
-                value={form.prob}
-                onChange={(e) => setForm({ ...form, prob: Number(e.target.value) })}
-              >
-                <option value={1}>1 - Muy baja (Raro)</option>
-                <option value={2}>2 - Baja (Poco probable)</option>
-                <option value={3}>3 - Media (Posible)</option>
-                <option value={4}>4 - Alta (Probable)</option>
-                <option value={5}>5 - Muy alta (Casi seguro)</option>
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Impacto (1 a 5)</label>
-              <Select
-                value={form.impacto}
-                onChange={(e) => setForm({ ...form, impacto: Number(e.target.value) })}
-              >
-                <option value={1}>1 - Leve (Insignificante)</option>
-                <option value={2}>2 - Menor</option>
-                <option value={3}>3 - Moderado</option>
-                <option value={4}>4 - Mayor</option>
-                <option value={5}>5 - Catastrófico</option>
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Estrategia de tratamiento</label>
-              <Select
-                value={form.tratamiento}
-                onChange={(e) => setForm({ ...form, tratamiento: e.target.value })}
-              >
-                <option value="Mitigar">Mitigar (Reducir probabilidad o impacto)</option>
-                <option value="Transferir">Transferir (Pólizas / Subcontratos)</option>
-                <option value="Aceptar">Aceptar (Asumir riesgo residual)</option>
-                <option value="Evitar">Evitar (Modificar términos)</option>
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Estado inicial</label>
-              <Select
-                value={form.estado}
-                onChange={(e) => setForm({ ...form, estado: e.target.value })}
-              >
-                <option value="Abierto">Abierto</option>
-                <option value="Controlado">Controlado</option>
-                <option value="Cerrado">Cerrado</option>
-              </Select>
-            </Field>
-
-            <Field className="f span2">
-              <label className="font-medium text-xs">Plan de mitigación / Controles preventivos</label>
-              <Textarea
-                rows={3}
-                value={form.mitigacion}
-                placeholder="Acciones preventivas, controles operacionales y protocolos de contingencia..."
-                onChange={(e) => setForm({ ...form, mitigacion: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
-
-      {/* Modal Editar Riesgo */}
-      {editingRisk && (
-        <Modal
-          title={`Editar riesgo · ${editingRisk.id}`}
-          onClose={() => setEditingRisk(null)}
-          size="lg"
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setEditingRisk(null)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleUpdate}>
-                <Icon name="check" /> Guardar Cambios
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Descripción del riesgo</label>
-              <Textarea
-                rows={2}
-                value={editingRisk.riesgo || ''}
-                onChange={(e) => setEditingRisk({ ...editingRisk, riesgo: e.target.value })}
-                required
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Categoría</label>
-              <Select
-                value={editingRisk.categoria}
-                onChange={(e) => setEditingRisk({ ...editingRisk, categoria: e.target.value })}
-              >
-                {CAT('categoriasRiesgo').map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Responsable</label>
-              <Input
-                value={editingRisk.responsable || ''}
-                onChange={(e) => setEditingRisk({ ...editingRisk, responsable: e.target.value })}
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Probabilidad (1 a 5)</label>
-              <Select
-                value={editingRisk.prob}
-                onChange={(e) => setEditingRisk({ ...editingRisk, prob: Number(e.target.value) })}
-              >
-                <option value={1}>1 - Muy baja</option>
-                <option value={2}>2 - Baja</option>
-                <option value={3}>3 - Media</option>
-                <option value={4}>4 - Alta</option>
-                <option value={5}>5 - Muy alta</option>
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Impacto (1 a 5)</label>
-              <Select
-                value={editingRisk.impacto}
-                onChange={(e) => setEditingRisk({ ...editingRisk, impacto: Number(e.target.value) })}
-              >
-                <option value={1}>1 - Leve</option>
-                <option value={2}>2 - Menor</option>
-                <option value={3}>3 - Moderado</option>
-                <option value={4}>4 - Mayor</option>
-                <option value={5}>5 - Catastrófico</option>
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Tratamiento</label>
-              <Select
-                value={editingRisk.tratamiento || 'Mitigar'}
-                onChange={(e) => setEditingRisk({ ...editingRisk, tratamiento: e.target.value })}
-              >
-                <option value="Mitigar">Mitigar</option>
-                <option value="Transferir">Transferir</option>
-                <option value="Aceptar">Aceptar</option>
-                <option value="Evitar">Evitar</option>
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="font-medium text-xs">Estado</label>
-              <Select
-                value={editingRisk.estado}
-                onChange={(e) => setEditingRisk({ ...editingRisk, estado: e.target.value })}
-              >
-                <option value="Abierto">Abierto</option>
-                <option value="Controlado">Controlado</option>
-                <option value="Cerrado">Cerrado</option>
-              </Select>
-            </Field>
-
-            <Field className="f span2">
-              <label className="font-medium text-xs">Plan de mitigación</label>
-              <Textarea
-                rows={3}
-                value={editingRisk.mitigacion || ''}
-                onChange={(e) => setEditingRisk({ ...editingRisk, mitigacion: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
+      {/* Alta/edición de riesgo desde vistas dedicadas: /riesgos/nueva y /riesgos/[id]/editar (modal cero) */}
     </div>
   );
 };

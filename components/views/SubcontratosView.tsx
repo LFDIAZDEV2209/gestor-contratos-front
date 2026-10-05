@@ -2,38 +2,18 @@
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
 import { PBar } from '../ui/PBar';
-import { Input, Select, Textarea } from '../ui/Controls';
-import { notify } from '../ui/Feedback';
+import { Input, Select } from '../ui/Controls';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, Field, TableViewport, DataTable, FormGrid, EmptyState } from '../ui/Workspace';
+import { PageHeader, Surface, Field, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Subcontract, Contract, Company } from '../../lib/types';
-import { Store, AuthService, Audit } from '../../lib/store';
+import { Store, AuthService } from '../../lib/store';
 import { M, companyName } from '../../lib/metrics';
-import { money, moneyM, pct, fdate, sum, todayIso, addDays, diffDays, daysTxt, uid } from '../../lib/format';
+import { money, moneyM, pct, fdate, sum, todayIso, diffDays, daysTxt } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
-
-// Valores de partida del formulario de creación
-const FORM_DEFAULT = {
-  contractId: '',
-  numero: '',
-  contratista: '',
-  nit: '',
-  objeto: '',
-  valor: 0,
-  fechaInicio: todayIso(),
-  fechaFin: addDays(todayIso(), 30),
-  ejecucion: 0,
-  estado: 'Activo',
-  responsable: '',
-  documentos: '',
-  riesgos: '',
-  obligaciones: ''
-};
 
 // Un subcontrato "Activo" con vigencia vencida se presenta como Vencido
 // (misma regla efectiva que aplican las obligaciones y entregables).
@@ -51,8 +31,6 @@ export const SubcontratosView = ({
   const [filterEstado, setFilterEstado] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
   const [showTree, setShowTree] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState(FORM_DEFAULT);
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -132,55 +110,11 @@ export const SubcontratosView = ({
   const hasFilters = Boolean(q || filterCompany || filterEstado);
 
   // Solo los accesos de escritura exigen permiso; la vista sigue siendo consultable.
-  const openCreate = () => {
-    if (AuthService.guard('crear')) {
-      setForm(FORM_DEFAULT);
-      setShowModal(true);
-    }
-  };
+  // La creación y la edición son VISTAS dedicadas (/subcontratos/nuevo y /…/editar).
+  const puedeCrear = AuthService.can('crear');
+  const puedeEditar = AuthService.can('editar');
 
-  const handleCreate = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!form.contractId) return notify('Seleccione el contrato principal');
-    if (!form.numero.trim()) return notify('Ingrese el número del subcontrato');
-    if (!form.contratista.trim()) return notify('Ingrese el nombre del contratista');
-    if (!form.nit.trim()) return notify('Ingrese el NIT del subcontratista');
-    if (!form.valor || form.valor <= 0) return notify('El valor del subcontrato debe ser mayor a cero');
-    if (!form.objeto.trim()) return notify('Ingrese el objeto del subcontrato');
-    if (form.fechaFin < form.fechaInicio) return notify('La fecha de terminación debe ser posterior a la de inicio');
-
-    const newSub: Subcontract = {
-      id: uid('SC'),
-      contractId: form.contractId,
-      numero: form.numero.trim(),
-      contratista: form.contratista.trim(),
-      nit: form.nit.trim(),
-      objeto: form.objeto.trim(),
-      valor: Number(form.valor) || 0,
-      fechaInicio: form.fechaInicio,
-      fechaFin: form.fechaFin,
-      ejecucion: Number(form.ejecucion) || 0,
-      estado: form.estado,
-      responsable: form.responsable,
-      documentos: form.documentos,
-      riesgos: form.riesgos,
-      obligaciones: form.obligaciones
-    };
-
-    Store.insert('subcontracts', newSub);
-    const parent = Store.get('contracts', form.contractId);
-    Audit.log({
-      contractId: form.contractId,
-      modulo: 'Subcontratos',
-      accion: 'Creación',
-      campo: 'Nuevo subcontrato ' + newSub.numero,
-      nuevo: `${newSub.contratista} · ${money(newSub.valor)}`
-    });
-    notify(`Subcontrato «${newSub.numero}» registrado en el contrato ${parent?.numero || form.contractId}.`);
-
-    setShowModal(false);
-    setForm(FORM_DEFAULT);
-  };
+  const linkNuevo = '/subcontratos/nuevo';
 
   return (
     <div>
@@ -249,9 +183,11 @@ export const SubcontratosView = ({
           <Button className="btn" onClick={() => setShowTree(!showTree)} aria-pressed={showTree}>
             <Icon name="diagram-project" /> {showTree ? 'Ver tabla' : 'Ver árbol'}
           </Button>
-          <Button className="btn pri" onClick={openCreate}>
-            <Icon name="plus" /> Nuevo subcontrato
-          </Button>
+          {puedeCrear && (
+            <Link href={linkNuevo} className="btn pri">
+              <Icon name="plus" /> Nuevo subcontrato
+            </Link>
+          )}
         </div>
       </PageHeader>
 
@@ -287,11 +223,23 @@ export const SubcontratosView = ({
           }}
         />
         <Kpi
+          label="Vencidos"
+          value={vencidos}
+          icon="clock"
+          color={vencidos > 0 ? 'risk' : 'na'}
+          sub={vencidos > 0 ? 'Requieren atención' : 'Sin vencidos'}
+          className="anim-fade-rise stagger-4 click"
+          onClick={() => {
+            setFilterEstado('Vencido');
+            setPage(1);
+          }}
+        />
+        <Kpi
           label="Ejecución Promedio"
           value={pct(avgExec, 0)}
           icon="trending-up"
           color={execTone}
-          className="anim-fade-rise stagger-4"
+          className="anim-fade-rise stagger-5"
         />
       </div>
 
@@ -312,9 +260,9 @@ export const SubcontratosView = ({
                 title="Sin subcontratos en la red"
                 description="Cuando registre subcontratos, la relación empresa → contrato → subcontrato se dibujará aquí."
                 action={
-                  <Button className="btn pri sm" onClick={openCreate} style={{ marginTop: 8 }}>
+                  <Link href={linkNuevo} className="btn pri sm" style={{ marginTop: 8 }}>
                     <Icon name="plus" /> Registrar el primer subcontrato
-                  </Button>
+                  </Link>
                 }
               />
             ) : (
@@ -445,6 +393,67 @@ export const SubcontratosView = ({
             )}
           </div>
 
+          {/* Chips de filtros activos: cada criterio se puede quitar por separado */}
+          {hasFilters && (
+            <div className="filter-chips" role="group" aria-label="Filtros activos" style={{ marginBottom: 16 }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginRight: 2 }}>
+                Filtros activos:
+              </span>
+              {q && (
+                <span className="filter-chip">
+                  <Icon name="search" size={11} /> Búsqueda: «{q}»
+                  <button
+                    type="button"
+                    className="filter-chip-remove"
+                    onClick={() => {
+                      setQ('');
+                      setPage(1);
+                    }}
+                    aria-label="Quitar el filtro de búsqueda"
+                    title="Quitar filtro"
+                  >
+                    <Icon name="xmark" size={12} />
+                  </button>
+                </span>
+              )}
+              {filterCompany && (
+                <span className="filter-chip">
+                  <Icon name="building" size={11} />{' '}
+                  Empresa: {allCompanies.find((co) => co.id === filterCompany)?.razon || 'seleccionada'}
+                  <button
+                    type="button"
+                    className="filter-chip-remove"
+                    onClick={() => {
+                      setFilterCompany('');
+                      setPage(1);
+                    }}
+                    aria-label="Quitar el filtro de empresa"
+                    title="Quitar filtro"
+                  >
+                    <Icon name="xmark" size={12} />
+                  </button>
+                </span>
+              )}
+              {filterEstado && (
+                <span className="filter-chip">
+                  <Icon name="clock" size={11} /> Estado: {filterEstado}
+                  <button
+                    type="button"
+                    className="filter-chip-remove"
+                    onClick={() => {
+                      setFilterEstado('');
+                      setPage(1);
+                    }}
+                    aria-label="Quitar el filtro de estado"
+                    title="Quitar filtro"
+                  >
+                    <Icon name="xmark" size={12} />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+
           <TableViewport className="tbl-wrap" aria-label="Tabla global de subcontratos">
             <DataTable className="tbl">
               <thead>
@@ -554,16 +563,28 @@ export const SubcontratosView = ({
                         <Badge text={st} />
                       </td>
                       <td className="nw" style={{ textAlign: 'right' }}>
-                        {c && (
-                          <Button
-                            className="icon-btn"
-                            onClick={() => onSelectContract(c.id, 'subcontratos')}
-                            title="Ver en el expediente del contrato"
-                            aria-label={`Ver el subcontrato ${s.numero} en su contrato`}
-                          >
-                            <Icon name="eye" />
-                          </Button>
-                        )}
+                        <div className="acts">
+                          {puedeEditar && (
+                            <Link
+                              href={`/subcontratos/${encodeURIComponent(s.id)}/editar`}
+                              className="icon-btn"
+                              title="Editar subcontrato"
+                              aria-label={`Editar el subcontrato ${s.numero}`}
+                            >
+                              <Icon name="pen" />
+                            </Link>
+                          )}
+                          {c && (
+                            <Button
+                              className="icon-btn"
+                              onClick={() => onSelectContract(c.id, 'subcontratos')}
+                              title="Ver en el expediente del contrato"
+                              aria-label={`Ver el subcontrato ${s.numero} en su contrato`}
+                            >
+                              <Icon name="eye" />
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -581,9 +602,9 @@ export const SubcontratosView = ({
                               Restablecer filtros
                             </Button>
                           ) : (
-                            <Button className="btn pri sm" onClick={openCreate} style={{ marginTop: 8 }}>
+                            <Link href={linkNuevo} className="btn pri sm" style={{ marginTop: 8 }}>
                               <Icon name="plus" /> Registrar el primer subcontrato
-                            </Button>
+                            </Link>
                           )
                         }
                       />
@@ -635,121 +656,6 @@ export const SubcontratosView = ({
             </DataTable>
           </TableViewport>
         </Surface>
-      )}
-
-      {/* Modal de nuevo subcontrato */}
-      {showModal && (
-        <Modal
-          title="Nuevo subcontrato"
-          subtitle="Queda vinculado al expediente del contrato principal"
-          onClose={() => setShowModal(false)}
-          size="lg"
-          footer={
-            <>
-              <Button className="btn" onClick={() => setShowModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                <Icon name="save" /> Guardar subcontrato
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f span3">
-              <label className="req">Contrato principal</label>
-              <Select
-                value={form.contractId}
-                onChange={(e) => setForm({ ...form, contractId: e.target.value })}
-              >
-                <option value="">— Seleccione contrato —</option>
-                {allContracts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.numero} · {c.contratista} · {moneyM(M(c).valorActual)}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field className="f">
-              <label className="req">Número de subcontrato</label>
-              <Input
-                value={form.numero}
-                placeholder="Ej. SC-001"
-                onChange={(e) => setForm({ ...form, numero: e.target.value })}
-              />
-            </Field>
-            <Field className="f">
-              <label>Estado</label>
-              <Select
-                value={form.estado}
-                onChange={(e) => setForm({ ...form, estado: e.target.value })}
-              >
-                <option value="Activo">Activo</option>
-                <option value="Suspendido">Suspendido</option>
-                <option value="Terminado">Terminado</option>
-                <option value="Liquidado">Liquidado</option>
-              </Select>
-            </Field>
-            <Field className="f">
-              <label className="req">Subcontratista</label>
-              <Input
-                value={form.contratista}
-                placeholder="Nombre o razón social"
-                onChange={(e) => setForm({ ...form, contratista: e.target.value })}
-              />
-            </Field>
-            <Field className="f">
-              <label className="req">NIT</label>
-              <Input
-                value={form.nit}
-                placeholder="900.000.000-0"
-                onChange={(e) => setForm({ ...form, nit: e.target.value })}
-              />
-            </Field>
-            <Field className="f">
-              <label className="req">Valor</label>
-              <Input
-                type="number"
-                min={0}
-                value={form.valor}
-                onChange={(e) => setForm({ ...form, valor: Number(e.target.value) })}
-              />
-            </Field>
-            <Field className="f">
-              <label>Responsable del seguimiento</label>
-              <Input
-                value={form.responsable}
-                placeholder="Nombre del responsable"
-                onChange={(e) => setForm({ ...form, responsable: e.target.value })}
-              />
-            </Field>
-            <Field className="f">
-              <label className="req">Fecha de inicio</label>
-              <Input
-                type="date"
-                value={form.fechaInicio}
-                onChange={(e) => setForm({ ...form, fechaInicio: e.target.value })}
-              />
-            </Field>
-            <Field className="f">
-              <label className="req">Fecha de terminación</label>
-              <Input
-                type="date"
-                value={form.fechaFin}
-                onChange={(e) => setForm({ ...form, fechaFin: e.target.value })}
-              />
-            </Field>
-            <Field className="f span3">
-              <label className="req">Objeto del subcontrato</label>
-              <Textarea
-                rows={3}
-                value={form.objeto}
-                placeholder="Detalle de actividades a ejecutar..."
-                onChange={(e) => setForm({ ...form, objeto: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
       )}
     </div>
   );

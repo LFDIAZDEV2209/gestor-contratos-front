@@ -1,8 +1,8 @@
 'use client';
-import { Select, Textarea, Input } from '../ui/Controls';
-import { notify, requestReason } from '../ui/Feedback';
+import { Select, Input } from '../ui/Controls';
+import { requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, TableViewport, DataTable, FormGrid, EmptyState, Field } from '../ui/Workspace';
+import { PageHeader, Surface, TableViewport, DataTable, EmptyState, Field } from '../ui/Workspace';
 import { Kpi } from '../ui/Kpi';
 
 import React, { useState } from 'react';
@@ -13,7 +13,6 @@ import { exportRows } from '@/lib/export';
 import { CAT } from '@/lib/catalog';
 import { Icon } from '../icons';
 import { Badge } from '../ui/Badge';
-import { Modal } from '../ui/Modal';
 import { Chart } from '../ui/Chart';
 import { RiskMatrix } from '../ui/RiskMatrix';
 import { riskPresentation, riskScore } from '../ui/presentation';
@@ -69,20 +68,6 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
   const [page, setPage] = useState(1);
   const pageSize = 12;
   const [heatmapCell, setHeatmapCell] = useState<{ p: number; i: number } | null>(null);
-
-  // Modal Nuevo / Editar
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
-  const [formData, setFormData] = useState({
-    contractId: '',
-    categoria: '',
-    descripcion: '',
-    probabilidad: 3,
-    impacto: 3,
-    mitigacion: '',
-    responsable: '',
-    estado: 'Abierto'
-  });
 
   const refresh = () => setTick((t) => t + 1);
 
@@ -164,73 +149,6 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
     exportRows('Matriz de riesgos', cols, filteredRisks, format);
   };
 
-  const openNewModal = () => {
-    if (!AuthService.guard('crear')) return;
-    setEditingRisk(null);
-    setFormData({
-      contractId: contracts[0]?.id || '',
-      categoria: CAT('categoriasRiesgo')[0] || 'Operativo',
-      descripcion: '',
-      probabilidad: 3,
-      impacto: 3,
-      mitigacion: '',
-      responsable: '',
-      estado: 'Abierto'
-    });
-    setModalOpen(true);
-  };
-
-  const openEditModal = (r: Risk) => {
-    if (!AuthService.guard('editar')) return;
-    setEditingRisk(r);
-    setFormData({
-      contractId: r.contractId || '',
-      categoria: r.categoria || '',
-      descripcion: r.descripcion || '',
-      probabilidad: r.probabilidad || 3,
-      impacto: r.impacto || 3,
-      mitigacion: r.mitigacion || '',
-      responsable: r.responsable || '',
-      estado: r.estado || 'Abierto'
-    });
-    setModalOpen(true);
-  };
-
-  const handleSave = () => {
-    if (!formData.descripcion.trim()) {
-      notify('Por favor ingresa la descripción del riesgo.');
-      return;
-    }
-    const nivelCalc = Number(formData.probabilidad) * Number(formData.impacto);
-    if (editingRisk) {
-      Store.update('risks', editingRisk.id, {
-        ...formData,
-        nivel: nivelCalc
-      });
-      Audit.log({
-        contractId: formData.contractId,
-        modulo: 'Riesgos',
-        accion: 'Modificación',
-        campo: 'Riesgo ' + editingRisk.id,
-        nuevo: formData.descripcion
-      });
-    } else {
-      Store.insert('risks', {
-        ...formData,
-        nivel: nivelCalc
-      });
-      Audit.log({
-        contractId: formData.contractId,
-        modulo: 'Riesgos',
-        accion: 'Creación',
-        campo: 'Riesgo',
-        nuevo: formData.descripcion
-      });
-    }
-    setModalOpen(false);
-    refresh();
-  };
-
   const handleAnular = async (r: Risk) => {
     if (!AuthService.guard('anular')) return;
     const motivo = await requestReason('Motivo de la anulación / cierre del riesgo:');
@@ -291,6 +209,16 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
   return (
     <div className="anim-fade-rise">
       {/* Banner de cabecera con gradiente de marca institucional */}
+      <style>
+        {`
+          /* El hero recorta (overflow:clip) cualquier menú absoluto: el desplegable
+             Exportar se expande en flujo dentro de .ph-actions (patrón Agenda/Gerencia). */
+          @media (min-width: 1024px) { .rkx-dd { display: none !important; } }
+          @media (max-width: 1023.98px) { .rkx-inline { display: none !important; } }
+          .rkx-chev { transition: transform var(--t-fast) var(--ease); }
+          .rkx-dd[open] .rkx-chev { transform: rotate(180deg); }
+        `}
+      </style>
       <PageHeader variant="hero" className="ph">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -330,21 +258,57 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
         </div>
 
         <div className="ph-actions">
-          <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
-            <Icon name="file-excel" /> Excel
-          </Button>
-          <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
-            <Icon name="file-pdf" /> PDF
-          </Button>
-          <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
-            <Icon name="file-csv" /> CSV
-          </Button>
-          <Button className="btn sm" onClick={() => handleExport('print')} title="Imprimir matriz">
-            <Icon name="print" /> Imprimir
-          </Button>
-          <Button className="btn sm pri" onClick={openNewModal}>
-            <Icon name="plus" /> Nuevo riesgo
-          </Button>
+          {/* ≥1024px: accesos directos a exportación · <1024px: un desplegable único */}
+          <div className="rkx-inline" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+              <Icon name="file-excel" /> Excel
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+              <Icon name="file-pdf" /> PDF
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+              <Icon name="file-csv" /> CSV
+            </Button>
+          </div>
+          {/* <1024px: desplegable expandido en flujo dentro del hero (overflow: clip) */}
+          <details className="rkx-dd" style={{ width: '100%' }}>
+            <summary
+              className="btn sm"
+              style={{ listStyle: 'none' }}
+              title="Exportar la matriz de riesgos"
+              aria-label="Exportar la matriz de riesgos"
+            >
+              <Icon name="download" /> Exportar <Icon name="chevron-down" size={14} className="rkx-chev" />
+            </summary>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                flexWrap: 'wrap',
+                marginTop: 8,
+                padding: 8,
+                border: '1px solid rgba(255, 255, 255, 0.28)',
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.08)'
+              }}
+            >
+              <Button className="btn sm" onClick={() => handleExport('xlsx')}>
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('pdf')}>
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('csv')}>
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </div>
+          </details>
+          {AuthService.can('crear') && (
+            <Link className="btn sm pri" href="/riesgos/nuevo">
+              <Icon name="plus" /> Nuevo riesgo
+            </Link>
+          )}
         </div>
       </PageHeader>
 
@@ -427,9 +391,11 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                 title="Sin riesgos abiertos"
                 description="No hay riesgos sin cerrar para pintar en el mapa de calor."
                 action={
-                  <Button className="btn sm" onClick={openNewModal} style={{ marginTop: 8 }}>
-                    <Icon name="plus" /> Registrar riesgo
-                  </Button>
+                  AuthService.can('crear') ? (
+                    <Link className="btn sm pri" href="/riesgos/nuevo" style={{ marginTop: 8 }}>
+                      <Icon name="plus" /> Registrar riesgo
+                    </Link>
+                  ) : undefined
                 }
               />
             ) : (
@@ -483,18 +449,21 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
         </div>
 
         <div className="filters">
-          <div className="gsearch" style={{ minWidth: 240 }}>
-            <Icon name="search" />
-            <Input
-              aria-label="Buscar riesgos por descripción, categoría o contrato"
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Buscar por descripción, categoría o contrato..."
-            />
-          </div>
+          <Field className="f" style={{ flex: 1, minWidth: 240 }}>
+            <label>Buscar</label>
+            <div className="gsearch">
+              <Icon name="search" />
+              <Input
+                aria-label="Buscar riesgos por descripción, categoría o contrato"
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Descripción, categoría o contrato..."
+              />
+            </div>
+          </Field>
           <Field className="f">
             <label>Categoría</label>
             <Select
@@ -615,14 +584,14 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                       <Badge state={r.estado} style={badgePop} />
                     </td>
                     <td className="acts">
-                      <Button
+                      <Link
                         className="icon-btn"
+                        href={`/riesgos/${encodeURIComponent(r.id)}/editar`}
                         title="Editar riesgo"
                         aria-label={`Editar riesgo ${r.id}`}
-                        onClick={() => openEditModal(r)}
                       >
                         <Icon name="edit" />
-                      </Button>
+                      </Link>
                       {r.estado !== 'Cerrado' && (
                         <Button
                           className="icon-btn"
@@ -650,9 +619,11 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
                             Limpiar filtros
                           </Button>
                         ) : (
-                          <Button className="btn sm pri" onClick={openNewModal} style={{ marginTop: 8 }}>
-                            <Icon name="plus" /> Registrar riesgo
-                          </Button>
+                          AuthService.can('crear') && (
+                            <Link className="btn sm pri" href="/riesgos/nuevo" style={{ marginTop: 8 }}>
+                              <Icon name="plus" /> Registrar riesgo
+                            </Link>
+                          )
                         )
                       }
                     />
@@ -699,125 +670,6 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
           </DataTable>
         </TableViewport>
       </Surface>
-
-      {/* Modal Nuevo / Editar Riesgo */}
-      {modalOpen && (
-        <Modal
-          title={editingRisk ? 'Editar riesgo' : 'Nuevo riesgo'}
-          onClose={() => setModalOpen(false)}
-          footer={
-            <>
-              <Button className="btn" onClick={() => setModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleSave}>
-                Guardar riesgo
-              </Button>
-            </>
-          }
-        >
-          <FormGrid className="form-grid" style={{ gap: 12 }}>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Contrato *</label>
-              <Select
-                className="inp"
-                value={formData.contractId}
-                onChange={(e) => setFormData({ ...formData, contractId: e.target.value })}
-              >
-                {contracts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.numero} — {c.contratista}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div>
-              <label className="form-label">Categoría *</label>
-              <Select
-                className="inp"
-                value={formData.categoria}
-                onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div>
-              <label className="form-label">Estado</label>
-              <Select
-                className="inp"
-                value={formData.estado}
-                onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-              >
-                <option value="Abierto">Abierto</option>
-                <option value="Mitigado">Mitigado</option>
-                <option value="Cerrado">Cerrado</option>
-              </Select>
-            </div>
-
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Descripción del riesgo *</label>
-              <Textarea
-                className="inp"
-                rows={2}
-                value={formData.descripcion}
-                onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                placeholder="Identificación del evento o riesgo contractual"
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Probabilidad (1 a 5) *</label>
-              <Input
-                type="number"
-                min={1}
-                max={5}
-                className="inp"
-                value={formData.probabilidad}
-                onChange={(e) => setFormData({ ...formData, probabilidad: Number(e.target.value) })}
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Impacto (1 a 5) *</label>
-              <Input
-                type="number"
-                min={1}
-                max={5}
-                className="inp"
-                value={formData.impacto}
-                onChange={(e) => setFormData({ ...formData, impacto: Number(e.target.value) })}
-              />
-            </div>
-
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Medidas de mitigación</label>
-              <Textarea
-                className="inp"
-                rows={2}
-                value={formData.mitigacion}
-                onChange={(e) => setFormData({ ...formData, mitigacion: e.target.value })}
-                placeholder="Acciones preventivas o correctivas implementadas"
-              />
-            </div>
-
-            <div style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Responsable del monitoreo</label>
-              <Input
-                className="inp"
-                value={formData.responsable}
-                onChange={(e) => setFormData({ ...formData, responsable: e.target.value })}
-                placeholder="Nombre del responsable"
-              />
-            </div>
-          </FormGrid>
-        </Modal>
-      )}
     </div>
   );
 };

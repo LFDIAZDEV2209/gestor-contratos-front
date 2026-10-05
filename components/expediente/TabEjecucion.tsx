@@ -1,24 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Input } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
+import { Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import type { Exec } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
-import { money, moneyM, pct, fdate, monthLabel, monthKey, sum, uid, todayIso, parseD, iso } from '../../lib/format';
+import { money, moneyM, pct, fdate, monthLabel, monthKey, sum, parseD, iso } from '../../lib/format';
 import { Kpi } from '../ui/Kpi';
 import { Chart } from '../ui/Chart';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+import Link from 'next/link';
+import { nuevoHref, editarHref } from './routes';
 
 export const TabEjecucion = ({ cid }: { cid: string }) => {
-  const [showNewModal, setShowNewModal] = useState(false);
-  const [editingExec, setEditingExec] = useState<Exec | null>(null);
-  const [newExec, setNewExec] = useState({ periodo: '', valor: 0, avanceFisico: 0, obs: '' });
-
   const c = Store.get('contracts', cid);
   if (!c) {
     return (
@@ -44,7 +40,7 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
   });
   const mes = chronoExecs.map((e) => +e.valor || 0);
 
-  // 1. Chart exA: Contratado vs Ejecutado (paleta Seven Save)
+  // 1. Chart exA: Contratado vs Ejecutado (paleta Seven Safe)
   const chartAData = {
     labels: ['Inicial', 'Adiciones', 'Reducciones', 'Actualizado', 'Ejecutado', 'Pagado', 'Saldo'],
     datasets: [
@@ -60,10 +56,10 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
         ],
         backgroundColor: [
           '#64748B', // Inicial (slate)
-          '#0F8579', // Adiciones (brand 7S)
+          '#062F58', // Adiciones (brand 7S)
           '#EA580C', // Reducciones (orange)
           '#0284C7', // Actualizado (sky)
-          '#0D9488', // Ejecutado (teal)
+          '#5CA6B2', // Ejecutado (acento de marca)
           '#16A34A', // Pagado (green)
           m.saldo < 0 ? '#DC2626' : '#CA8A04' // Saldo (crit/warn)
         ],
@@ -79,7 +75,7 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
       {
         label: 'Ejecutado del mes',
         data: mes,
-        backgroundColor: '#0F8579',
+        backgroundColor: '#062F58',
         borderRadius: 4
       }
     ]
@@ -151,8 +147,8 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
       {
         label: 'Saldo real',
         data: saldoData,
-        borderColor: '#0F8579',
-        backgroundColor: 'rgba(15,133,121,0.12)',
+        borderColor: '#062F58',
+        backgroundColor: 'rgba(6, 47, 88,0.12)',
         fill: true,
         tension: 0.2
       },
@@ -175,58 +171,6 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
         }
       }
     }
-  };
-
-  const handleCreate = () => {
-    if (!AuthService.guard('crear')) return;
-    if (!newExec.periodo) return notify('Seleccione o ingrese el periodo (AAAA-MM)');
-    if (!newExec.valor || Number(newExec.valor) <= 0) return notify('Ingrese un valor ejecutado válido mayor a cero');
-
-    const execObj: Exec = {
-      id: uid('EX'),
-      contractId: cid,
-      periodo: newExec.periodo,
-      valor: Number(newExec.valor),
-      avanceFisico: Number(newExec.avanceFisico) || 0,
-      obs: newExec.obs || `Informe de ejecución ${monthLabel(newExec.periodo)}`
-    };
-
-    Store.insert('execs', execObj);
-    Audit.log({
-      contractId: cid,
-      modulo: 'Ejecución',
-      accion: 'Creación',
-      campo: 'Periodo ' + newExec.periodo,
-      nuevo: money(newExec.valor)
-    });
-    notify(`Avance para ${monthLabel(newExec.periodo)} registrado correctamente`);
-    setShowNewModal(false);
-    setNewExec({ periodo: '', valor: 0, avanceFisico: 0, obs: '' });
-  };
-
-  const handleUpdate = () => {
-    if (!AuthService.guard('editar')) return;
-    if (!editingExec) return;
-    if (!editingExec.periodo) return notify('El periodo es obligatorio');
-    if (!editingExec.valor || Number(editingExec.valor) <= 0) return notify('Ingrese un valor válido');
-
-    Store.update('execs', editingExec.id, {
-      periodo: editingExec.periodo,
-      valor: Number(editingExec.valor),
-      avanceFisico: Number(editingExec.avanceFisico) || 0,
-      obs: editingExec.obs
-    });
-
-    Audit.log({
-      contractId: cid,
-      modulo: 'Ejecución',
-      accion: 'Edición',
-      campo: 'Periodo ' + editingExec.periodo,
-      nuevo: money(editingExec.valor)
-    });
-
-    notify(`Registro del periodo ${monthLabel(editingExec.periodo)} actualizado`);
-    setEditingExec(null);
   };
 
   const handleDelete = async (e: Exec) => {
@@ -258,13 +202,13 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
           </span>
         </div>
         <div className="row-flex">
-          <Button
+          <Link
             className="btn sm pri"
-            onClick={() => setShowNewModal(true)}
+            href={nuevoHref(cid, 'ejecucion')}
             aria-label="Registrar informe de ejecución mensual"
           >
             <Icon name="plus" /> Registrar ejecución
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -312,7 +256,7 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
         </div>
       )}
 
-      {/* Tarjetas KPI con jerarquía y tokens semánticos Seven Save */}
+      {/* Tarjetas KPI con jerarquía y tokens semánticos Seven Safe */}
       <div className="kpis mb [&_.kpi]:!p-2 sm:[&_.kpi]:!p-[14px_16px] [&_.kpi-ic]:!w-7 [&_.kpi-ic]:!h-7 sm:[&_.kpi-ic]:!w-[34px] sm:[&_.kpi-ic]:!h-[34px] [&_.kpi.kpi-v2]:!gap-2 sm:[&_.kpi.kpi-v2]:!gap-3 [&_.kpi-v]:!whitespace-nowrap [&_.kpi-v]:!text-[13.5px] sm:[&_.kpi-v]:!text-[23px] [&_.kpi-s]:!whitespace-nowrap [&_.kpi-s]:!text-[9.5px] sm:[&_.kpi-s]:!text-[11.5px]">
         <Kpi
           label="Valor inicial"
@@ -447,9 +391,9 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
             title="Sin registros de ejecución mensual"
             description="Aún no se han radicado informes mensuales de avance financiero ni físico para este contrato."
             action={
-              <Button className="btn pri sm" onClick={() => setShowNewModal(true)}>
+              <Link className="btn pri sm" href={nuevoHref(cid, 'ejecucion')}>
                 <Icon name="plus" /> Registrar primer avance
-              </Button>
+              </Link>
             }
           />
         ) : (
@@ -482,14 +426,14 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
                     </td>
                     <td className="nw text-right">
                       <div className="inline-flex items-center gap-1 justify-end">
-                        <Button
+                        <Link
                           className="btn ghost xs"
-                          onClick={() => setEditingExec(e)}
+                          href={editarHref(cid, 'ejecucion', e.id)}
                           aria-label={`Editar ejecución periodo ${e.periodo}`}
                           title="Editar registro"
                         >
                           <Icon name="pencil" size={13} />
-                        </Button>
+                        </Link>
                         <Button
                           className="btn ghost xs text-[var(--crit)] hover:bg-[var(--crit-bg)]"
                           onClick={() => handleDelete(e)}
@@ -507,129 +451,6 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
           </TableViewport>
         )}
       </Surface>
-
-      {/* Modal Registrar Ejecución */}
-      {showNewModal && (
-        <Modal
-          title="Registrar avance de ejecución mensual"
-          onClose={() => setShowNewModal(false)}
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setShowNewModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                <Icon name="check" /> Guardar Registro
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req font-medium text-xs">Periodo (AAAA-MM)</label>
-              <Input
-                type="month"
-                value={newExec.periodo}
-                onChange={(e) => setNewExec({ ...newExec, periodo: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Valor ejecutado del periodo (COP)</label>
-              <Input
-                type="number"
-                min="0"
-                step="1000"
-                value={newExec.valor || ''}
-                onChange={(e) => setNewExec({ ...newExec, valor: Number(e.target.value) })}
-                placeholder="Valor en pesos"
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">% Avance físico acumulado (0–100)</label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={newExec.avanceFisico || ''}
-                onChange={(e) => setNewExec({ ...newExec, avanceFisico: Number(e.target.value) })}
-                placeholder="Porcentaje de avance"
-                required
-              />
-            </Field>
-            <Field className="f span2">
-              <label className="font-medium text-xs">Observaciones / Acta de soporte</label>
-              <Input
-                value={newExec.obs}
-                onChange={(e) => setNewExec({ ...newExec, obs: e.target.value })}
-                placeholder="Informe de supervisión o radicado de soporte..."
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
-
-      {/* Modal Editar Ejecución */}
-      {editingExec && (
-        <Modal
-          title={`Editar ejecución · ${monthLabel(editingExec.periodo)}`}
-          onClose={() => setEditingExec(null)}
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setEditingExec(null)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleUpdate}>
-                <Icon name="check" /> Guardar Cambios
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req font-medium text-xs">Periodo (AAAA-MM)</label>
-              <Input
-                type="month"
-                value={editingExec.periodo}
-                onChange={(e) => setEditingExec({ ...editingExec, periodo: e.target.value })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">Valor ejecutado (COP)</label>
-              <Input
-                type="number"
-                min="0"
-                step="1000"
-                value={editingExec.valor || ''}
-                onChange={(e) => setEditingExec({ ...editingExec, valor: Number(e.target.value) })}
-                required
-              />
-            </Field>
-            <Field className="f">
-              <label className="req font-medium text-xs">% Avance físico acumulado</label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={editingExec.avanceFisico || ''}
-                onChange={(e) => setEditingExec({ ...editingExec, avanceFisico: Number(e.target.value) })}
-                required
-              />
-            </Field>
-            <Field className="f span2">
-              <label className="font-medium text-xs">Observaciones / Soporte</label>
-              <Input
-                value={editingExec.obs || ''}
-                onChange={(e) => setEditingExec({ ...editingExec, obs: e.target.value })}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
     </div>
   );
 };

@@ -1,11 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { PageHeader, Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
+import { PageHeader, Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { Button } from '../ui/button';
-import { Input } from '../ui/Controls';
-import { notify } from '../ui/Feedback';
 import type { Company } from '../../lib/types';
 import { M } from '../../lib/metrics';
 import { Store, Audit, AuthService } from '../../lib/store';
@@ -13,7 +11,6 @@ import { Icon } from '../icons';
 import { Kpi } from '../ui/Kpi';
 import { Badge } from '../ui/Badge';
 import { PBar } from '../ui/PBar';
-import { Modal } from '../ui/Modal';
 import { money, moneyM, pct, fdate, daysTxt } from '../../lib/format';
 import { contractHref } from '../app/routes';
 import { exportRows } from '../../lib/export';
@@ -27,7 +24,6 @@ export const EmpresaView = ({ id, onBack }: { id: string; onBack: () => void }) 
   const contracts = Store.all('contracts').filter(
     (c) => (c.company === id || c.companyId === id) && !c.anulado
   );
-  const [editing, setEditing] = useState<Partial<Company> | null>(null);
 
   if (!company) {
     return (
@@ -79,48 +75,6 @@ export const EmpresaView = ({ id, onBack }: { id: string; onBack: () => void }) 
       contracts,
       'xlsx'
     );
-  };
-
-  const openEdit = () => {
-    if (AuthService.guard('editar')) setEditing({ ...company });
-  };
-
-  const handleSave = () => {
-    if (!editing) return;
-    const razon = (editing.razon || editing.name || '').trim();
-    const nit = (editing.nit || '').trim();
-    const email = (editing.email || '').trim();
-
-    if (!nit || !razon) {
-      notify('El NIT y la razón social son obligatorios.');
-      return;
-    }
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      notify('El correo electrónico no tiene un formato válido.');
-      return;
-    }
-    // NIT único en el directorio (excluyendo esta misma empresa)
-    const duplicado = Store.all('companies').find((c: Company) => (c.nit || '').trim() === nit && c.id !== id);
-    if (duplicado) {
-      notify(`Ya existe «${duplicado.razon || duplicado.name}» registrada con el NIT ${nit}.`);
-      return;
-    }
-
-    // Snapshot previo: Store.update muta el registro en sitio y falsearía el diff
-    const before = { ...company };
-    const payload: Company = { ...company, ...editing, razon, name: razon, nit } as Company;
-    Store.update('companies', id, payload);
-    Audit.diff('Empresas', '', before, payload, {
-      nit: 'NIT de empresa',
-      razon: 'Razón social de empresa',
-      name: 'Razón social de empresa',
-      rep: 'Representante legal de empresa',
-      tel: 'Teléfono de empresa',
-      email: 'Correo de empresa',
-      direccion: 'Dirección de empresa'
-    });
-    notify(`Ficha de «${razon}» actualizada.`);
-    setEditing(null);
   };
 
   return (
@@ -178,9 +132,11 @@ export const EmpresaView = ({ id, onBack }: { id: string; onBack: () => void }) 
           <Button className="btn" onClick={handleExport} title="Exportar los contratos de esta empresa a Excel">
             <Icon name="file-excel" /> Exportar
           </Button>
-          <Button className="btn pri" onClick={openEdit}>
-            <Icon name="pen" /> Editar Ficha
-          </Button>
+          {AuthService.can('editar') && (
+            <Link href={`/empresas/${encodeURIComponent(id)}/editar`} className="btn pri">
+              <Icon name="pen" /> Editar Ficha
+            </Link>
+          )}
         </div>
       </PageHeader>
 
@@ -465,81 +421,6 @@ export const EmpresaView = ({ id, onBack }: { id: string; onBack: () => void }) 
       </Surface>
 
       {/* Modal de edición de datos maestros de la empresa */}
-      {editing && (
-        <Modal
-          title={`Editar Ficha: ${nombre}`}
-          subtitle="Cada cambio queda registrado en la auditoría del sistema"
-          size="md"
-          onClose={() => setEditing(null)}
-          footer={
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, width: '100%' }}>
-              <Button className="btn ghost" onClick={() => setEditing(null)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleSave}>
-                <Icon name="check" /> Guardar Cambios
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req">NIT / Identificación Tributaria</label>
-              <Input
-                value={editing.nit || ''}
-                onChange={(e) => setEditing({ ...editing, nit: e.target.value })}
-                placeholder="Ej. 900.876.543-1"
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="req">Razón Social o Nombre Legal</label>
-              <Input
-                value={editing.razon || editing.name || ''}
-                onChange={(e) => setEditing({ ...editing, razon: e.target.value, name: e.target.value })}
-                placeholder="Nombre comercial o personería jurídica"
-              />
-            </Field>
-
-            <Field className="f">
-              <label>Representante Legal</label>
-              <Input
-                value={editing.rep || ''}
-                onChange={(e) => setEditing({ ...editing, rep: e.target.value })}
-                placeholder="Nombre del representante legal"
-              />
-            </Field>
-
-            <Field className="f">
-              <label>Teléfono de Contacto</label>
-              <Input
-                value={editing.tel || ''}
-                onChange={(e) => setEditing({ ...editing, tel: e.target.value })}
-                placeholder="Ej. 605 385 2210"
-              />
-            </Field>
-
-            <Field className="f">
-              <label>Correo Electrónico</label>
-              <Input
-                type="email"
-                value={editing.email || ''}
-                onChange={(e) => setEditing({ ...editing, email: e.target.value })}
-                placeholder="contratacion@empresa.co"
-              />
-            </Field>
-
-            <Field className="f span3">
-              <label>Dirección / Sede</label>
-              <Input
-                value={editing.direccion || ''}
-                onChange={(e) => setEditing({ ...editing, direccion: e.target.value })}
-                placeholder="Ej. Cra 54 # 72-80, Barranquilla"
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
     </div>
   );
 };

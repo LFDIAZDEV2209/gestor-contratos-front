@@ -1,0 +1,48 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { AuthService } from '@/lib/store';
+import { EmptyState } from '@/components/ui/Workspace';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/icons';
+import { PlanForm } from '@/components/forms/PlanForm';
+
+/** VISTA dedicada: nuevo plan de mejoramiento (reemplaza al modal de IncumplimientosView). */
+export default function Page() {
+  const router = useRouter();
+  const [permiso, setPermiso] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // can() es puro (guard() alerta como efecto y solo debe usarse en handlers)
+    setPermiso(AuthService.can('crear'));
+  }, []);
+
+  if (permiso === null) return null;
+
+  if (!permiso) {
+    return (
+      <div className="anim-fade-rise" style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <EmptyState
+          title="Acceso restringido"
+          description="Tu rol no permite registrar planes de mejoramiento."
+          action={
+            <Button
+              className="btn pri"
+              onClick={() => router.push('/incumplimientos')}
+              style={{ marginTop: 12 }}
+            >
+              <Icon name="chevron-left" /> Volver a Incumplimientos
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="anim-fade-rise">
+      <PlanForm onDone={() => router.push('/incumplimientos')} />
+    </div>
+  );
+}

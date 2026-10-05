@@ -1,15 +1,14 @@
 'use client';
 import { Select, Input, Textarea } from '../ui/Controls';
-import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, EmptyState, Field } from '../ui/Workspace';
+import { PageHeader, Surface, EmptyState, Field } from '../ui/Workspace';
 import Link from 'next/link';
 import { contractHref } from '../app/routes';
 
 import React, { useState } from 'react';
 import { Alerts, NotificationService } from '@/lib/alerts';
 import { Store, AuthService, Audit } from '@/lib/store';
-import { fdate, diffDays, todayIso, addDays, nowStamp, uid } from '@/lib/format';
+import { fdate, diffDays, todayIso } from '@/lib/format';
 import { exportRows } from '@/lib/export';
 import { ALV } from '@/lib/catalog';
 import { Icon } from '../icons';
@@ -51,17 +50,12 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
   const [visibleCount, setVisibleCount] = useState(20);
   const [tick, setTick] = useState(0);
 
-  // Modales
+  // Modales (resolver y delegar se conservan: acciones breves con confirmación)
   const [resolveAlert, setResolveAlert] = useState<Alert | null>(null);
   const [resolveNote, setResolveNote] = useState('');
 
   const [delegateAlert, setDelegateAlert] = useState<Alert | null>(null);
   const [delegateUser, setDelegateUser] = useState('');
-
-  const [taskAlert, setTaskAlert] = useState<Alert | null>(null);
-  const [taskTitle, setTaskTitle] = useState('');
-  const [taskAssignee, setTaskAssignee] = useState('');
-  const [taskDueDate, setTaskDueDate] = useState('');
 
   const refresh = () => setTick((t) => t + 1);
 
@@ -169,43 +163,6 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
     refresh();
   };
 
-  const submitCreateTask = () => {
-    if (!taskAlert) return;
-    if (!AuthService.guard('crear')) return;
-    if (!taskTitle.trim()) {
-      notify('Escribe el título de la tarea.');
-      return;
-    }
-    const asg = taskAssignee || taskAlert.responsable || (users[0] ? users[0].nombre : '');
-    const newTask: Task = {
-      id: uid('TK'),
-      titulo: taskTitle.trim(),
-      asignado: asg,
-      vence: taskDueDate || todayIso(),
-      contractId: taskAlert.contractId || undefined,
-      alertKey: taskAlert.key,
-      estado: 'Abierta',
-      creada: nowStamp(),
-      creadaPor: AuthService.currentUser().nombre
-    };
-    if (!db.tasks) db.tasks = [];
-    db.tasks.push(newTask);
-    Alerts.setState(taskAlert.key, { estado: taskAlert.estado === 'Nueva' ? 'Leída' : taskAlert.estado });
-    Audit.log({
-      contractId: taskAlert.contractId || undefined,
-      modulo: 'Alertas',
-      accion: 'Creación de tarea',
-      campo: taskAlert.tipo,
-      nuevo: newTask.titulo
-    });
-    Store.persist();
-    setTaskAlert(null);
-    setTaskTitle('');
-    setTaskAssignee('');
-    setTaskDueDate('');
-    refresh();
-  };
-
   const toggleTask = (taskId: string) => {
     const t = tasks.find((x) => x.id === taskId);
     if (!t) return;
@@ -216,7 +173,17 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
 
   return (
     <div className="anim-fade-rise">
-      {/* Banner de cabecera con gradiente de marca institucional */}
+      {/* Banner de cabecera con gradiente de marca institucional + estilos locales del desplegable */}
+      <style>
+        {`
+          /* El hero recorta (overflow:clip) cualquier menú absoluto: el desplegable
+             Exportar se expande en flujo dentro de .ph-actions (patrón Agenda/Gerencia). */
+          @media (min-width: 1024px) { .alx-dd { display: none !important; } }
+          @media (max-width: 1023.98px) { .alx-inline { display: none !important; } }
+          .alx-chev { transition: transform var(--t-fast) var(--ease); }
+          .alx-dd[open] .alx-chev { transform: rotate(180deg); }
+        `}
+      </style>
       <PageHeader variant="hero" className="ph">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -257,23 +224,63 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
         </div>
 
         <div className="ph-actions">
-          <Button
-            className="btn sm"
-            onClick={markAllRead}
-            disabled={nuevasCount === 0}
-            title={nuevasCount === 0 ? 'No hay alertas nuevas por marcar' : `Marcar ${nuevasCount} alertas nuevas como leídas`}
-          >
-            <Icon name="check" /> Marcar todas como leídas
-          </Button>
-          <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
-            <Icon name="file-excel" /> Excel
-          </Button>
-          <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
-            <Icon name="file-pdf" /> PDF
-          </Button>
-          <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
-            <Icon name="file-csv" /> CSV
-          </Button>
+          {/* ≥1024px: accesos directos a exportación · <1024px: un desplegable único */}
+          <div className="alx-inline" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Button
+              className="btn sm"
+              onClick={markAllRead}
+              disabled={nuevasCount === 0}
+              title={nuevasCount === 0 ? 'No hay alertas nuevas por marcar' : `Marcar ${nuevasCount} alertas nuevas como leídas`}
+            >
+              <Icon name="check" /> Marcar todas como leídas
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
+              <Icon name="file-excel" /> Excel
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
+              <Icon name="file-pdf" /> PDF
+            </Button>
+            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
+              <Icon name="file-csv" /> CSV
+            </Button>
+          </div>
+          {/* <1024px: desplegable Expandido en flujo dentro del hero (overflow: clip) */}
+          <details className="alx-dd" style={{ width: '100%' }}>
+            <summary
+              className="btn sm"
+              style={{ listStyle: 'none' }}
+              title="Exportar el centro de alertas"
+              aria-label="Exportar el centro de alertas"
+            >
+              <Icon name="download" /> Exportar <Icon name="chevron-down" size={14} className="alx-chev" />
+            </summary>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                flexWrap: 'wrap',
+                marginTop: 8,
+                padding: 8,
+                border: '1px solid rgba(255, 255, 255, 0.28)',
+                borderRadius: 'var(--r)',
+                background: 'rgba(255, 255, 255, 0.08)'
+              }}
+            >
+              <Button className="btn sm" onClick={markAllRead} disabled={nuevasCount === 0}>
+                <Icon name="check" /> Marcar todas como leídas
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('xlsx')}>
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('pdf')}>
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('csv')}>
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </div>
+          </details>
         </div>
       </PageHeader>
 
@@ -376,9 +383,11 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
               </Button>
             ))}
             <span className="sp" style={{ flex: 1 }} />
+            {/* Estado con etiqueta visible y ancho estable (evita el colapso a
+                «botón-caret» sin texto en 1280 — hallazgo P1 del baseline QA). */}
             <Select
               className="inp"
-              style={{ margin: '6px', width: 'auto', padding: '4px 8px', fontSize: '12px' }}
+              style={{ margin: '6px', width: 150, padding: '4px 8px', fontSize: '12px' }}
               value={estadoFilter}
               onChange={(e) => {
                 setEstadoFilter(e.target.value);
@@ -486,19 +495,17 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
                           >
                             <Icon name="user" />
                           </Button>
-                          <Button
+                          <Link
                             className="icon-btn"
                             title="Crear tarea"
                             aria-label={`Crear tarea desde la alerta ${a.tipo} ${a.numero}`}
-                            onClick={() => {
-                              setTaskAlert(a);
-                              setTaskTitle(`Gestionar: ${a.tipo.toLowerCase()} ${a.numero}`);
-                              setTaskAssignee(a.responsable || (users[0]?.nombre || ''));
-                              setTaskDueDate(addDays(todayIso(), 3));
+                            href={{
+                              pathname: '/alertas/tareas/nueva',
+                              query: { alertKey: a.key }
                             }}
                           >
                             <Icon name="plus" />
-                          </Button>
+                          </Link>
                         </>
                       ) : (
                         <Button
@@ -652,63 +659,6 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
               ))}
             </Select>
           </div>
-        </Modal>
-      )}
-
-      {/* Modal Crear Tarea */}
-      {taskAlert && (
-        <Modal
-          title="Crear tarea desde alerta"
-          onClose={() => setTaskAlert(null)}
-          footer={
-            <>
-              <Button className="btn" onClick={() => setTaskAlert(null)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={submitCreateTask}>
-                Crear tarea
-              </Button>
-            </>
-          }
-        >
-          <p className="small muted" style={{ marginTop: 0 }}>
-            {taskAlert.tipo} · {taskAlert.numero}: {taskAlert.descripcion}
-          </p>
-          <FormGrid className="form-grid" style={{ gap: 12, marginTop: 12 }}>
-            <div>
-              <label className="form-label">Título de la tarea *</label>
-              <Input
-                className="inp"
-                value={taskTitle}
-                onChange={(e) => setTaskTitle(e.target.value)}
-                placeholder="Descripción de la tarea"
-              />
-            </div>
-            <div>
-              <label className="form-label">Asignar a</label>
-              <Select
-                className="inp"
-                value={taskAssignee}
-                onChange={(e) => setTaskAssignee(e.target.value)}
-                aria-label="Asignar tarea a usuario"
-              >
-                {users.map((u) => (
-                  <option key={u.id} value={u.nombre}>
-                    {u.nombre} ({u.rol})
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="form-label">Fecha límite</label>
-              <Input
-                type="date"
-                className="inp"
-                value={taskDueDate}
-                onChange={(e) => setTaskDueDate(e.target.value)}
-              />
-            </div>
-          </FormGrid>
         </Modal>
       )}
     </div>

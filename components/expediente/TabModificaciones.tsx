@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Select, Input, Textarea } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { Surface, TableViewport, DataTable, FormGrid, Field, EmptyState } from '../ui/Workspace';
+import { Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import type { Modification, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
@@ -12,13 +11,11 @@ import { money, moneyM, fdate, diffDays, todayIso, uid } from '../../lib/format'
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
-import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
+import Link from 'next/link';
+import { nuevoHref } from './routes';
 
 export const TabModificaciones = ({ cid }: { cid: string }) => {
-  const [showModal, setShowModal] = useState(false);
-  const [warningMsg, setWarningMsg] = useState<string | null>(null);
-
   const c = Store.get('contracts', cid) as Contract | undefined;
   if (!c) {
     return (
@@ -33,15 +30,6 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
   const modifications = (Store.byContract('modifications', cid) as Modification[]).sort((a, b) =>
     (a.fecha || '') < (b.fecha || '') ? 1 : -1
   );
-
-  const [tipo, setTipo] = useState('Adición');
-  const [numero, setNumero] = useState('');
-  const [fecha, setFecha] = useState(todayIso());
-  const [justificacion, setJustificacion] = useState('');
-  const [valorNuevo, setValorNuevo] = useState(m.valorActual);
-  const [fechaNueva, setFechaNueva] = useState(c.fechaFin || todayIso());
-  const [nuevoTexto, setNuevoTexto] = useState('');
-  const [soporte, setSoporte] = useState('');
 
   const totalAdiciones = modifications
     .filter((x) => x.tipo === 'Adición' && !x.anulada)
@@ -65,94 +53,6 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
       { l: 'Estado', k: 'anulada', r: (r: any) => (r.anulada ? 'Anulada' : 'Vigente') }
     ];
     exportRows('Modificaciones - ' + c.numero, cols, modifications, format);
-  };
-
-  const handleCreate = () => {
-    if (!AuthService.guard('editar')) return;
-    if (!numero.trim()) return notify('Ingrese el número o identificador de la modificación');
-    if (!justificacion.trim()) return notify('Ingrese la justificación de la modificación');
-
-    const before = JSON.parse(JSON.stringify(c));
-    const newMod: Modification = {
-      id: uid('MD'),
-      contractId: cid,
-      numero: numero.trim(),
-      tipo,
-      fecha,
-      justificacion: justificacion.trim(),
-      soporte: soporte.trim() || `mod_${numero.trim()}.pdf`,
-      valorAnterior: m.valorActual,
-      fechaAnterior: c.fechaFin,
-      anulada: false
-    };
-
-    const contractPatch: Partial<Contract> = {};
-
-    if (tipo === 'Adición') {
-      const added = Number(valorNuevo) - m.valorActual;
-      contractPatch.adiciones = (Number(c.adiciones) || 0) + added;
-      newMod.valorNuevo = Number(valorNuevo);
-    } else if (tipo === 'Reducción') {
-      const reduced = m.valorActual - Number(valorNuevo);
-      contractPatch.reducciones = (Number(c.reducciones) || 0) + reduced;
-      newMod.valorNuevo = Number(valorNuevo);
-    } else if (tipo === 'Prórroga') {
-      newMod.fechaAnterior = c.fechaFin;
-      newMod.fechaNueva = fechaNueva;
-      contractPatch.fechaFin = fechaNueva;
-      if (c.estado === 'Terminado') contractPatch.estado = 'Activo';
-    } else if (tipo === 'Suspensión') {
-      contractPatch.estado = 'Suspendido';
-    } else if (tipo === 'Reinicio') {
-      contractPatch.estado = 'Activo';
-      if (fechaNueva) {
-        newMod.fechaAnterior = c.fechaFin;
-        newMod.fechaNueva = fechaNueva;
-        contractPatch.fechaFin = fechaNueva;
-      }
-    } else if (tipo === 'Cesión') {
-      newMod.valorAnterior = 0;
-      newMod.impacto = `Cesionario anterior: ${c.contratista}.`;
-      contractPatch.contratista = nuevoTexto;
-      newMod.nuevoTexto = nuevoTexto;
-    } else if (tipo === 'Modificación de supervisor') {
-      contractPatch.supervisor = nuevoTexto;
-      newMod.nuevoTexto = nuevoTexto;
-    } else if (tipo === 'Terminación anticipada') {
-      newMod.fechaAnterior = c.fechaFin;
-      newMod.fechaNueva = fechaNueva;
-      contractPatch.fechaFin = fechaNueva;
-      contractPatch.estado = 'Terminado';
-    }
-
-    Store.insert('modifications', newMod);
-    if (Object.keys(contractPatch).length > 0) {
-      Store.update('contracts', cid, contractPatch);
-      Audit.diff('Modificaciones', cid, before, { ...c, ...contractPatch }, {
-        adiciones: 'Adiciones presupuestales',
-        reducciones: 'Reducciones presupuestales',
-        fechaFin: 'Fecha de terminación',
-        estado: 'Estado contractual',
-        contratista: 'Cesión de contratista',
-        supervisor: 'Designación de supervisor'
-      });
-    }
-
-    const hasGuarantees = Store.byContract('guarantees', cid).length > 0;
-    if (['Adición', 'Prórroga', 'Reinicio'].includes(tipo) && hasGuarantees) {
-      setWarningMsg(
-        `Atención normativa: La ${tipo.toLowerCase()} puede exigir ajustar el valor asegurado o ampliar la vigencia de las pólizas y garantías suscritas.`
-      );
-    } else {
-      setWarningMsg(null);
-    }
-
-    notify(`Modificación ${newMod.numero} (${tipo}) aplicada exitosamente`);
-    setShowModal(false);
-    setNumero('');
-    setJustificacion('');
-    setNuevoTexto('');
-    setSoporte('');
   };
 
   const handleAnular = async (mItem: Modification) => {
@@ -243,13 +143,13 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
               <Icon name="file-csv" /> CSV
             </Button>
           </div>
-          <Button className="btn sm pri" onClick={() => setShowModal(true)} aria-label="Registrar nueva modificación">
+          <Link className="btn sm pri" href={nuevoHref(cid, 'modificaciones')} aria-label="Registrar nueva modificación">
             <Icon name="plus" /> Nueva modificación
-          </Button>
+          </Link>
         </div>
       </div>
 
-      {/* Tarjetas KPI canónicas Seven Save */}
+      {/* Tarjetas KPI canónicas Seven Safe */}
       <div className="kpis mb [&_.kpi]:!p-2 sm:[&_.kpi]:!p-[14px_16px] [&_.kpi-ic]:!w-7 [&_.kpi-ic]:!h-7 sm:[&_.kpi-ic]:!w-[34px] sm:[&_.kpi-ic]:!h-[34px] [&_.kpi.kpi-v2]:!gap-2 sm:[&_.kpi.kpi-v2]:!gap-3 [&_.kpi-v]:!whitespace-nowrap [&_.kpi-v]:!text-[13.5px] sm:[&_.kpi-v]:!text-[23px] [&_.kpi-s]:!whitespace-nowrap [&_.kpi-s]:!text-[9.5px] sm:[&_.kpi-s]:!text-[11.5px]">
         <Kpi
           label="Total modificaciones"
@@ -285,28 +185,22 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
         />
       </div>
 
-      {/* Banner de alerta normativa de garantías */}
-      {warningMsg && (
-        <div
-          className="mb-4 p-3 rounded flex items-center gap-3 text-sm"
-          style={{
-            background: 'var(--warn-bg)',
-            border: '1px solid var(--warn)',
-            color: 'var(--warn-text)'
-          }}
-          role="status"
-        >
-          <Icon name="triangle-exclamation" />
-          <span className="flex-1 font-medium">{warningMsg}</span>
-          <Button
-            className="btn ghost sm text-xs"
-            onClick={() => setWarningMsg(null)}
-            aria-label="Cerrar aviso"
-          >
-            Entendido
-          </Button>
-        </div>
-      )}
+      {/* Aviso normativo permanente de garantías al sustituir alta por vista de modificación */}
+      <div
+        className="mb-4 p-3 rounded flex items-center gap-3 text-sm"
+        style={{
+          background: 'var(--warn-bg)',
+          border: '1px solid var(--warn)',
+          color: 'var(--warn-text)'
+        }}
+        role="status"
+      >
+        <Icon name="triangle-exclamation" />
+        <span className="flex-1 font-medium">
+          Al aplicar una adición, prórroga o reinicio revisa el valor asegurado y la vigencia de las pólizas
+          suscritas (puede exigir otrosí en las garantías).
+        </span>
+      </div>
 
       {/* Tabla detallada de Modificaciones */}
       <Surface className="panel">
@@ -322,9 +216,9 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
             title="Sin modificaciones registradas"
             description="El contrato se mantiene con las condiciones y plazos pactados inicialmente."
             action={
-              <Button className="btn pri sm" onClick={() => setShowModal(true)}>
+              <Link className="btn pri sm" href={nuevoHref(cid, 'modificaciones')}>
                 <Icon name="plus" /> Registrar primer otrosí o modificación
-              </Button>
+              </Link>
             }
           />
         ) : (
@@ -459,167 +353,6 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
           </TableViewport>
         )}
       </Surface>
-
-      {/* Modal Nueva Modificación */}
-      {showModal && (
-        <Modal
-          title="Nueva modificación contractual (Otrosí)"
-          onClose={() => setShowModal(false)}
-          size="lg"
-          footer={
-            <div className="flex gap-2 justify-end w-full">
-              <Button className="btn ghost" onClick={() => setShowModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="btn pri" onClick={handleCreate}>
-                <Icon name="check" /> Aplicar modificación
-              </Button>
-            </div>
-          }
-        >
-          <FormGrid className="form-grid">
-            <Field className="f">
-              <label className="req font-medium text-xs">Tipo de modificación</label>
-              <Select
-                value={tipo}
-                onChange={(e) => {
-                  const t = e.target.value;
-                  setTipo(t);
-                  if (t === 'Adición' || t === 'Reducción') {
-                    setValorNuevo(m.valorActual);
-                  }
-                  if (t === 'Prórroga' || t === 'Reinicio') {
-                    setFechaNueva(c.fechaFin || todayIso());
-                  }
-                }}
-              >
-                <option value="Adición">Adición (aumento de valor)</option>
-                <option value="Reducción">Reducción (disminución de valor)</option>
-                <option value="Prórroga">Prórroga (ampliación de plazo)</option>
-                <option value="Suspensión">Suspensión temporal de ejecución</option>
-                <option value="Reinicio">Reinicio de ejecución</option>
-                <option value="Cesión">Cesión contractual (cambio de contratista)</option>
-                <option value="Modificación de supervisor">Modificación de supervisor</option>
-                <option value="Terminación anticipada">Terminación anticipada por mutuo acuerdo</option>
-                <option value="Modificación de cláusula">Aclaración o modificación de cláusula</option>
-              </Select>
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Número o radicado del Otrosí</label>
-              <Input
-                value={numero}
-                placeholder="Ej. OTROSI-01 o MOD-2026-01"
-                onChange={(e) => setNumero(e.target.value)}
-                required
-              />
-            </Field>
-
-            <Field className="f">
-              <label className="req font-medium text-xs">Fecha de suscripción</label>
-              <Input
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-                required
-              />
-            </Field>
-
-            {(tipo === 'Adición' || tipo === 'Reducción') && (
-              <>
-                <Field className="f">
-                  <label className="font-medium text-xs">Valor actual del contrato</label>
-                  <Input value={money(m.valorActual)} disabled readOnly />
-                </Field>
-                <Field className="f">
-                  <label className="req font-medium text-xs">
-                    {tipo === 'Adición' ? 'Nuevo valor total actualizado (con adición)' : 'Nuevo valor total reducido'}
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="1000"
-                    value={valorNuevo}
-                    onChange={(e) => setValorNuevo(Number(e.target.value))}
-                    required
-                  />
-                  <div className="small text-[var(--muted)] mt-1">
-                    Diferencia: {tipo === 'Adición' ? '+' : '-'}
-                    {money(Math.abs(Number(valorNuevo) - m.valorActual))}
-                  </div>
-                </Field>
-              </>
-            )}
-
-            {(tipo === 'Prórroga' || tipo === 'Reinicio' || tipo === 'Terminación anticipada') && (
-              <>
-                <Field className="f">
-                  <label className="font-medium text-xs">Fecha de terminación contractual actual</label>
-                  <Input value={fdate(c.fechaFin)} disabled readOnly />
-                </Field>
-                <Field className="f">
-                  <label className="req font-medium text-xs">Nueva fecha de terminación</label>
-                  <Input
-                    type="date"
-                    value={fechaNueva}
-                    onChange={(e) => setFechaNueva(e.target.value)}
-                    required
-                  />
-                  {tipo === 'Prórroga' && fechaNueva && (
-                    <div className="small text-[var(--muted)] mt-1">
-                      Días adicionales calculados: +{diffDays(c.fechaFin, fechaNueva)} días
-                    </div>
-                  )}
-                </Field>
-              </>
-            )}
-
-            {tipo === 'Cesión' && (
-              <Field className="f span2">
-                <label className="req font-medium text-xs">Nuevo contratista cesionario (Razón Social y NIT)</label>
-                <Input
-                  value={nuevoTexto}
-                  placeholder="Ej. INGENIERÍA INTEGRAL S.A.S. - NIT 900.123.456-7"
-                  onChange={(e) => setNuevoTexto(e.target.value)}
-                  required
-                />
-              </Field>
-            )}
-
-            {tipo === 'Modificación de supervisor' && (
-              <Field className="f span2">
-                <label className="req font-medium text-xs">Nuevo supervisor asignado (Nombre y cargo)</label>
-                <Input
-                  value={nuevoTexto}
-                  placeholder="Ej. Ing. Carlos Martínez - Supervisor de Contratos"
-                  onChange={(e) => setNuevoTexto(e.target.value)}
-                  required
-                />
-              </Field>
-            )}
-
-            <Field className="f span2">
-              <label className="req font-medium text-xs">Justificación técnica y jurídica</label>
-              <Textarea
-                rows={3}
-                value={justificacion}
-                placeholder="Motivo y justificación detallada de la modificación suscrita..."
-                onChange={(e) => setJustificacion(e.target.value)}
-                required
-              />
-            </Field>
-
-            <Field className="f span2">
-              <label className="font-medium text-xs">Documento soporte (archivo radicado)</label>
-              <Input
-                value={soporte}
-                placeholder="Ej. otrosi_01_firmado.pdf"
-                onChange={(e) => setSoporte(e.target.value)}
-              />
-            </Field>
-          </FormGrid>
-        </Modal>
-      )}
     </div>
   );
 };

@@ -49,7 +49,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     Store.init();
     setMounted(true);
   }, []);
-  // Guard de sesión: sin sesión activa → /login (Seven Save)
+  // Guard de sesión: sin sesión activa → /login (Seven Safe)
   useEffect(() => {
     if (mounted && !AuthService.isAuthed()) router.replace('/login');
   }, [mounted, userRevision, router]);
