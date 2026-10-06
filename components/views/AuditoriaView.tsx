@@ -1,7 +1,9 @@
 'use client';
+import { fieldIcon } from '../forms/fieldIcon';
 import { Select, Input } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
+import { SectionHeader } from '../ui/SectionHeader';
 import { Kpi } from '../ui/Kpi';
 
 import React, { useState } from 'react';
@@ -351,33 +353,19 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
 
       {/* Panel principal con filtros y tabla/timeline */}
       <Surface className="panel">
-        <div
-          className="readonly-note"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 16px',
-            backgroundColor: 'var(--surface-2)',
-            borderBottom: '1px solid var(--line)',
-            fontSize: '12px',
-            color: 'var(--muted)'
-          }}
-        >
-          <span style={{ color: 'var(--brand-2)', display: 'inline-flex', flexShrink: 0 }}>
-            <Icon name="lock" />
-          </span>
-          <span>
-            <b style={{ color: 'var(--ink-2)' }}>Registro append-only:</b> cada entrada queda congelada al crearse
-            (Object.freeze). IP de sesión simulada.
-          </span>
-        </div>
+        <SectionHeader
+          as="h3"
+          icon="fingerprint"
+          title="Registro de auditoría del sistema"
+          description="Bitácora append-only inmutable · Cada entrada queda congelada al crearse con IP simulada de sesión."
+          action={<span className="ws-section-meta">{filteredRows.length} eventos registrados</span>}
+        />
 
         {/* Barra de Filtros */}
         <div className="filters">
           <Field className="f" style={{ minWidth: 140 }}>
             <label>Usuario</label>
-            <Select
+            <Select icon={fieldIcon("filterUser", "Usuario", "")}
               className="inp"
               value={filterUser}
               onChange={(e) => {
@@ -396,7 +384,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
 
           <Field className="f" style={{ minWidth: 160 }}>
             <label>Contrato</label>
-            <Select
+            <Select icon={fieldIcon("filterContract", "Contrato", "")}
               className="inp"
               value={filterContract}
               onChange={(e) => {
@@ -415,7 +403,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
 
           <Field className="f" style={{ width: 130 }}>
             <label>Desde</label>
-            <Input
+            <Input icon={fieldIcon("filterDesde", "Desde", "date")}
               type="date"
               className="inp"
               value={filterDesde}
@@ -428,7 +416,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
 
           <Field className="f" style={{ width: 130 }}>
             <label>Hasta</label>
-            <Input
+            <Input icon={fieldIcon("filterHasta", "Hasta", "date")}
               type="date"
               className="inp"
               value={filterHasta}
@@ -441,7 +429,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
 
           <Field className="f" style={{ width: 140 }}>
             <label>Acción</label>
-            <Select
+            <Select icon={fieldIcon("filterAccion", "Acción", "")}
               className="inp"
               value={filterAccion}
               onChange={(e) => {
@@ -460,7 +448,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
 
           <Field className="f" style={{ width: 140 }}>
             <label>Módulo</label>
-            <Select
+            <Select icon={fieldIcon("filterModulo", "Módulo", "")}
               className="inp"
               value={filterModulo}
               onChange={(e) => {
@@ -479,7 +467,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({ onSelectContract, 
 
           <Field className="f" style={{ width: 150 }}>
             <label>Campo</label>
-            <Input
+            <Input icon={fieldIcon("filterCampo", "Campo", "")}
               className="inp"
               placeholder="Ej.: fecha, valor"
               aria-label="Buscar por campo de la entrada de auditoría"

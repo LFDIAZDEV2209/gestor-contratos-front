@@ -13,6 +13,8 @@ import { Kpi } from '../ui/Kpi';
 import { Icon } from '../icons';
 import { nuevoHref } from './routes';
 
+import { SectionHeader } from '../ui/SectionHeader';
+
 type VistaRapida = 'todas' | 'porGestionar' | 'pagadosSinSoporte';
 
 // Formato compacto sin cortes de palabra en móvil ("mil M" indivisible).
@@ -64,34 +66,53 @@ export const TabPagos = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div>
-      <div className="panel-h mb-3">
-        <div>
-          <h3>Pagos y Cuentas de Cobro</h3>
-          <span className="sub">{payments.length} pagos registrados</span>
-        </div>
-        <div className="row-flex">
+    <div className="ws-tab-pane">
+      <SectionHeader as="h3"
+        icon="wallet"
+        title="Pagos y Cuentas de Cobro"
+        description={`${payments.length} pagos registrados · Trazabilidad de desembolsos y soportes.`}
+        action={
           <Link className="btn sm pri" href={nuevoHref(cid, 'pagos')} aria-label="Registrar nuevo pago o cuenta de cobro">
             <Icon name="plus" /> Registrar pago
           </Link>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="kpis mb">
-        <Kpi label="Total Pagado (Neto)" value={nb(moneyM(totalNetoPagado))} sub={money(totalNetoPagado)} sem="ok" color={totalNetoPagado ? undefined : 'na'} />
+      <div className="kpis">
+        <Kpi
+          label="Total Pagado (Neto)"
+          value={nb(moneyM(totalNetoPagado))}
+          sub={money(totalNetoPagado)}
+          sem="ok"
+          color="ok"
+          icon="wallet"
+        />
         <Kpi
           label="Pendiente / en revisión"
           value={pendientes.length}
           sub={nb(moneyM(totalPendiente))}
           sem={pendientes.length ? 'warn' : 'ok'}
-          color={pendientes.length ? undefined : 'na'}
+          color={pendientes.length ? 'warn' : 'ok'}
+          icon="clock"
         />
-        <Kpi label="Retenciones practicadas" value={nb(moneyM(totalRetenciones))} sub={money(totalRetenciones)} color="na" />
-        <Kpi label="% Pagado vs. ejecutado" value={pct(pctPagVsEjec)} sub={`Ejecutado ${nb(moneyM(m.ejecutado))}`} color="na" />
+        <Kpi
+          label="Retenciones practicadas"
+          value={nb(moneyM(totalRetenciones))}
+          sub={money(totalRetenciones)}
+          color="na"
+          icon="receipt"
+        />
+        <Kpi
+          label="% Pagado vs. ejecutado"
+          value={pct(pctPagVsEjec)}
+          sub={`Ejecutado ${nb(moneyM(m.ejecutado))}`}
+          color="info"
+          icon="percent"
+        />
       </div>
 
       {/* Vistas rápidas */}
-      <div className="row-flex px-4 py-2" style={{ gap: '6px', flexWrap: 'wrap' }}>
+      <div className="ws-t-filters">
         <Button
           className={`btn sm ${vista === 'todas' ? 'pri' : 'ghost'}`}
           onClick={() => setVista('todas')}
@@ -117,7 +138,7 @@ export const TabPagos = ({ cid }: { cid: string }) => {
 
       <Surface className="panel" style={{ paddingTop: 0 }}>
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl" aria-label="Órdenes de pago y facturación del contrato">
+          <DataTable className="tbl" responsiveProfile="pagos" aria-label="Órdenes de pago y facturación del contrato">
             <thead>
               <tr>
                 <th>Pago / Factura</th>

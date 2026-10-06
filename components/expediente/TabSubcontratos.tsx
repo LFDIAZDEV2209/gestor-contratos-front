@@ -14,6 +14,7 @@ import { Kpi } from '../ui/Kpi';
 import { Icon } from '../icons';
 import Link from 'next/link';
 import { nuevoHref, editarHref } from './routes';
+import { SectionHeader } from '../ui/SectionHeader';
 
 export const TabSubcontratos = ({ cid }: { cid: string }) => {
   const c = Store.get('contracts', cid) as Contract | undefined;
@@ -77,35 +78,34 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="tab-subcontratos-container">
+    <div className="ws-tab-pane">
       {/* Encabezado */}
-      <div className="panel-h mb-3 flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h3 className="text-base font-bold text-[var(--ink)] flex items-center gap-2"><Icon name="diagram-project" size={16} /> Estructura de subcontratación y delegación</h3>
-          <span className="sub text-xs text-[var(--muted)]">
-            Registro de subcontratos derivados, autorizaciones de delegación y porcentaje de tercerización
-          </span>
-        </div>
-        <div className="row-flex">
-          <div className="exp-actions">
-            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
-              <Icon name="file-excel" /> Excel
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
-              <Icon name="file-pdf" /> PDF
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
-              <Icon name="file-csv" /> CSV
-            </Button>
+      <SectionHeader as="h3"
+        icon="diagram-project"
+        title="Estructura de subcontratación y delegación"
+        description="Registro de subcontratos derivados, autorizaciones de delegación y porcentaje de tercerización."
+        action={
+          <div className="row-flex" style={{ gap: 8 }}>
+            <div className="exp-actions">
+              <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </div>
+            <Link className="btn sm pri" href={nuevoHref(cid, 'subcontratos')} aria-label="Crear nuevo subcontrato">
+              <Icon name="plus" /> Nuevo subcontrato
+            </Link>
           </div>
-          <Link className="btn sm pri" href={nuevoHref(cid, 'subcontratos')} aria-label="Crear nuevo subcontrato">
-            <Icon name="plus" /> Nuevo subcontrato
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* Tarjetas KPI canónicas */}
-      <div className="kpis mb [&_.kpi]:!p-2 sm:[&_.kpi]:!p-[14px_16px] [&_.kpi-ic]:!w-7 [&_.kpi-ic]:!h-7 sm:[&_.kpi-ic]:!w-[34px] sm:[&_.kpi-ic]:!h-[34px] [&_.kpi.kpi-v2]:!gap-2 sm:[&_.kpi.kpi-v2]:!gap-3 [&_.kpi-v]:!whitespace-nowrap [&_.kpi-v]:!text-[13.5px] sm:[&_.kpi-v]:!text-[23px] [&_.kpi-s]:!whitespace-nowrap [&_.kpi-s]:!text-[9.5px] sm:[&_.kpi-s]:!text-[11.5px]">
+      <div className="kpis">
         <Kpi
           label="Total subcontratos"
           value={totalSubs}
@@ -125,6 +125,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
           value={pct(pctOfContract)}
           sub={pctOfContract > 50 ? 'Alerta: Tercerización > 50%' : 'Nivel autorizado'}
           color={pctOfContract > 50 ? 'warn' : 'ok'}
+          sem={pctOfContract > 50 ? 'warn' : 'ok'}
           icon="pie-chart"
         />
         <Kpi
@@ -132,6 +133,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
           value={activosSubs}
           sub={`${totalSubs - activosSubs} inactivos`}
           color="ok"
+          sem="ok"
           icon="check-circle"
         />
         <Kpi
@@ -144,10 +146,8 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
       </div>
 
       {/* Árbol Jerárquico Visual */}
-      <Surface className="panel mb-4 overflow-hidden">
-        <div className="panel-h">
-          <h3 className="font-semibold text-sm flex items-center gap-2"><Icon name="diagram-project" size={15} /> Cadena de contratación y delegación</h3>
-        </div>
+      <Surface className="panel overflow-hidden">
+        <SectionHeader className="dt-panel-title" as="h3" icon="diagram-project" title="Cadena de contratación y delegación" />
         <div className="p-4" style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--line)' }}>
           <div className="tree">
             <ul className="space-y-2">
@@ -197,12 +197,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
 
       {/* Tabla detallada de Subcontratos */}
       <Surface className="panel">
-        <div className="panel-h flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-sm flex items-center gap-2"><Icon name="list" size={15} /> Registro detallado de subcontratistas</h3>
-            <span className="sub text-xs text-[var(--muted)]">{totalSubs} subcontrato(s)</span>
-          </div>
-        </div>
+        <SectionHeader className="dt-panel-title" as="h3" icon="list" title="Registro detallado de subcontratistas" description={<>{totalSubs} subcontrato(s)</>} />
 
         {subcontracts.length === 0 ? (
           <EmptyState
@@ -216,7 +211,7 @@ export const TabSubcontratos = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl" aria-label="Subcontratos vinculados al contrato">
+            <DataTable className="tbl" responsiveProfile="subcontratos" aria-label="Subcontratos vinculados al contrato">
               <thead>
                 <tr>
                   <th className="nw">Número</th>

@@ -12,6 +12,9 @@ import { Badge } from '../ui/Badge';
 import { Icon } from '../icons';
 import { nuevoHref } from './routes';
 
+import { SectionHeader } from '../ui/SectionHeader';
+import { Kpi } from '../ui/Kpi';
+
 export const TabGarantias = ({ cid }: { cid: string }) => {
   const c = Store.get('contracts', cid);
   if (!c) return <EmptyState title="Contrato no encontrado" description="No se encontró el expediente del contrato solicitado." />;
@@ -31,6 +34,13 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
     });
 
   const cum = guarantees.find((g) => g.tipo === 'Cumplimiento' && g.estado === 'Aprobada');
+  const totalAsegurado = sum(guarantees.filter((g) => g.estado === 'Aprobada'), (g) => +g.valor || 0);
+  const vencidas = guarantees.filter((g) => g.fechaVenc < todayIso() && g.estado !== 'Anulada').length;
+  const porVencer = guarantees.filter((g) => {
+    const d = diffDays(todayIso(), g.fechaVenc);
+    return d >= 0 && d <= 30 && g.estado !== 'Anulada';
+  }).length;
+  const aprobadas = guarantees.filter((g) => g.estado === 'Aprobada').length;
 
   const handleApprove = (g: Guarantee) => {
     if (!AuthService.guard('aprobar')) return;
@@ -48,19 +58,49 @@ export const TabGarantias = ({ cid }: { cid: string }) => {
   const allCupos = Store.all('cupos') as Cupo[];
 
   return (
-    <div>
-      <div className="panel-h mb-3">
-        <div>
-          <h3>Seguros y garantías del contrato</h3>
-          <span className="sub">
-            {insurers.length} aseguradora(s) · alertas a 30, 15, 10, 5, 3 y 1 día
-          </span>
-        </div>
-        <div className="row-flex">
+    <div className="ws-tab-pane">
+      <SectionHeader as="h3"
+        icon="shield-check"
+        title="Seguros y garantías del contrato"
+        description={`${insurers.length} aseguradora(s) · Alertas preventivas a 30, 15, 10, 5, 3 y 1 día.`}
+        action={
           <Link className="btn sm pri" href={nuevoHref(cid, 'garantias')} aria-label="Registrar nueva póliza de garantía">
             <Icon name="plus" /> Nueva póliza
           </Link>
-        </div>
+        }
+      />
+
+      <div className="kpis">
+        <Kpi
+          label="Total pólizas"
+          value={guarantees.length}
+          sub={`${aprobadas} aprobadas`}
+          color="brand"
+          icon="shield-check"
+        />
+        <Kpi
+          label="Valor total asegurado"
+          value={moneyM(totalAsegurado)}
+          sub={money(totalAsegurado)}
+          color="info"
+          icon="wallet"
+        />
+        <Kpi
+          label="Pólizas por vencer"
+          value={porVencer}
+          sub="En ≤ 30 días"
+          sem={porVencer > 0 ? 'warn' : 'ok'}
+          color={porVencer > 0 ? 'warn' : 'ok'}
+          icon="clock"
+        />
+        <Kpi
+          label="Pólizas vencidas"
+          value={vencidas}
+          sub="Sin renovación"
+          sem={vencidas > 0 ? 'crit' : 'ok'}
+          color={vencidas > 0 ? 'crit' : 'ok'}
+          icon="alert-circle"
+        />
       </div>
 
       {/* Tarjetas resumen por aseguradora */}

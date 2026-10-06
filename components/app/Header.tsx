@@ -16,11 +16,13 @@ import { BrandLogo } from './BrandLogo';
 interface HeaderProps {
   onUserChanged?: () => void;
   onToggleMobileMenu?: () => void;
+  mobileMenuOpen?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onUserChanged,
-  onToggleMobileMenu
+  onToggleMobileMenu,
+  mobileMenuOpen = false
 }) => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -209,6 +211,7 @@ export const Header: React.FC<HeaderProps> = ({
       <button
         className="menu-btn icon-btn"
         aria-label="Abrir menú de navegación"
+        aria-expanded={mobileMenuOpen}
         onClick={onToggleMobileMenu}
       >
         <Icon name="bars" />
@@ -238,11 +241,15 @@ export const Header: React.FC<HeaderProps> = ({
             if (e.key === 'Enter') {
               const first = searchGroups[0]?.[1]?.[0];
               if (first) { router.push(first.href); first.onClick(); }
+            } else if (e.key === 'ArrowDown') {
+              const firstLink = e.currentTarget.closest('.gsearch')?.querySelector<HTMLElement>('.dd-i');
+              if (firstLink) { e.preventDefault(); firstLink.focus(); }
             }
           }}
-          onBlur={() => {
-            // Cierre al perder foco: evita que el dropdown flotante
-            // intercepte clics cuando el usuario navega con Tab.
+          onBlur={(e) => {
+            // Cierre al perder foco, salvo que el foco pase a un resultado del propio dropdown.
+            const box = e.currentTarget.closest('.gsearch');
+            if (box && e.relatedTarget instanceof Node && box.contains(e.relatedTarget)) return;
             window.setTimeout(() => setShowSearchResults(false), 150);
           }}
         />
@@ -250,7 +257,29 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Dropdown de resultados de búsqueda */}
         {showSearchResults && q.length >= 2 && (
-          <div className="dropdown left" style={{ maxHeight: 420 }}>
+          <div
+            className="dropdown left"
+            style={{ maxHeight: 420 }}
+            role="region"
+            aria-label="Resultados de búsqueda"
+            onKeyDown={(e) => {
+              if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+              const links = [...e.currentTarget.querySelectorAll<HTMLElement>('.dd-i')];
+              const i = links.indexOf(document.activeElement as HTMLElement);
+              if (i < 0) return;
+              e.preventDefault();
+              if (e.key === 'ArrowUp' && i === 0) searchInputRef.current?.focus();
+              else links[Math.min(links.length - 1, Math.max(0, i + (e.key === 'ArrowDown' ? 1 : -1)))]?.focus();
+            }}
+            onBlur={(e) => {
+              const box = e.currentTarget.closest('.gsearch');
+              if (box && e.relatedTarget instanceof Node && box.contains(e.relatedTarget)) return;
+              window.setTimeout(() => setShowSearchResults(false), 150);
+            }}
+          >
+            <div className="sr-only" role="status" aria-live="polite">
+              {searchGroups.length === 0 ? 'Sin resultados' : `${searchGroups.reduce((n, [, it]) => n + Math.min(it.length, 5), 0)} resultados. Usa las flechas para recorrerlos.`}
+            </div>
             {searchGroups.length === 0 ? (
               <div className="empty" style={{ padding: '20px 16px', fontSize: '13px' }}>
                 Sin resultados para «{searchQuery}». Prueba con número de contrato, NIT, póliza o factura.
@@ -302,6 +331,8 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           className="hbtn icon-btn"
           aria-label="Notificaciones"
+          aria-haspopup="true"
+          aria-expanded={showBellDropdown}
           onClick={() => {
             setShowBellDropdown(!showBellDropdown);
             setShowUserDropdown(false);
@@ -383,12 +414,23 @@ export const Header: React.FC<HeaderProps> = ({
       <div style={{ position: 'relative' }}>
         <div
           className="user"
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setShowUserDropdown(!showUserDropdown);
             setShowBellDropdown(false);
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setShowUserDropdown(!showUserDropdown);
+              setShowBellDropdown(false);
+            }
+          }}
           title="Cambiar de usuario (simulación de login)"
           aria-label="Perfil de usuario"
+          aria-haspopup="true"
+          aria-expanded={showUserDropdown}
         >
           <div className="avatar">
             {initials(currentUser?.nombre || 'AD')}

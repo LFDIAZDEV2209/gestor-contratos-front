@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import { PBar } from '../ui/PBar';
 import type { Plan, Contract } from '../../lib/types';
 import { Store, Audit, AuthService } from '../../lib/store';
@@ -152,14 +153,8 @@ export const PlanForm = ({
 
       {/* Vínculo contractual */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="file-contract" size={16} /> Vínculo contractual
-          </h2>
-          <span className="sub">{contracts.length} contratos vigentes en el portafolio</span>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Vínculo contractual</>} icon="file-contract" description={<>{contracts.length} contratos vigentes en el portafolio</>} accent>
           <Field className="f span3">
             <label className="req">Contrato</label>
             <Select name="contractId" value={contractId} onChange={(e) => set({ contractId: e.target.value })}>
@@ -176,19 +171,13 @@ export const PlanForm = ({
               </small>
             )}
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       {/* Compromiso */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="clipboard-check" size={16} /> Compromiso de mejora
-          </h2>
-          <span className="sub">Los campos con * son obligatorios</span>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Compromiso de mejora</>} icon="clipboard-check" description={<>Los campos con * son obligatorios</>} accent>
           <Field className="f span3">
             <label className="req">Acción / Compromiso</label>
             <Textarea name="accion"
@@ -225,19 +214,13 @@ export const PlanForm = ({
               onChange={(e) => set({ fechaFin: e.target.value })}
             />
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       {/* Avance y estado */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="chart-pie" size={16} /> Avance y estado
-          </h2>
-          <span className="sub">Seguimiento de implementación</span>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Avance y estado</>} icon="chart-pie" description={<>Seguimiento de implementación</>} accent>
           <Field className="f">
             <label>% de Avance (0 a 100)</label>
             <Input name="avance"
@@ -267,10 +250,8 @@ export const PlanForm = ({
             <label>Gráfico de avance</label>
             <PBar value={avance} max={100} />
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

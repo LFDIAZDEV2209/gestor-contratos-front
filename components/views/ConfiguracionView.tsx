@@ -1,15 +1,19 @@
 "use client";
+import { AccessibleForm } from '../forms/AccessibleForm';
+import { FormSection } from '../ui/FormSection';
+import { fieldIcon } from '../forms/fieldIcon';
 import { Input } from "../ui/Controls";
 import { notify, confirmAction } from "../ui/Feedback";
 import { Button } from "../ui/button";
 import {
   PageHeader,
   Surface,
-  FormGrid,
   TableViewport,
   DataTable,
   EmptyState,
 } from "../ui/Workspace";
+import { SectionHeader } from "../ui/SectionHeader";
+
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -266,6 +270,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
     });
     Store.persist();
     refresh();
+    notify(`${curVal ? "Quitado" : "Concedido"} · ${perm} · ${role}`);
   };
 
   const resetPerms = () => {
@@ -315,7 +320,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
   const catalogKeys = Object.keys(CAT_LABEL);
 
   return (
-    <div className="view-content">
+    <div className="view-content conf-view">
       {/* Banner de cabecera con gradiente de marca institucional */}
       <PageHeader variant="hero" className="ph">
         <div>
@@ -385,6 +390,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
 
       {/* Tabs */}
       <Surface className="panel">
+        <h2 className="conf-sr">Parámetros y administración del sistema</h2>
         <div
           className="tabs"
           style={{ padding: "0 8px" }}
@@ -403,10 +409,10 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
               onClick={() => cambiarTab(t.id)}
               onKeyDown={(e) => {
                 // Navegación con flechas entre pestañas (patrón WAI-ARIA).
-                if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                if (["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) {
                   e.preventDefault();
                   const dir = e.key === "ArrowRight" ? 1 : -1;
-                  const next = TABS[(i + dir + TABS.length) % TABS.length];
+                  const next = e.key === "Home" ? TABS[0] : e.key === "End" ? TABS[TABS.length - 1] : TABS[(i + dir + TABS.length) % TABS.length];
                   cambiarTab(next.id);
                   document.getElementById(`conf-tab-${next.id}`)?.focus();
                 }
@@ -428,7 +434,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
           {activeTab === "alertas" && (
             <div className="grid g2">
               <div>
-                <h4 style={{ fontSize: "13px", marginBottom: 6 }}>
+                <h4 aria-level={2} style={{ fontSize: "13px", marginBottom: 6 }}>
                   Días de alerta antes del vencimiento
                 </h4>
                 <p className="small muted" style={{ margin: "0 0 8px" }}>
@@ -456,8 +462,8 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     ))}
                 </div>
                 {isAdmin && (
-                  <div className="row-flex" style={{ marginTop: 10, gap: 8 }}>
-                    <Input
+                  <AccessibleForm errors={{}} attempted={false}><FormSection title="Días de anticipación" icon="clock" className="form-section-inline"><div className="row-flex" style={{ marginTop: 10, gap: 8 }}>
+                    <Input icon={fieldIcon("newAlertDay", "Nuevos días de alerta", "number")}
                       type="number"
                       className="inp"
                       min={1}
@@ -474,14 +480,14 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     <Button className="btn sm ghost" onClick={resetAlertDays}>
                       Restablecer por defecto
                     </Button>
-                  </div>
+                  </div></FormSection></AccessibleForm>
                 )}
               </div>
 
-              <FormGrid className="form-grid" style={{ gap: 12 }}>
+              <AccessibleForm errors={{}} attempted={false}><FormSection title="Umbrales de seguimiento" icon="gauge" className="form-section-inline" gridStyle={{ gap: 12 }}>
                 <div>
                   <label className="form-label">Alerta crítica a (días)</label>
-                  <Input
+                  <Input icon={fieldIcon("criticalDays", "Alerta crítica a (días)", "number")}
                     type="number"
                     className="inp"
                     min={0}
@@ -501,7 +507,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                   <label className="form-label">
                     Presupuesto próximo a agotarse (% de saldo)
                   </label>
-                  <Input
+                  <Input icon={fieldIcon("budgetPct", "Presupuesto próximo a agotarse (% de saldo)", "number")}
                     type="number"
                     className="inp"
                     min={1}
@@ -523,7 +529,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                   <label className="form-label">
                     Brecha máxima ejecución financiera vs. física (%)
                   </label>
-                  <Input
+                  <Input icon={fieldIcon("gapPct", "Brecha máxima ejecución financiera vs. física (%)", "number")}
                     type="number"
                     className="inp"
                     min={1}
@@ -548,7 +554,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     </Button>
                   </div>
                 )}
-              </FormGrid>
+              </FormSection></AccessibleForm>
             </div>
           )}
 
@@ -559,10 +565,12 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                 const list: string[] = (S.catalogs && S.catalogs[catKey]) || [];
                 return (
                   <Surface key={catKey} className="panel">
-                    <div className="panel-h">
-                      <h3>{CAT_LABEL[catKey] || catKey}</h3>
-                      <span className="sub">{list.length}</span>
-                    </div>
+                    <SectionHeader
+                      as="h3"
+                      icon="folder-tree"
+                      title={CAT_LABEL[catKey] || catKey}
+                      action={<span className="ws-section-meta">{list.length}</span>}
+                    />
                     <div className="panel-b">
                       <div
                         style={{
@@ -579,7 +587,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                               <Button
                                 className="icon-btn"
                                 onClick={() => deleteCatItem(catKey, idx)}
-                                aria-label={`Quitar ${item} del catálogo`}
+                                aria-label={`Quitar ${item} del catálogo ${CAT_LABEL[catKey] || catKey}`}
                                 style={{ width: 18, height: 18, marginLeft: 2 }}
                               >
                                 <Icon name="x" size={11} />
@@ -594,8 +602,8 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                         )}
                       </div>
                       {isAdmin && (
-                        <div className="row-flex" style={{ gap: 6 }}>
-                          <Input
+                        <AccessibleForm errors={{}} attempted={false}><FormSection title={`Nuevo valor de ${CAT_LABEL[catKey] || catKey}`} icon="layers" className="form-section-inline conf-add"><div className="row-flex" style={{ gap: 6 }}>
+                          <Input icon={fieldIcon("catalogo", "Nuevo valor", "")}
                             className="inp"
                             placeholder="Nuevo valor"
                             aria-label={`Nuevo valor para ${CAT_LABEL[catKey] || catKey}`}
@@ -617,7 +625,7 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                           >
                             <Icon name="plus" /> Agregar
                           </Button>
-                        </div>
+                        </div></FormSection></AccessibleForm>
                       )}
                     </div>
                   </Surface>
@@ -914,11 +922,11 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
           {activeTab === "datos" && (
             <div className="grid g3">
               <Surface className="panel">
-                <div className="panel-h">
-                  <h3>
-                    <Icon name="layers" /> Almacenamiento local
-                  </h3>
-                </div>
+                <SectionHeader
+                  as="h3"
+                  icon="layers"
+                  title="Almacenamiento local"
+                />
                 <div className="panel-b">
                   <p className="small muted">
                     Adaptador activo: <b>localStorage</b> · {storageSizeKb} KB ·
@@ -930,11 +938,11 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
               </Surface>
 
               <Surface className="panel">
-                <div className="panel-h">
-                  <h3>
-                    <Icon name="download" /> Respaldo JSON
-                  </h3>
-                </div>
+                <SectionHeader
+                  as="h3"
+                  icon="download"
+                  title="Respaldo JSON"
+                />
                 <div className="panel-b">
                   <p className="small muted">
                     Descarga toda la información (incluida la auditoría
@@ -947,11 +955,11 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
               </Surface>
 
               <Surface className="panel">
-                <div className="panel-h">
-                  <h3 style={{ color: "var(--crit-text)" }}>
-                    <Icon name="trash" /> Restablecer datos de demostración
-                  </h3>
-                </div>
+                <SectionHeader
+                  as="h3"
+                  icon="trash"
+                  title="Restablecer datos de demostración"
+                />
                 <div className="panel-b">
                   <p className="small muted">
                     Borra los datos locales y recarga el seed inicial de

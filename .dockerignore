@@ -1,0 +1,11 @@
+# .dockerignore del front (build limpio y pequeño)
+node_modules
+.next
+.git
+scratch
+test-results
+playwright-report
+*.md
+.editorconfig
+*.cjs
+scripts

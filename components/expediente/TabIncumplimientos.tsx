@@ -13,6 +13,7 @@ import { Kpi } from '../ui/Kpi';
 import { Icon } from '../icons';
 import Link from 'next/link';
 import { nuevoHref, editarHref } from './routes';
+import { SectionHeader } from '../ui/SectionHeader';
 
 export const TabIncumplimientos = ({ cid }: { cid: string }) => {
   const c = Store.get('contracts', cid);
@@ -104,47 +105,47 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="tab-incumplimientos-container">
+    <div className="ws-tab-pane">
       {/* Encabezado */}
-      <div className="panel-h mb-3 flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h3 className="text-base font-bold text-[var(--ink)] flex items-center gap-2"><Icon name="alert-triangle" size={16} /> Gestión de incumplimientos y planes de mejoramiento</h3>
-          <span className="sub text-xs text-[var(--muted)]">
-            Registro formal de faltas contractuales, medidas administrativas, requerimientos y compromisos
-          </span>
-        </div>
-        <div className="row-flex">
-          <div className="exp-actions">
-            <Button className="btn sm" onClick={() => handleExportBreaches('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
-              <Icon name="file-excel" /> Excel
-            </Button>
-            <Button className="btn sm" onClick={() => handleExportBreaches('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
-              <Icon name="file-pdf" /> PDF
-            </Button>
-            <Button className="btn sm" onClick={() => handleExportBreaches('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
-              <Icon name="file-csv" /> CSV
-            </Button>
+      <SectionHeader as="h3"
+        icon="gavel"
+        title="Gestión de incumplimientos y planes de mejoramiento"
+        description="Registro formal de faltas contractuales, medidas administrativas, requerimientos y compromisos."
+        action={
+          <div className="row-flex" style={{ gap: 8 }}>
+            <div className="exp-actions">
+              <Button className="btn sm" onClick={() => handleExportBreaches('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm" onClick={() => handleExportBreaches('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm" onClick={() => handleExportBreaches('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </div>
+            <Link className="btn sm pri" href={nuevoHref(cid, 'incumplimientos')} aria-label="Registrar incumplimiento">
+              <Icon name="plus" /> Registrar incumplimiento
+            </Link>
           </div>
-          <Link className="btn sm pri" href={nuevoHref(cid, 'incumplimientos')} aria-label="Registrar incumplimiento">
-            <Icon name="plus" /> Registrar incumplimiento
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* KPI Cards canónicas */}
-      <div className="kpis mb [&_.kpi]:!p-2 sm:[&_.kpi]:!p-[14px_16px] [&_.kpi-ic]:!w-7 [&_.kpi-ic]:!h-7 sm:[&_.kpi-ic]:!w-[34px] sm:[&_.kpi-ic]:!h-[34px] [&_.kpi.kpi-v2]:!gap-2 sm:[&_.kpi.kpi-v2]:!gap-3 [&_.kpi-v]:!whitespace-nowrap [&_.kpi-v]:!text-[13.5px] sm:[&_.kpi-v]:!text-[23px] [&_.kpi-s]:!whitespace-nowrap [&_.kpi-s]:!text-[9.5px] sm:[&_.kpi-s]:!text-[11.5px]">
+      <div className="kpis">
         <Kpi
           label="Total incumplimientos"
           value={totalBreaches}
           sub="Expediente disciplinario"
           color="brand"
-          icon="alert-triangle"
+          icon="gavel"
         />
         <Kpi
           label="Casos abiertos / trámite"
           value={abiertos}
           sub={abiertos > 0 ? 'En gestión activa' : 'Sin casos pendientes'}
           color={abiertos > 0 ? 'crit' : 'ok'}
+          sem={abiertos > 0 ? 'crit' : 'ok'}
           icon="alert-circle"
         />
         <Kpi
@@ -152,6 +153,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           value={altos}
           sub={altos > 0 ? 'Riesgo para el contrato' : 'Ningún caso crítico'}
           color={altos > 0 ? 'risk' : 'ok'}
+          sem={altos > 0 ? 'risk' : 'ok'}
           icon="shield-alert"
         />
         <Kpi
@@ -159,6 +161,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           value={subsanados}
           sub="Con plan o cierre formal"
           color="ok"
+          sem="ok"
           icon="check-circle"
         />
         <Kpi
@@ -166,18 +169,13 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           value={totalPlanes}
           sub="Acciones comprometidas"
           color="info"
-          icon="list-checks"
+          icon="list-check"
         />
       </div>
 
       {/* Tabla detallada de Incumplimientos */}
-      <Surface className="panel mb-4">
-        <div className="panel-h flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-sm flex items-center gap-2"><Icon name="alert-circle" size={15} /> Registro de faltas contractuales e infracciones</h3>
-            <span className="sub text-xs text-[var(--muted)]">{totalBreaches} caso(s) registrado(s)</span>
-          </div>
-        </div>
+      <Surface className="panel">
+        <SectionHeader className="dt-panel-title" as="h3" icon="alert-circle" title="Registro de faltas contractuales e infracciones" description={<>{totalBreaches} caso(s) registrado(s)</>} />
 
         {breaches.length === 0 ? (
           <EmptyState
@@ -191,7 +189,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl" aria-label="Incumplimientos registrados del contrato">
+            <DataTable className="tbl" responsiveProfile="incumplimientos" aria-label="Incumplimientos registrados del contrato">
               <thead>
                 <tr>
                   <th className="nw">Fecha reporte</th>
@@ -288,17 +286,11 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
 
       {/* Planes de Mejoramiento */}
       <Surface className="panel">
-        <div className="panel-h flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-sm flex items-center gap-2"><Icon name="list-check" size={15} /> Planes de mejoramiento y compromisos suscritos</h3>
-            <span className="sub text-xs text-[var(--muted)]">{totalPlanes} plan(es) formalizado(s)</span>
-          </div>
-          <div className="row-flex">
+        <SectionHeader className="dt-panel-title" as="h3" icon="list-check" title="Planes de mejoramiento y compromisos suscritos" description={<>{totalPlanes} plan(es) formalizado(s)</>} action={<><div className="row-flex">
             <Link className="btn sm pri" href={nuevoHref(cid, 'planes')} aria-label="Crear nuevo plan de mejoramiento">
               <Icon name="plus" /> Nuevo plan
             </Link>
-          </div>
-        </div>
+          </div></>} />
 
         {plans.length === 0 ? (
           <EmptyState
@@ -312,7 +304,7 @@ export const TabIncumplimientos = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl" aria-label="Planes de mejoramiento del contrato">
+            <DataTable className="tbl" responsiveProfile="planes" aria-label="Planes de mejoramiento del contrato">
               <thead>
                 <tr>
                   <th>Hallazgo observado</th>

@@ -12,6 +12,7 @@ import { Kpi } from '../ui/Kpi';
 import { Icon } from '../icons';
 import Link from 'next/link';
 import { nuevoHref } from './routes';
+import { SectionHeader } from '../ui/SectionHeader';
 
 export const TabSuspensiones = ({ cid }: { cid: string }) => {
   const c = Store.get('contracts', cid) as Contract | undefined;
@@ -103,60 +104,58 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="tab-suspensiones-container">
+    <div className="ws-tab-pane">
       {/* Encabezado */}
-      <div className="panel-h mb-3 flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h3 className="text-base font-bold text-[var(--ink)]">Suspensiones y reinicios de ejecución</h3>
-          <span className="sub text-xs text-[var(--muted)]">
+      <SectionHeader as="h3"
+        icon="pause"
+        title="Suspensiones y reinicios de ejecución"
+        description={
+          isSuspended
+            ? 'Contrato actualmente en suspensión de ejecución · Plazo formal detenido.'
+            : 'Ejecución activa normal del contrato · Historial de eventos y actas.'
+        }
+        action={
+          <div className="row-flex" style={{ gap: 8 }}>
+            <div className="exp-actions">
+              <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </div>
             {isSuspended ? (
-              <span className="inline-flex items-center gap-1 font-semibold" style={{ color: 'var(--warn-text)' }}>
-                <Icon name="pause" size={13} /> Contrato actualmente en suspensión de ejecución
-              </span>
+              <Link
+                className="btn sm btn-ok pri"
+                href={nuevoHref(cid, 'reinicios')}
+                aria-label="Registrar reinicio"
+              >
+                <Icon name="play" /> Registrar reinicio
+              </Link>
             ) : (
-              'Ejecución activa normal del contrato'
+              <Link
+                className="btn sm btn-warn pri"
+                href={nuevoHref(cid, 'suspensiones')}
+                aria-label="Registrar suspensión"
+              >
+                <Icon name="pause" /> Registrar suspensión
+              </Link>
             )}
-          </span>
-        </div>
-        <div className="row-flex">
-          <div className="exp-actions">
-            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
-              <Icon name="file-excel" /> Excel
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
-              <Icon name="file-pdf" /> PDF
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
-              <Icon name="file-csv" /> CSV
-            </Button>
           </div>
-          {isSuspended ? (
-            <Link
-              className="btn sm btn-ok pri"
-              href={nuevoHref(cid, 'reinicios')}
-              aria-label="Registrar reinicio"
-            >
-              <Icon name="play" /> Registrar reinicio
-            </Link>
-          ) : (
-            <Link
-              className="btn sm btn-warn pri"
-              href={nuevoHref(cid, 'suspensiones')}
-              aria-label="Registrar suspensión"
-            >
-              <Icon name="pause" /> Registrar suspensión
-            </Link>
-          )}
-        </div>
-      </div>
+        }
+      />
 
       {/* KPI Cards canónicas */}
-      <div className="kpis mb [&_.kpi]:!p-2 sm:[&_.kpi]:!p-[14px_16px] [&_.kpi-ic]:!w-7 [&_.kpi-ic]:!h-7 sm:[&_.kpi-ic]:!w-[34px] sm:[&_.kpi-ic]:!h-[34px] [&_.kpi.kpi-v2]:!gap-2 sm:[&_.kpi.kpi-v2]:!gap-3 [&_.kpi-v]:!whitespace-nowrap [&_.kpi-v]:!text-[13.5px] sm:[&_.kpi-v]:!text-[23px] [&_.kpi-s]:!whitespace-nowrap [&_.kpi-s]:!text-[9.5px] sm:[&_.kpi-s]:!text-[11.5px]">
+      <div className="kpis">
         <Kpi
           label="Estado de ejecución"
           value={c.estado}
           sub={isSuspended ? 'Plazo temporalmente detenido' : 'Ejecución en curso'}
           color={isSuspended ? 'warn' : 'ok'}
+          sem={isSuspended ? 'warn' : 'ok'}
           icon={isSuspended ? 'pause' : 'play'}
         />
         <Kpi
@@ -184,12 +183,7 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
 
       {/* Tabla detallada de Modificaciones de suspensión/reinicio */}
       <Surface className="panel mb-4">
-        <div className="panel-h flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-sm">Registro de actos de suspensión y reinicio</h3>
-            <span className="sub text-xs text-[var(--muted)]">{modSusp.length} evento(s)</span>
-          </div>
-        </div>
+        <SectionHeader className="dt-panel-title" as="h3" icon="pause-circle" title="Registro de actos de suspensión y reinicio" description={<>{modSusp.length} evento(s)</>} />
 
         {modSusp.length === 0 ? (
           <EmptyState
@@ -281,12 +275,7 @@ export const TabSuspensiones = ({ cid }: { cid: string }) => {
 
       {/* Actas asociadas de suspensión y reinicio */}
       <Surface className="panel">
-        <div className="panel-h flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-sm">Actas bilaterales formalizadas</h3>
-            <span className="sub text-xs text-[var(--muted)]">{actasSusp.length} acta(s) radicada(s)</span>
-          </div>
-        </div>
+        <SectionHeader className="dt-panel-title" as="h3" icon="file-text" title="Actas bilaterales formalizadas" description={<>{actasSusp.length} acta(s) radicada(s)</>} />
 
         {actasSusp.length === 0 ? (
           <EmptyState

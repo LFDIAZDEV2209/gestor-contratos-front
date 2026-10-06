@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Exec } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { activeContracts, M } from '../../lib/metrics';
@@ -113,16 +114,8 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
       </PageHeader>
 
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="chart-line" /> Informe del periodo
-            </h2>
-            <span className="sub small muted">Contrato, periodo y valores ejecutados</span>
-          </div>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Informe del periodo</>} icon="chart-line" description={<>Contrato, periodo y valores ejecutados</>} accent>
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
             <Select name="contractId"
@@ -138,7 +131,7 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
               ))}
             </Select>
             {err('contractId') && (
-              <span className="emsg" id="err-econtrato">
+              <span className="emsg" id="err-econtrato"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('contractId')}
               </span>
             )}
@@ -174,7 +167,7 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
               </Select>
             </div>
             {err('periodo') && (
-              <span className="emsg" id="err-eperiodo">
+              <span className="emsg" id="err-eperiodo"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('periodo')}
               </span>
             )}
@@ -190,7 +183,7 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
               aria-describedby={err('valor') ? 'err-evalor' : undefined}
             />
             {err('valor') ? (
-              <span className="emsg" id="err-evalor">
+              <span className="emsg" id="err-evalor"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('valor')}
               </span>
             ) : (
@@ -219,7 +212,7 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
               onChange={(e) => set({ obs: e.target.value })}
             />
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       {seleccion && mSel && (
@@ -265,8 +258,6 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
           </div>
         </Surface>
       )}
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

@@ -23,7 +23,7 @@ export interface KpiProps {
 // Tarjeta estadística canónica (idéntica en toda la plataforma).
 // - `color` semántico: ok | warn | risk | crit | na | info | brand
 // - `brand` renderiza la variante destacada invertida (gradiente de marca, texto blanco).
-//   Las demás: superficie blanca + acento superior + tile de icono con gradiente y sombra de color.
+//   Las demás: superficie blanca + acento superior + tile de icono tintado.
 const Kpi: React.FC<KpiProps> = ({
   label,
   title,
@@ -47,11 +47,20 @@ const Kpi: React.FC<KpiProps> = ({
       const isUp = delta.startsWith('+') || delta.includes('▲');
       const isDown = delta.startsWith('-') || delta.includes('▼');
       const deltaClass = isUp ? 'b-ok' : isDown ? 'b-crit' : 'b-na';
-      deltaNode = <span className={`badge ${deltaClass}`} style={{ fontSize: '10px', padding: '1px 6px' }}>{delta}</span>;
+      deltaNode = <span className={`badge kpi-delta ${deltaClass}`}>{delta}</span>;
     } else {
       const deltaClass = delta.type === 'up' ? 'b-ok' : delta.type === 'down' ? 'b-crit' : 'b-na';
-      const arrow = delta.type === 'up' ? '▲ ' : delta.type === 'down' ? '▼ ' : '';
-      deltaNode = <span className={`badge ${deltaClass}`} style={{ fontSize: '10px', padding: '1px 6px' }}>{arrow}{delta.value}</span>;
+      const direction = delta.type === 'up' ? 'Aumento' : delta.type === 'down' ? 'Disminución' : 'Variación';
+      deltaNode = (
+        <span className={`badge kpi-delta ${deltaClass}`} aria-label={`${direction}: ${delta.value}`}>
+          {delta.type && delta.type !== 'neutral' && (
+            <span className={`kpi-delta-icon ${delta.type}`} aria-hidden="true">
+              <Icon name="chevron-down" size={11} />
+            </span>
+          )}
+          {delta.value}
+        </span>
+      );
     }
   }
 
@@ -64,20 +73,24 @@ const Kpi: React.FC<KpiProps> = ({
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
     >
-      {icon && (
-        <span className="kpi-ic" aria-hidden="true">
-          <Icon name={icon} style={{ width: 18, height: 18 }} />
-        </span>
-      )}
       <div className="kpi-bd">
         <div className="kpi-l">
           <span className="kpi-lt">{label || title}</span>
           {deltaNode}
         </div>
-        <div className={`kpi-v ${typeof value === 'string' && value.length > 10 ? 'numeric-long' : ''}`}>{value}</div>
-        {sub != null && sub !== '' && <div className="kpi-s">{sub}</div>}
+        <div className="kpi-metric">
+          <div className="kpi-figures">
+            <div className={`kpi-v ${String(value).length > 10 ? 'numeric-long' : ''}`}>{value}</div>
+            {sub != null && sub !== '' && <div className="kpi-s">{sub}</div>}
+          </div>
+          {icon && (
+            <span className="kpi-ic" aria-hidden="true">
+              <Icon name={icon} size={16} />
+            </span>
+          )}
+        </div>
       </div>
-      {sem && <span className={`sem ${sem === 'brand' ? 'brand-dot' : sem}`} />}
+      {sem && <span className={`sem ${sem === 'brand' ? 'brand-dot' : sem}`} aria-hidden="true" />}
     </div>
   );
 };

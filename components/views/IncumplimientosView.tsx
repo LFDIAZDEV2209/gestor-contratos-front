@@ -1,4 +1,6 @@
 'use client';
+import { SectionHeader } from '../ui/SectionHeader';
+import { fieldIcon } from '../forms/fieldIcon';
 import { Select, Input } from '../ui/Controls';
 import { requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
@@ -47,6 +49,9 @@ const countPill = {
   color: 'var(--surface)',
   whiteSpace: 'nowrap' as const
 };
+
+/* Carril semántico por impacto: Alto -> crítica, Medio -> riesgo, Bajo -> ok. */
+const impactoRail: Record<string, string> = { Alto: 'rail-c-crit', Medio: 'rail-c-warn', Bajo: 'rail-c-ok' };
 
 // Desplazamiento suave a un panel de la vista (respeta prefers-reduced-motion)
 const scrollToPanel = (id: string) => {
@@ -302,46 +307,35 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
       {/* Panel 1: Incumplimientos */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="triangle-exclamation" size={14} /> Incumplimientos
+        <SectionHeader
+          icon="triangle-exclamation"
+          title="Incumplimientos"
+          as="h3"
+          description={
+            <>
+              {hasFilters
+                ? `${filteredBreaches.length} de ${breaches.length} registros coinciden con los filtros`
+                : 'Hechos, impacto, multas y plan de acción exigido'}
+              {' · '}
               <span className="badge b-na">{filteredBreaches.length}</span>
-            </h3>
-            <span className="sub">Hechos, impacto, multas y plan de acción exigido</span>
-          </div>
-          {/* Exportación agrupada en un disclosure para no saturar la cabecera de la tabla */}
-          <div className="row-flex">
-            <details className="action-disclosure" style={{ display: 'none' }}>
-              <summary title="Exportar incumplimientos" aria-label="Exportar incumplimientos">
-                <Icon name="download" />
-              </summary>
-              <div className="action-disclosure-content">
-                <Button className="btn sm" onClick={() => exportBreaches('xlsx')}>
-                  <Icon name="file-excel" /> Excel (XLSX)
-                </Button>
-                <Button className="btn sm" onClick={() => exportBreaches('pdf')}>
-                  <Icon name="file-pdf" /> PDF
-                </Button>
-                <Button className="btn sm" onClick={() => exportBreaches('csv')}>
-                  <Icon name="file-csv" /> CSV
-                </Button>
-              </div>
-            </details>
-            <Button className="btn sm xs" onClick={() => exportBreaches('xlsx')} title="Exportar a Excel">
-              <Icon name="file-excel" /> Excel
-            </Button>
-            <Button className="btn sm xs" onClick={() => exportBreaches('pdf')} title="Exportar a PDF">
-              <Icon name="file-pdf" /> PDF
-            </Button>
-            <Button className="btn sm xs" onClick={() => exportBreaches('csv')} title="Exportar a CSV">
-              <Icon name="file-csv" /> CSV
-            </Button>
-          </div>
-        </div>
-
+            </>
+          }
+          action={
+            <>
+              <Button className="btn sm xs" onClick={() => exportBreaches('xlsx')} title="Exportar a Excel">
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm xs" onClick={() => exportBreaches('pdf')} title="Exportar a PDF">
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm xs" onClick={() => exportBreaches('csv')} title="Exportar a CSV">
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </>
+          }
+        />
         <div className="filters">
-          <Field className="f" style={{ flex: 1, minWidth: 240 }}>
+          <Field className="f f-val-search">
             <label>Buscar</label>
             <div className="gsearch">
               <Icon name="search" />
@@ -356,9 +350,9 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
               />
             </div>
           </Field>
-          <Field className="f">
+          <Field className="f f-val-filtro">
             <label>Estado</label>
-            <Select
+            <Select icon={fieldIcon("filterBEstado", "Estado", "")}
               value={filterBEstado}
               onChange={(e) => {
                 setFilterBEstado(e.target.value);
@@ -373,9 +367,9 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
               <option value="Cerrado">Cerrado</option>
             </Select>
           </Field>
-          <Field className="f">
+          <Field className="f f-val-filtro">
             <label>Impacto</label>
-            <Select
+            <Select icon={fieldIcon("filterBImpacto", "Impacto", "")}
               value={filterBImpacto}
               onChange={(e) => {
                 setFilterBImpacto(e.target.value);
@@ -389,14 +383,14 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
             </Select>
           </Field>
           {hasFilters && (
-            <Button className="btn sm ghost" onClick={clearFilters} style={{ alignSelf: 'flex-end', height: 38 }}>
-              <Icon name="trash" /> Limpiar filtros
+            <Button className="btn sm ghost" onClick={clearFilters} style={{ alignSelf: 'flex-end', height: 36 }}>
+              <Icon name="x" /> Limpiar filtros
             </Button>
           )}
         </div>
 
         <TableViewport className="tbl-wrap">
-          <DataTable className="tbl" aria-label="Hechos y procesos de incumplimiento">
+          <DataTable className="tbl inc-tbl" aria-label="Hechos y procesos de incumplimiento">
             <thead>
               <tr>
                 <th>ID</th>
@@ -418,7 +412,7 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                 return (
                   <tr
                     key={b.id}
-                    className="anim-fade-rise"
+                    className={`anim-fade-rise rail ${impactoRail[b.impacto] || 'rail-c-na'}`}
                     style={{ animationDelay: `${Math.min(idx, 12) * 25}ms`, transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
                     onMouseEnter={rowLift}
                     onMouseLeave={rowReset}
@@ -438,22 +432,24 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                         '—'
                       )}
                     </td>
-                    <td>{fdate(b.fecha)}</td>
+                    <td className="nw">{fdate(b.fecha)}</td>
                     <td>
                       <span className="badge b-info">{b.tipo}</span>
                     </td>
-                    <td style={{ maxWidth: 240 }}>{b.descripcion}</td>
-                    <td>
+                    <td className="tbl-text-cell" title={b.descripcion} style={{ maxWidth: 260 }}>{b.descripcion}</td>
+                    <td className="nw">
                       <span className={`badge ${impactoBadge[b.impacto] || 'b-na'}`} style={badgePop}>
                         {b.impacto}
                       </span>
                     </td>
-                    <td className="num strong">{b.multa ? money(b.multa) : '—'}</td>
-                    <td style={{ maxWidth: 200 }} className="clip">
+                    <td className="num strong" title={b.multa ? `Multa de ${money(b.multa)}` : 'Sin multa registrada'}>
+                      {b.multa ? money(b.multa) : '—'}
+                    </td>
+                    <td className="clip" title={b.planAccion || 'Sin plan de acción registrado'} style={{ maxWidth: 200 }}>
                       {b.planAccion || '—'}
                     </td>
-                    <td>{b.responsable || '—'}</td>
-                    <td>
+                    <td title={b.responsable || 'Sin responsable asignado'}>{b.responsable || '—'}</td>
+                    <td className="nw">
                       <Badge state={b.estado} style={badgePop} />
                     </td>
                     <td className="acts">
@@ -556,32 +552,37 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
 
       {/* Panel 2: Planes de mejoramiento */}
       <Surface className="panel" id="panel-planes">
-        <div className="panel-h">
-          <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="clipboard-check" size={14} /> Planes de mejoramiento
+        <SectionHeader
+          icon="clipboard-check"
+          title="Planes de mejoramiento"
+          as="h3"
+          description={
+            <>
+              Compromisos con responsable, fechas y % de avance
+              {' · '}
               <span className="badge b-info">{activePlans.length} en curso</span>
-            </h3>
-            <span className="sub">Compromisos con responsable, fechas y % de avance</span>
-          </div>
-          <div className="row-flex">
-            <Button className="btn sm xs" onClick={() => exportPlans('xlsx')} title="Exportar a Excel">
-              <Icon name="file-excel" /> Excel
-            </Button>
-            <Button className="btn sm xs" onClick={() => exportPlans('pdf')} title="Exportar a PDF">
-              <Icon name="file-pdf" /> PDF
-            </Button>
-            <Button className="btn sm xs" onClick={() => exportPlans('csv')} title="Exportar a CSV">
-              <Icon name="file-csv" /> CSV
-            </Button>
-            <Button className="btn sm xs" onClick={() => exportPlans('print')} title="Imprimir">
-              <Icon name="print" /> Imprimir
-            </Button>
-          </div>
-        </div>
+            </>
+          }
+          action={
+            <>
+              <Button className="btn sm xs" onClick={() => exportPlans('xlsx')} title="Exportar a Excel">
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm xs" onClick={() => exportPlans('pdf')} title="Exportar a PDF">
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm xs" onClick={() => exportPlans('csv')} title="Exportar a CSV">
+                <Icon name="file-csv" /> CSV
+              </Button>
+              <Button className="btn sm xs" onClick={() => exportPlans('print')} title="Imprimir">
+                <Icon name="print" /> Imprimir
+              </Button>
+            </>
+          }
+        />
 
         <TableViewport className="tbl-wrap" aria-label="Tabla de planes de mejoramiento">
-          <DataTable className="tbl" aria-label="Planes de mejoramiento concertados">
+          <DataTable className="tbl inc-tbl" aria-label="Planes de mejoramiento concertados">
             <thead>
               <tr>
                 <th>ID</th>
@@ -598,10 +599,11 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
             <tbody>
               {pagedPlans.map((p, idx) => {
                 const c = Store.get('contracts', p.contractId);
+                const vencido = !!p.fechaFin && p.estado !== 'Cerrado' && p.estado !== 'Cumplido' && new Date(p.fechaFin) < new Date(todayIso());
                 return (
                   <tr
                     key={p.id}
-                    className="anim-fade-rise"
+                    className={`anim-fade-rise rail ${vencido ? 'rail-c-crit' : p.estado === 'Cerrado' || p.estado === 'Cumplido' ? 'rail-c-ok' : 'rail-c-info'}`}
                     style={{ animationDelay: `${Math.min(idx, 12) * 25}ms`, transition: 'transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
                     onMouseEnter={rowLift}
                     onMouseLeave={rowReset}
@@ -621,19 +623,17 @@ export const IncumplimientosView: React.FC<IncumplimientosViewProps> = ({ onSele
                         '—'
                       )}
                     </td>
-                    <td style={{ maxWidth: 260 }}>{p.accion}</td>
-                    <td>{p.responsable || '—'}</td>
-                    <td>{fdate(p.fechaInicio)}</td>
-                    <td>
+                    <td className="tbl-text-cell" title={p.accion} style={{ maxWidth: 260 }}>{p.accion}</td>
+                    <td title={p.responsable || 'Sin responsable asignado'}>{p.responsable || '—'}</td>
+                    <td className="nw">{fdate(p.fechaInicio)}</td>
+                    <td className="nw" title={vencido ? 'Compromiso vencido sin cierre' : 'Fecha compromiso del plan'}>
                       {fdate(p.fechaFin)}
-                      {p.fechaFin && p.estado !== 'Cerrado' && p.estado !== 'Cumplido' && new Date(p.fechaFin) < new Date(todayIso()) && (
-                        <span className="badge b-crit" style={{ ...badgePop, marginLeft: 6 }}>Vencido</span>
-                      )}
+                      {vencido && <span className="badge b-crit" style={{ ...badgePop, marginLeft: 6 }}>Vencido</span>}
                     </td>
                     <td>
                       <PBar value={Number(p.avance) || 0} max={100} />
                     </td>
-                    <td>
+                    <td className="nw">
                       <Badge state={p.estado} style={badgePop} />
                     </td>
                     <td className="acts">

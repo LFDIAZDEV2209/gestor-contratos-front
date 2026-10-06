@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Company } from '../../lib/types';
 import { Store, Audit } from '../../lib/store';
 import { Icon } from '../icons';
@@ -128,7 +129,7 @@ export const EmpresaForm = ({
       </PageHeader>
 
       <Surface className="panel mb">
-        <FormGrid className="form-grid">
+        <FormSection title="Identificación legal" icon="building" description="Datos legales de la empresa y su representante." accent>
           <Field className="f">
             <label className="req">NIT / Identificación Tributaria</label>
             <Input name="nit"
@@ -182,6 +183,8 @@ export const EmpresaForm = ({
             </Select>
           </Field>
 
+        </FormSection>
+        <FormSection title="Canales de contacto" icon="user" description="Información para contactar a la empresa.">
           <Field className="f">
             <label>Teléfono de Contacto</label>
             <Input name="tel"
@@ -209,10 +212,8 @@ export const EmpresaForm = ({
               placeholder="Ej. Cra 54 # 72-80, Barranquilla"
             />
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

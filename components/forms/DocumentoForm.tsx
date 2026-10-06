@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Document, DocumentVersion } from '../../lib/types';
 import { Store, Audit, AuthService } from '../../lib/store';
 import { CAT } from '../../lib/catalog';
@@ -112,16 +113,8 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
       </PageHeader>
 
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="folder-tree" /> Identificación
-            </h2>
-            <span className="sub small muted">Contrato, nombre y categoría del documento</span>
-          </div>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Identificación</>} icon="folder-tree" description={<>Contrato, nombre y categoría del documento</>} accent>
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
             <Select name="contractId"
@@ -137,7 +130,7 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
               ))}
             </Select>
             {err('contractId') && (
-              <span className="emsg" id="err-dcontrato">
+              <span className="emsg" id="err-dcontrato"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('contractId')}
               </span>
             )}
@@ -152,7 +145,7 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
               aria-describedby={err('nombre') ? 'err-dnombre' : undefined}
             />
             {err('nombre') && (
-              <span className="emsg" id="err-dnombre">
+              <span className="emsg" id="err-dnombre"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('nombre')}
               </span>
             )}
@@ -181,22 +174,12 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
               No se realiza ninguna transferencia real.
             </span>
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="history" /> Versión inicial
-            </h2>
-            <span className="sub small muted">
-              Se registra v1 con el usuario y la fecha de hoy; nunca se elimina
-            </span>
-          </div>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Versión inicial</>} icon="history" description={<>Se registra v1 con el usuario y la fecha de hoy; nunca se elimina</>} accent>
           <Field className="f span3">
             <label>Motivo de la carga</label>
             <Input name="motivo"
@@ -215,10 +198,8 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
               onChange={(e) => set({ obs: e.target.value })}
             />
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

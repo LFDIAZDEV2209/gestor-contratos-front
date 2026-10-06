@@ -1,4 +1,5 @@
 'use client';
+import { SectionHeader } from '../ui/SectionHeader';
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
 import { Button } from '../ui/button';
@@ -383,14 +384,16 @@ export const AseguradorasView = ({
       {/* Contracts x Insurers Matrix (solo con aseguradoras registradas) */}
       {insurerStatsList.length > 0 && (
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="sitemap" /> Matriz de cobertura: Contratos × Aseguradoras
-            </h3>
-            <span className="sub small muted">Pólizas vigentes de los contratos activos en las principales aseguradoras</span>
-          </div>
-        </div>
+          <SectionHeader
+            icon="shield"
+            title="Matriz de cobertura: Contratos × Aseguradoras"
+            as="h3"
+            description={
+              <>
+                Pólizas vigentes de los contratos activos en las principales aseguradoras
+              </>
+            }
+          />
         <TableViewport className="tbl-wrap">
           <DataTable className="tbl" aria-label="Matriz de cobertura por aseguradora">
             <thead>
@@ -507,19 +510,25 @@ export const AseguradorasView = ({
 
       {/* CRUD Table for Quotas */}
       <Surface className="panel">
-        <div className="panel-h">
-          <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="layers" /> Cupos de crédito / afianzamiento
-            </h3>
-            <span className="sub small muted">Líneas globales de seguro rotativo por aseguradora</span>
-          </div>
-          {AuthService.can('crear') && (
-            <Link href="/aseguradoras/cupos/nuevo" className="btn sm pri">
-              <Icon name="plus" /> Nuevo cupo
-            </Link>
-          )}
-        </div>
+        <SectionHeader
+          icon="layers"
+          title="Cupos de crédito / afianzamiento"
+          as="h3"
+          description={
+            <>
+              Líneas globales de seguro rotativo por aseguradora
+            </>
+          }
+          action={
+            <>
+              {AuthService.can('crear') && (
+                <Link href="/aseguradoras/cupos/nuevo" className="btn sm pri">
+                  <Icon name="plus" /> Nuevo cupo
+                </Link>
+              )}
+            </>
+          }
+        />
         <TableViewport className="tbl-wrap">
           <DataTable className="tbl" aria-label="Cupos autorizados por aseguradora">
             <thead>

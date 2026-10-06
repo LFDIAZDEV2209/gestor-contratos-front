@@ -14,6 +14,8 @@ import { Icon } from '../icons';
 import Link from 'next/link';
 import { nuevoHref, editarHref } from './routes';
 
+import { SectionHeader } from '../ui/SectionHeader';
+
 export const TabEjecucion = ({ cid }: { cid: string }) => {
   const c = Store.get('contracts', cid);
   if (!c) {
@@ -192,16 +194,13 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="tab-ejecucion-container">
+    <div className="ws-tab-pane">
       {/* Encabezado de la pestaña */}
-      <div className="panel-h mb-3 flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h3 className="text-base font-bold text-[var(--ink)]">Ejecución presupuestal y física</h3>
-          <span className="sub text-xs text-[var(--muted)]">
-            Seguimiento mensual consolidado de avance financiero vs. cumplimiento físico
-          </span>
-        </div>
-        <div className="row-flex">
+      <SectionHeader as="h3"
+        icon="trending-up"
+        title="Ejecución presupuestal y física"
+        description="Seguimiento mensual consolidado de avance financiero vs. cumplimiento físico."
+        action={
           <Link
             className="btn sm pri"
             href={nuevoHref(cid, 'ejecucion')}
@@ -209,20 +208,12 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
           >
             <Icon name="plus" /> Registrar ejecución
           </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* Alertas dinámicas de agotamiento o sobreejecución */}
       {m.pctFin > 100 && (
-        <div
-          className="result-banner bad mb-4 p-3 rounded flex items-center gap-3 text-sm"
-          style={{
-            background: 'var(--crit-bg)',
-            border: '1px solid var(--crit)',
-            color: 'var(--crit-text)'
-          }}
-          role="alert"
-        >
+        <div className="ws-t-banner crit" role="alert">
           <Icon name="triangle-exclamation" />
           <div>
             <strong>Sobreejecución presupuestal:</strong> El valor ejecutado supera el presupuesto actualizado en{' '}
@@ -232,15 +223,7 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
       )}
 
       {m.pctFin <= 100 && (m.agotaAntes || (m.activo && m.pctSaldo < 15)) && (
-        <div
-          className="result-banner bad mb-4 p-3 rounded flex items-center gap-3 text-sm"
-          style={{
-            background: 'var(--warn-bg)',
-            border: '1px solid var(--warn)',
-            color: 'var(--warn-text)'
-          }}
-          role="alert"
-        >
+        <div className="ws-t-banner warn" role="alert">
           <Icon name="triangle-exclamation" />
           <div>
             <strong>Agotamiento presupuestal próximo:</strong> El contrato cuenta con solo{' '}
@@ -256,8 +239,8 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
         </div>
       )}
 
-      {/* Tarjetas KPI con jerarquía y tokens semánticos Seven Safe */}
-      <div className="kpis mb [&_.kpi]:!p-2 sm:[&_.kpi]:!p-[14px_16px] [&_.kpi-ic]:!w-7 [&_.kpi-ic]:!h-7 sm:[&_.kpi-ic]:!w-[34px] sm:[&_.kpi-ic]:!h-[34px] [&_.kpi.kpi-v2]:!gap-2 sm:[&_.kpi.kpi-v2]:!gap-3 [&_.kpi-v]:!whitespace-nowrap [&_.kpi-v]:!text-[13.5px] sm:[&_.kpi-v]:!text-[23px] [&_.kpi-s]:!whitespace-nowrap [&_.kpi-s]:!text-[9.5px] sm:[&_.kpi-s]:!text-[11.5px]">
+      {/* Tarjetas KPI canónicas */}
+      <div className="kpis">
         <Kpi
           label="Valor inicial"
           value={moneyM(m.valorInicial).replace(/\s/g, '\u00A0')}
@@ -333,27 +316,21 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
       {/* Gráficas analíticas */}
       <div className="grid g2 mb">
         <Surface className="panel">
-          <div className="panel-h">
-            <h3 className="font-semibold text-sm">Valor contratado vs. ejecutado</h3>
-          </div>
+          <SectionHeader className="dt-panel-title" as="h3" icon="coins" title="Valor contratado vs. ejecutado" />
           <div className="panel-b" style={{ height: 260 }}>
             <Chart type="bar" data={chartAData} options={moneyOptions} height={240} />
           </div>
         </Surface>
 
         <Surface className="panel">
-          <div className="panel-h">
-            <h3 className="font-semibold text-sm">Ejecución mensual facturada</h3>
-          </div>
+          <SectionHeader className="dt-panel-title" as="h3" icon="chart-line" title="Ejecución mensual facturada" />
           <div className="panel-b" style={{ height: 260 }}>
             <Chart type="bar" data={chartBData} options={moneyOptions} height={240} />
           </div>
         </Surface>
 
         <Surface className="panel">
-          <div className="panel-h">
-            <h3 className="font-semibold text-sm">Pagos mensuales desembolsados</h3>
-          </div>
+          <SectionHeader className="dt-panel-title" as="h3" icon="wallet" title="Pagos mensuales desembolsados" />
           <div className="panel-b" style={{ height: 260 }}>
             <Chart
               type="bar"
@@ -368,9 +345,7 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
         </Surface>
 
         <Surface className="panel">
-          <div className="panel-h">
-            <h3 className="font-semibold text-sm">Saldo y proyección de agotamiento</h3>
-          </div>
+          <SectionHeader className="dt-panel-title" as="h3" icon="chart-line" title="Saldo y proyección de agotamiento" />
           <div className="panel-b" style={{ height: 260 }}>
             <Chart type="line" data={chartDData} options={moneyOptions} height={240} />
           </div>
@@ -379,12 +354,7 @@ export const TabEjecucion = ({ cid }: { cid: string }) => {
 
       {/* Tabla de registros mensuales */}
       <Surface className="panel">
-        <div className="panel-h flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-sm">Historial de informes mensuales de ejecución</h3>
-            <span className="sub text-xs text-[var(--muted)]">{execs.length} registro(s) auditado(s)</span>
-          </div>
-        </div>
+        <SectionHeader className="dt-panel-title" as="h3" icon="list-check" title="Historial de informes mensuales de ejecución" description={<>{execs.length} registro(s) auditado(s)</>} />
 
         {execs.length === 0 ? (
           <EmptyState

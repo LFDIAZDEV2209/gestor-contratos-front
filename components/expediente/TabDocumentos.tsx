@@ -1,4 +1,5 @@
 'use client';
+import { fieldIcon } from '../forms/fieldIcon';
 import Link from 'next/link';
 import { Select } from '../ui/Controls';
 import { notify, requestReason } from '../ui/Feedback';
@@ -15,6 +16,9 @@ import { Modal } from '../ui/Modal';
 import { Icon } from '../icons';
 import { expHref } from './routes';
 
+import { SectionHeader } from '../ui/SectionHeader';
+import { Kpi } from '../ui/Kpi';
+
 export const TabDocumentos = ({ cid }: { cid: string }) => {
   const [catFilter, setCatFilter] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
@@ -25,6 +29,9 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
   const m = M(c);
 
   const filtered = docs.filter((d) => !catFilter || d.categoria === catFilter);
+  const totalVersiones = docs.reduce((acc, d) => acc + (d.versions?.length || 1), 0);
+  const activos = docs.filter((d) => d.estado !== 'Anulado').length;
+  const faltantesCount = m.docsFaltantes?.length || 0;
 
   const handleAnular = async (docId: string, docName: string) => {
     if (!AuthService.guard('anular')) return;
@@ -36,29 +43,44 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div>
-      <div className="panel-h mb-3">
-        <div>
-          <h3>Documentos del expediente</h3>
-          <span className="sub">{filtered.length} de {docs.length} documento(s) mostrados</span>
-        </div>
-        <div className="row-flex">
+    <div className="ws-tab-pane">
+      <SectionHeader as="h3"
+        icon="folder"
+        title="Documentos del expediente"
+        description={`${filtered.length} de ${docs.length} documento(s) mostrados.`}
+        action={
           <Link className="btn sm pri" href={expHref(cid, 'documentos/nueva')}>
             <Icon name="upload" /> Cargar documento
           </Link>
-        </div>
+        }
+      />
+
+      <div className="kpis">
+        <Kpi label="Total documentos" value={docs.length} color="brand" icon="folder" />
+        <Kpi label="Documentos vigentes" value={activos} color="ok" icon="check-circle" />
+        <Kpi label="Historial de versiones" value={totalVersiones} color="info" icon="clock" />
+        <Kpi
+          label="Requeridos pendientes"
+          value={faltantesCount}
+          color={faltantesCount > 0 ? 'warn' : 'ok'}
+          sem={faltantesCount > 0 ? 'warn' : 'ok'}
+          icon="alert-circle"
+        />
       </div>
 
-      <div className="filters mb">
-        <Field className="f">
-          <label>Categoría</label>
-          <Select value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
-            <option value="">Todas las categorías</option>
-            {cats.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
+      <div className="ws-t-filters">
+        <Field className="f" style={{ minWidth: 240 }}>
+          <label>Filtrar por categoría</label>
+          <Select icon={fieldIcon("catFilter", "Filtrar por categoría", "")} value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
+            <option value="">Todas las categorías ({docs.length})</option>
+            {cats.map((c) => {
+              const count = docs.filter((d) => d.categoria === c).length;
+              return (
+                <option key={c} value={c}>
+                  {c} ({count})
+                </option>
+              );
+            })}
           </Select>
         </Field>
       </div>

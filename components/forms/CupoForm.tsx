@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Cupo } from '../../lib/types';
 import { Store, Audit, AuthService } from '../../lib/store';
 import { CAT } from '../../lib/catalog';
@@ -114,16 +115,8 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
       </PageHeader>
 
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="layers" /> Datos del cupo
-            </h2>
-            <span className="sub small muted">Aseguradora emisora, monto autorizado y vigencia</span>
-          </div>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Datos del cupo</>} icon="layers" description={<>Aseguradora emisora, monto autorizado y vigencia</>} accent>
           <Field className="f span3">
             <label className="req">Aseguradora</label>
             <Select name="aseguradora" value={form.aseguradora} onChange={(e) => set({ aseguradora: e.target.value })}>
@@ -144,7 +137,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
               aria-describedby={err('numero') ? 'err-cnumero' : undefined}
             />
             {err('numero') && (
-              <span className="emsg" id="err-cnumero">
+              <span className="emsg" id="err-cnumero"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('numero')}
               </span>
             )}
@@ -161,7 +154,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
               aria-describedby={err('valor') ? 'err-cvalor' : undefined}
             />
             {err('valor') && (
-              <span className="emsg" id="err-cvalor">
+              <span className="emsg" id="err-cvalor"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('valor')}
               </span>
             )}
@@ -185,7 +178,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
               aria-describedby={err('fechaInicio') ? 'err-cfinicio' : undefined}
             />
             {err('fechaInicio') && (
-              <span className="emsg" id="err-cfinicio">
+              <span className="emsg" id="err-cfinicio"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('fechaInicio')}
               </span>
             )}
@@ -200,7 +193,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
               aria-describedby={err('fechaVenc') ? 'err-cfvenc' : undefined}
             />
             {err('fechaVenc') && (
-              <span className="emsg" id="err-cfvenc">
+              <span className="emsg" id="err-cfvenc"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('fechaVenc')}
               </span>
             )}
@@ -233,10 +226,8 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
               onChange={(e) => set({ observaciones: e.target.value })}
             />
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import { PBar } from '../ui/PBar';
 import type { Subcontract, Contract } from '../../lib/types';
 import { Store, Audit, AuthService } from '../../lib/store';
@@ -50,7 +51,7 @@ const Dato = ({ label, value, sub, tone }: { label: string; value: string; sub?:
 
 /**
  * Formulario de subcontrato en VISTA dedicada (creación y edición) — sin modal.
- * Reproduce la anatomía de referencia (breadcrumb, Surface + FormGrid, resumen de
+ * Reproduce la anatomía de referencia (breadcrumb, Surface + resumen de
  * validación en bloque y footer con acciones) y hace explícitas las dos reglas de
  * negocio del expediente: la suma de subcontratos no supera el valor del contrato
  * principal y ninguno termina después de él.
@@ -222,14 +223,8 @@ export const SubcontratoForm = ({
 
       {/* Vínculo contractual: selector + resumen en vivo de las reglas de negocio */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="file-contract" size={16} /> Vínculo contractual
-          </h2>
-          <span className="sub">{contracts.length} contratos vigentes en el portafolio</span>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Vínculo contractual</>} icon="file-contract" description={<>{contracts.length} contratos vigentes en el portafolio</>} accent>
           <Field className="f span3">
             <label className="req">Contrato principal</label>
             <Select name="contractId"
@@ -262,7 +257,7 @@ export const SubcontratoForm = ({
               </small>
             )}
           </Field>
-        </FormGrid>
+        </FormSection>
 
         {contrato ? (
           <div
@@ -318,14 +313,8 @@ export const SubcontratoForm = ({
 
       {/* Datos del subcontrato */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="diagram-project" size={16} /> Datos del subcontrato
-          </h2>
-          <span className="sub">Los campos con * son obligatorios</span>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Datos del subcontrato</>} icon="diagram-project" description={<>Los campos con * son obligatorios</>} accent>
           <Field className="f">
             <label className="req">Número de subcontrato</label>
             <Input name="numero"
@@ -426,10 +415,8 @@ export const SubcontratoForm = ({
               onChange={(e) => set({ objeto: e.target.value })}
             />
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

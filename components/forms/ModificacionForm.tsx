@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Modification, Contract } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
@@ -207,16 +208,8 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
       </PageHeader>
 
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="file-signature" /> Contrato y referencia
-            </h2>
-            <span className="sub small muted">Sobre qué contrato opera y con qué documento</span>
-          </div>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Contrato y referencia</>} icon="file-signature" description={<>Sobre qué contrato opera y con qué documento</>} accent>
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
             <Select name="contractId"
@@ -241,7 +234,7 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
               ))}
             </Select>
             {err('contractId') && (
-              <span className="emsg" id="err-mcontrato">
+              <span className="emsg" id="err-mcontrato"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('contractId')}
               </span>
             )}
@@ -271,7 +264,7 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
               aria-describedby={err('numero') ? 'err-mnumero' : undefined}
             />
             {err('numero') && (
-              <span className="emsg" id="err-mnumero">
+              <span className="emsg" id="err-mnumero"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('numero')}
               </span>
             )}
@@ -286,28 +279,18 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
               aria-describedby={err('fecha') ? 'err-mfecha' : undefined}
             />
             {err('fecha') && (
-              <span className="emsg" id="err-mfecha">
+              <span className="emsg" id="err-mfecha"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('fecha')}
               </span>
             )}
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       {(tocaValor || tocaFecha || tocaCesionario || tocaSupervisor) && (
         <Surface className="panel mb">
-          <div className="panel-h">
-            <div>
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-                <Icon name="code-compare" /> Efecto de la modificación
-              </h2>
-              <span className="sub small muted">
-                Valores, fechas o sujetos que cambian según el tipo seleccionado
-              </span>
-            </div>
-          </div>
 
-          <FormGrid className="form-grid">
+          <FormSection title={<>Efecto de la modificación</>} icon="code-compare" description={<>Valores, fechas o sujetos que cambian según el tipo seleccionado</>} accent>
             {tocaValor && (
               <>
                 <Field className="f">
@@ -328,7 +311,7 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
                     aria-describedby={err('valorNuevo') ? 'err-mvalor' : undefined}
                   />
                   {err('valorNuevo') ? (
-                    <span className="emsg" id="err-mvalor">
+                    <span className="emsg" id="err-mvalor"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                       {err('valorNuevo')}
                     </span>
                   ) : (
@@ -361,7 +344,7 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
                     aria-describedby={err('fechaNueva') ? 'err-mfechan' : undefined}
                   />
                   {err('fechaNueva') && (
-                    <span className="emsg" id="err-mfechan">
+                    <span className="emsg" id="err-mfechan"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                       {err('fechaNueva')}
                     </span>
                   )}
@@ -379,7 +362,7 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
                   aria-describedby={err('nuevoTexto') ? 'err-mtexto' : undefined}
                 />
                 {err('nuevoTexto') && (
-                  <span className="emsg" id="err-mtexto">
+                  <span className="emsg" id="err-mtexto"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                     {err('nuevoTexto')}
                   </span>
                 )}
@@ -396,27 +379,19 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
                   aria-describedby={err('nuevoTexto') ? 'err-msup' : undefined}
                 />
                 {err('nuevoTexto') && (
-                  <span className="emsg" id="err-msup">
+                  <span className="emsg" id="err-msup"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                     {err('nuevoTexto')}
                   </span>
                 )}
               </Field>
             )}
-          </FormGrid>
+          </FormSection>
         </Surface>
       )}
 
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="clipboard-check" /> Justificación y soporte
-            </h2>
-            <span className="sub small muted">Motivo jurídico o técnico y documento adjunto</span>
-          </div>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Justificación y soporte</>} icon="clipboard-check" description={<>Motivo jurídico o técnico y documento adjunto</>} accent>
           <Field className={`f span3${err('justificacion') ? ' err' : ''}`}>
             <label className="req">Justificación</label>
             <Textarea name="justificacion"
@@ -427,7 +402,7 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
               aria-describedby={err('justificacion') ? 'err-mjust' : undefined}
             />
             {err('justificacion') && (
-              <span className="emsg" id="err-mjust">
+              <span className="emsg" id="err-mjust"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('justificacion')}
               </span>
             )}
@@ -446,10 +421,8 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
                 : 'Si se deja vacío se genera «' + (numero || 'modificacion') + '.pdf». No se realiza ninguna transferencia real.'}
             </span>
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

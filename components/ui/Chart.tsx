@@ -21,6 +21,8 @@ interface ChartProps {
   data?: any;
   options?: any;
   height?: number | string;
+  /** Nombre accesible del gráfico; si falta se genera uno desde título y datos. */
+  ariaLabel?: string;
   config?: {
     type: 'bar' | 'line' | 'doughnut' | 'pie';
     data: any;
@@ -28,7 +30,19 @@ interface ChartProps {
   };
 }
 
-export const Chart = ({ type, data, options, height, config }: ChartProps) => {
+const TIPOS: Record<string, string> = { bar: 'barras', line: 'líneas', doughnut: 'dona', pie: 'torta' };
+
+// Resumen textual para lectores de pantalla: tipo, título y primeras categorías con su valor.
+function describeChart(type: string, data: any, options: any): string {
+  const title = options?.plugins?.title?.text;
+  const labels: unknown[] = data?.labels ?? [];
+  const ds = data?.datasets?.[0];
+  const parts = labels.slice(0, 6).map((l, i) => `${String(l)}: ${ds?.data?.[i] ?? '—'}`);
+  const more = labels.length > 6 ? ` y ${labels.length - 6} más` : '';
+  return `Gráfico de ${TIPOS[type] ?? type}${title ? ` · ${Array.isArray(title) ? title.join(' ') : title}` : ''}${parts.length ? `. ${parts.join('; ')}${more}` : ''}`;
+}
+
+export const Chart = ({ type, data, options, height, config, ariaLabel }: ChartProps) => {
   if (typeof document !== 'undefined') ChartJS.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-sans').trim() || 'sans-serif';
   const chartType = config?.type || type || 'bar';
   const chartData = config?.data || data;
@@ -54,12 +68,14 @@ export const Chart = ({ type, data, options, height, config }: ChartProps) => {
 
   const mergedOptions = { ...defaultOptions, ...chartOptions, animation: false };
 
+  const a11y = { role: 'img' as const, 'aria-label': ariaLabel || describeChart(chartType, chartData, chartOptions) };
+
   return (
     <div style={{ position: 'relative', width: '100%', height: height || '100%' }}>
-      {chartType === 'bar' && <Bar data={chartData} options={mergedOptions} />}
-      {chartType === 'line' && <Line data={chartData} options={mergedOptions} />}
-      {chartType === 'doughnut' && <Doughnut data={chartData} options={mergedOptions} />}
-      {chartType === 'pie' && <Pie data={chartData} options={mergedOptions} />}
+      {chartType === 'bar' && <Bar data={chartData} options={mergedOptions} {...a11y} />}
+      {chartType === 'line' && <Line data={chartData} options={mergedOptions} {...a11y} />}
+      {chartType === 'doughnut' && <Doughnut data={chartData} options={mergedOptions} {...a11y} />}
+      {chartType === 'pie' && <Pie data={chartData} options={mergedOptions} {...a11y} />}
     </div>
   );
 };

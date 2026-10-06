@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Contract } from '../../lib/types';
 import { Store, Audit, AuthService } from '../../lib/store';
 import { Validator } from '../../lib/validator';
@@ -88,7 +89,9 @@ export const ContratoForm = ({
 
   const companies = Store.all('companies');
 
+  const [touched, setTouched] = useState<Set<string>>(() => new Set());
   const updateField = (field: string, value: any) => {
+    setTouched((prev) => (prev.has(field) ? prev : new Set(prev).add(field)));
     setForm((prev) => {
       const next: Record<string, any> = { ...prev, [field]: value };
       // Sincronización bidireccional entre nombres normalizados y aliases de compatibilidad
@@ -114,15 +117,17 @@ export const ContratoForm = ({
     });
   };
 
-  const issues = Validator.draft(form);
-  const hasCritical = issues.some((i) => i.sev === 'Alta');
+  const allIssues = Validator.draft(form);
+  const hasCritical = allIssues.some((i) => i.sev === 'Alta');
   const [intentado, setIntentado] = useState(false);
   const issueFields: Record<string, string> = {
     'Número': 'numero', 'Objeto': 'objeto', 'Fecha de inicio': 'fechaInicio',
     'Fecha de terminación': 'fechaFin', 'Duración': 'duracionDias',
     'Reducciones': 'reducciones', 'IVA': 'iva', 'Ejecución física': 'avanceFisico'
   };
-  const fieldErrors = Object.fromEntries(issues.filter((issue) => issue.sev === 'Alta').map((issue) => [issueFields[issue.campo ?? ''] ?? 'numero', issue.msg]));
+  // Los avisos solo se muestran tras tocar el campo o intentar guardar: un formulario virgen no debe nacer en rojo.
+  const issues = allIssues.filter((i) => intentado || touched.has(issueFields[i.campo ?? ''] ?? '') || (!((i.campo ?? '') in issueFields) && touched.size > 0));
+  const fieldErrors = Object.fromEntries(allIssues.filter((issue) => issue.sev === 'Alta').map((issue) => [issueFields[issue.campo ?? ''] ?? 'numero', issue.msg]));
   const activateField = (field: string) => setTab(
     ['fechaInicio', 'fechaFin', 'duracionDias'].includes(field) ? 'Fechas'
       : ['reducciones', 'iva', 'avanceFisico'].includes(field) ? 'Económica' : 'General'
@@ -286,7 +291,7 @@ export const ContratoForm = ({
             rowGap: 6
           }}
         >
-          {hasCritical ? (
+          {issues.some((i) => i.sev === 'Alta') ? (
             <span
               style={{
                 color: 'var(--crit-text)',
@@ -319,6 +324,10 @@ export const ContratoForm = ({
               }}
             >
               <Icon name="alert-triangle" size={14} /> {issues.length} advertencia(s) no impeditiva(s)
+            </span>
+          ) : allIssues.length > 0 ? (
+            <span style={{ color: 'var(--muted)', fontWeight: 500, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="info" size={14} /> Complete los campos marcados con *
             </span>
           ) : (
             <span
@@ -428,15 +437,9 @@ export const ContratoForm = ({
           aria-labelledby={`tab-seccion-${SECCIONES.findIndex((s) => s.id === tab)}`}
           style={{ animationDuration: '200ms' }}
         >
-          <div style={{ marginBottom: 16 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name={seccion.icon} size={15} style={{ color: 'var(--brand)' }} /> {seccion.titulo}
-            </h2>
-            <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 0' }}>{seccion.sub}</p>
-          </div>
 
           {tab === 'General' && (
-            <FormGrid className="form-grid">
+            <FormSection title={seccion.titulo} icon={seccion.icon} description={seccion.sub} badge={`${SECCIONES.findIndex((s) => s.id === tab) + 1} / ${SECCIONES.length}`} accent>
               <Field className="f">
                 <label className="req">Número de Contrato</label>
                 <Input name="numero"
@@ -543,11 +546,11 @@ export const ContratoForm = ({
                   placeholder="Nombre del supervisor"
                 />
               </Field>
-            </FormGrid>
+            </FormSection>
           )}
 
           {tab === 'Fechas' && (
-            <FormGrid className="form-grid">
+            <FormSection title={seccion.titulo} icon={seccion.icon} description={seccion.sub} badge={`${SECCIONES.findIndex((s) => s.id === tab) + 1} / ${SECCIONES.length}`} accent>
               <Field className="f">
                 <label>Fecha de Firma</label>
                 <Input name="fechaFirma"
@@ -595,15 +598,15 @@ export const ContratoForm = ({
                       checked={Boolean(form.hastaAgotar)}
                       onChange={(e) => updateField('hastaAgotar', e.target.checked)}
                     />
-                    <span>Hasta agotar presupuesto pactado</span>
+                    <span className="field-checkbox-label"><span aria-hidden="true"><Icon name="wallet" size={16} /></span>Hasta agotar presupuesto pactado</span>
                   </label>
                 </div>
               </Field>
-            </FormGrid>
+            </FormSection>
           )}
 
           {tab === 'Económica' && (
-            <FormGrid className="form-grid">
+            <FormSection title={seccion.titulo} icon={seccion.icon} description={seccion.sub} badge={`${SECCIONES.findIndex((s) => s.id === tab) + 1} / ${SECCIONES.length}`} accent>
               {isEdit && Number(initial?.avanceFisico) > 100 && <Field className="f">
                 <label>Ejecución física acumulada (%)</label>
                 <Input name="avanceFisico" type="number" min="0" max="100" value={form.avanceFisico ?? 0} onChange={(event) => updateField('avanceFisico', Number(event.target.value))} />
@@ -732,11 +735,11 @@ export const ContratoForm = ({
                   </div>
                 </div>
               </Field>
-            </FormGrid>
+            </FormSection>
           )}
 
           {tab === 'Alcance' && (
-            <FormGrid className="form-grid">
+            <FormSection title={seccion.titulo} icon={seccion.icon} description={seccion.sub} badge={`${SECCIONES.findIndex((s) => s.id === tab) + 1} / ${SECCIONES.length}`} accent>
               <Field className="f span3">
                 <label>Descripción Detallada del Alcance</label>
                 <Textarea name="descripcion"
@@ -765,7 +768,7 @@ export const ContratoForm = ({
                   placeholder="Ej. Cumplimiento de cronograma 100%, nivel de satisfacción > 90%"
                 />
               </Field>
-            </FormGrid>
+            </FormSection>
           )}
         </div>
       </Surface>

@@ -15,6 +15,7 @@ import { Kpi } from '../ui/Kpi';
 import { Icon } from '../icons';
 import Link from 'next/link';
 import { nuevoHref, editarHref } from './routes';
+import { SectionHeader } from '../ui/SectionHeader';
 
 export const TabRiesgos = ({ cid }: { cid: string }) => {
   const [selectedCell, setSelectedCell] = useState<{ p: number; i: number } | null>(null);
@@ -102,35 +103,34 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="tab-riesgos-container">
+    <div className="ws-tab-pane">
       {/* Encabezado */}
-      <div className="panel-h mb-3 flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h3 className="text-base font-bold text-[var(--ink)] flex items-center gap-2"><Icon name="scale-balanced" size={16} /> Matriz y mapa de calor de riesgos</h3>
-          <span className="sub text-xs text-[var(--muted)]">
-            Identificación, evaluación de severidad (probabilidad × impacto) y planes de mitigación
-          </span>
-        </div>
-        <div className="row-flex">
-          <div className="exp-actions">
-            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
-              <Icon name="file-excel" /> Excel
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
-              <Icon name="file-pdf" /> PDF
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
-              <Icon name="file-csv" /> CSV
-            </Button>
+      <SectionHeader as="h3"
+        icon="scale-balanced"
+        title="Matriz y mapa de calor de riesgos"
+        description="Identificación, evaluación de severidad (probabilidad × impacto) y planes de mitigación."
+        action={
+          <div className="row-flex" style={{ gap: 8 }}>
+            <div className="exp-actions">
+              <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </div>
+            <Link className="btn sm pri" href={nuevoHref(cid, 'riesgos')} aria-label="Registrar nuevo riesgo">
+              <Icon name="plus" /> Nuevo riesgo
+            </Link>
           </div>
-          <Link className="btn sm pri" href={nuevoHref(cid, 'riesgos')} aria-label="Registrar nuevo riesgo">
-            <Icon name="plus" /> Nuevo riesgo
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* KPI Cards canónicas */}
-      <div className="kpis mb [&_.kpi]:!p-2 sm:[&_.kpi]:!p-[14px_16px] [&_.kpi-ic]:!w-7 [&_.kpi-ic]:!h-7 sm:[&_.kpi-ic]:!w-[34px] sm:[&_.kpi-ic]:!h-[34px] [&_.kpi.kpi-v2]:!gap-2 sm:[&_.kpi.kpi-v2]:!gap-3 [&_.kpi-v]:!whitespace-nowrap [&_.kpi-v]:!text-[13.5px] sm:[&_.kpi-v]:!text-[23px] [&_.kpi-s]:!whitespace-nowrap [&_.kpi-s]:!text-[9.5px] sm:[&_.kpi-s]:!text-[11.5px]">
+      <div className="kpis">
         <Kpi
           label="Total riesgos identificados"
           value={totalRisks}
@@ -143,6 +143,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
           value={extremos}
           sub={extremos > 0 ? 'Puntaje 15–25 (Crítico)' : 'Sin eventos extremos'}
           color={extremos > 0 ? 'crit' : 'ok'}
+          sem={extremos > 0 ? 'crit' : 'ok'}
           icon="alert-octagon"
         />
         <Kpi
@@ -150,6 +151,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
           value={altos}
           sub={altos > 0 ? 'Puntaje 10–14 (Vigilancia)' : 'Sin riesgos altos'}
           color={altos > 0 ? 'risk' : 'ok'}
+          sem={altos > 0 ? 'risk' : 'ok'}
           icon="alert-triangle"
         />
         <Kpi
@@ -164,6 +166,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
           value={cerradosOControlados}
           sub="Con plan ejecutado"
           color="ok"
+          sem="ok"
           icon="shield-check"
         />
       </div>
@@ -173,7 +176,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
         {/* Columna Mapa de Calor (4 cols) */}
         <Surface className="panel lg:col-span-4 p-4">
           <div className="mb-3">
-            <h4 className="font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+            <h4 aria-level={2} className="font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
               <Icon name="chart-pie" size={15} />
               Mapa de calor de severidad ({activeRisks.length} activos)
             </h4>
@@ -221,14 +224,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
 
         {/* Columna Tabla de Riesgos (8 cols) */}
         <Surface className="panel lg:col-span-8">
-          <div className="panel-h flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-sm flex items-center gap-2"><Icon name="list-check" size={15} /> Inventario de riesgos evaluados</h3>
-              <span className="sub text-xs text-[var(--muted)]">
-                {filteredRisks.length} riesgo(s) {selectedCell ? 'filtrado(s)' : 'registrado(s)'}
-              </span>
-            </div>
-          </div>
+          <SectionHeader className="dt-panel-title" as="h3" icon="list-check" title="Inventario de riesgos evaluados" description={<>{filteredRisks.length} riesgo(s) {selectedCell ? 'filtrado(s)' : 'registrado(s)'}</>} />
 
           {filteredRisks.length === 0 ? (
             <EmptyState
@@ -252,7 +248,7 @@ export const TabRiesgos = ({ cid }: { cid: string }) => {
             />
           ) : (
             <TableViewport className="tbl-wrap">
-              <DataTable className="tbl" aria-label="Matriz de riesgos del contrato">
+              <DataTable className="tbl" responsiveProfile="riesgos" aria-label="Matriz de riesgos del contrato">
                 <thead>
                   <tr>
                     <th>Evento de riesgo</th>

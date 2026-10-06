@@ -14,6 +14,7 @@ import { Kpi } from '../ui/Kpi';
 import { Icon } from '../icons';
 import Link from 'next/link';
 import { nuevoHref } from './routes';
+import { SectionHeader } from '../ui/SectionHeader';
 
 export const TabModificaciones = ({ cid }: { cid: string }) => {
   const c = Store.get('contracts', cid) as Contract | undefined;
@@ -122,35 +123,34 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="tab-modificaciones-container">
+    <div className="ws-tab-pane">
       {/* Encabezado */}
-      <div className="panel-h mb-3 flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h3 className="text-base font-bold text-[var(--ink)]">Modificaciones y otrosíes contractuales</h3>
-          <span className="sub text-xs text-[var(--muted)]">
-            Adiciones presupuestales, prórrogas de plazo, suspensiones, cesiones y modificaciones de cláusulas
-          </span>
-        </div>
-        <div className="row-flex">
-          <div className="exp-actions">
-            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
-              <Icon name="file-excel" /> Excel
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
-              <Icon name="file-pdf" /> PDF
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
-              <Icon name="file-csv" /> CSV
-            </Button>
+      <SectionHeader as="h3"
+        icon="file-signature"
+        title="Modificaciones y otrosíes contractuales"
+        description="Adiciones presupuestales, prórrogas de plazo, suspensiones, cesiones y modificaciones de cláusulas."
+        action={
+          <div className="row-flex" style={{ gap: 8 }}>
+            <div className="exp-actions">
+              <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </div>
+            <Link className="btn sm pri" href={nuevoHref(cid, 'modificaciones')} aria-label="Registrar nueva modificación">
+              <Icon name="plus" /> Nueva modificación
+            </Link>
           </div>
-          <Link className="btn sm pri" href={nuevoHref(cid, 'modificaciones')} aria-label="Registrar nueva modificación">
-            <Icon name="plus" /> Nueva modificación
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Tarjetas KPI canónicas Seven Safe */}
-      <div className="kpis mb [&_.kpi]:!p-2 sm:[&_.kpi]:!p-[14px_16px] [&_.kpi-ic]:!w-7 [&_.kpi-ic]:!h-7 sm:[&_.kpi-ic]:!w-[34px] sm:[&_.kpi-ic]:!h-[34px] [&_.kpi.kpi-v2]:!gap-2 sm:[&_.kpi.kpi-v2]:!gap-3 [&_.kpi-v]:!whitespace-nowrap [&_.kpi-v]:!text-[13.5px] sm:[&_.kpi-v]:!text-[23px] [&_.kpi-s]:!whitespace-nowrap [&_.kpi-s]:!text-[9.5px] sm:[&_.kpi-s]:!text-[11.5px]">
+      {/* Tarjetas KPI canónicas */}
+      <div className="kpis">
         <Kpi
           label="Total modificaciones"
           value={modifications.length}
@@ -185,16 +185,8 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
         />
       </div>
 
-      {/* Aviso normativo permanente de garantías al sustituir alta por vista de modificación */}
-      <div
-        className="mb-4 p-3 rounded flex items-center gap-3 text-sm"
-        style={{
-          background: 'var(--warn-bg)',
-          border: '1px solid var(--warn)',
-          color: 'var(--warn-text)'
-        }}
-        role="status"
-      >
+      {/* Aviso normativo permanente de garantías */}
+      <div className="ws-t-banner warn" role="status">
         <Icon name="triangle-exclamation" />
         <span className="flex-1 font-medium">
           Al aplicar una adición, prórroga o reinicio revisa el valor asegurado y la vigencia de las pólizas
@@ -204,12 +196,7 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
 
       {/* Tabla detallada de Modificaciones */}
       <Surface className="panel">
-        <div className="panel-h flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-sm">Historial de actos modificatorios</h3>
-            <span className="sub text-xs text-[var(--muted)]">{modifications.length} modificación(es)</span>
-          </div>
-        </div>
+        <SectionHeader className="dt-panel-title" as="h3" icon="file-text" title="Historial de actos modificatorios" description={<>{modifications.length} modificación(es)</>} />
 
         {modifications.length === 0 ? (
           <EmptyState
@@ -223,7 +210,7 @@ export const TabModificaciones = ({ cid }: { cid: string }) => {
           />
         ) : (
           <TableViewport className="tbl-wrap">
-            <DataTable className="tbl" aria-label="Historial de actos modificatorios">
+            <DataTable className="tbl" responsiveProfile="modificaciones" aria-label="Historial de actos modificatorios">
               <thead>
                 <tr>
                   <th className="nw">Número</th>

@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Risk, Contract } from '../../lib/types';
 import { Store, Audit, AuthService } from '../../lib/store';
 import { activeContracts } from '../../lib/metrics';
@@ -30,7 +31,7 @@ const ESTADOS = ['Abierto', 'Mitigado', 'Cerrado'];
 
 /**
  * Formulario de riesgo en VISTA dedicada (creación y edición) — sin modal.
- * Reproduce la anatomía de referencia (breadcrumb, Surface + FormGrid, validación
+ * Reproduce la anatomía de referencia (breadcrumb, Surface + validación
  * en bloque y footer con acciones). El nivel sigue siendo probabilidad × impacto.
  */
 export const RiesgoForm = ({
@@ -168,14 +169,8 @@ export const RiesgoForm = ({
 
       {/* Vínculo contractual */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="file-contract" size={16} /> Vínculo contractual
-          </h2>
-          <span className="sub">{contracts.length} contratos vigentes en el portafolio</span>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Vínculo contractual</>} icon="file-contract" description={<>{contracts.length} contratos vigentes en el portafolio</>} accent>
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
             <Select name="contractId"
@@ -192,7 +187,7 @@ export const RiesgoForm = ({
               ))}
             </Select>
             {err('contractId') ? (
-              <span className="emsg" id="err-rcontrato">
+              <span className="emsg" id="err-rcontrato"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('contractId')}
               </span>
             ) : (
@@ -203,19 +198,13 @@ export const RiesgoForm = ({
               )
             )}
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       {/* Evaluación del riesgo */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="triangle-exclamation" size={16} /> Evaluación del riesgo
-          </h2>
-          <span className="sub">Los campos con * son obligatorios</span>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Evaluación del riesgo</>} icon="triangle-exclamation" description={<>Los campos con * son obligatorios</>} accent>
           <Field className="f">
             <label className="req">Categoría</label>
             <Select name="categoria"
@@ -254,7 +243,7 @@ export const RiesgoForm = ({
               onChange={(e) => set({ probabilidad: Number(e.target.value) })}
             />
             {err('probabilidad') ? (
-              <span className="emsg" id="err-rprob">
+              <span className="emsg" id="err-rprob"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('probabilidad')}
               </span>
             ) : (
@@ -274,7 +263,7 @@ export const RiesgoForm = ({
               onChange={(e) => set({ impacto: Number(e.target.value) })}
             />
             {err('impacto') ? (
-              <span className="emsg" id="err-rimp">
+              <span className="emsg" id="err-rimp"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('impacto')}
               </span>
             ) : (
@@ -293,27 +282,19 @@ export const RiesgoForm = ({
               onChange={(e) => set({ descripcion: e.target.value })}
             />
             {err('descripcion') && (
-              <span className="emsg" id="err-rdesc">
+              <span className="emsg" id="err-rdesc"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('descripcion')}
               </span>
             )}
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       {/* Mitigación y seguimiento */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="shield-check" size={16} /> Mitigación y seguimiento
-          </h2>
-          <span className="sub">
-            Nivel calculado: P{probabilidad || '—'} × I{impacto || '—'} ={' '}
-            <b style={{ color: 'var(--ink-2)' }}>{nivelCalc}</b> ({nivelSev})
-          </span>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Mitigación y seguimiento</>} icon="shield-check" description={<>Nivel calculado: P{probabilidad || '—'} × I{impacto || '—'} ={' '}
+            <b style={{ color: 'var(--ink-2)' }}>{nivelCalc}</b> ({nivelSev})</>} accent>
           <Field className="f span3">
             <label>Medidas de mitigación</label>
             <Textarea name="mitigacion"
@@ -332,10 +313,8 @@ export const RiesgoForm = ({
               onChange={(e) => set({ responsable: e.target.value })}
             />
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

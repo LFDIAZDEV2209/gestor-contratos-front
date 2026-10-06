@@ -12,6 +12,9 @@ import { Badge } from '../ui/Badge';
 import { Icon } from '../icons';
 import { nuevoHref } from './routes';
 
+import { SectionHeader } from '../ui/SectionHeader';
+import { Kpi } from '../ui/Kpi';
+
 export const TabActas = ({ cid }: { cid: string }) => {
   const [filterTipo, setFilterTipo] = useState('');
 
@@ -20,6 +23,10 @@ export const TabActas = ({ cid }: { cid: string }) => {
 
   const actas = (Store.byContract('actas', cid) as Acta[]).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
   const tipos = Array.from(new Set(actas.map((a) => a.tipo)));
+
+  const firmadas = actas.filter((a) => a.estado === 'Firmada').length;
+  const enFirmas = actas.filter((a) => a.estado === 'En firmas').length;
+  const anuladas = actas.filter((a) => a.estado === 'Anulada').length;
 
   const filtered = filterTipo ? actas.filter((a) => a.tipo === filterTipo) : actas;
 
@@ -46,35 +53,70 @@ export const TabActas = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <Surface className="panel">
-      <div className="panel-h" style={{ borderTop: 0 }}>
-        <div>
-          <h3>Actas</h3>
-          <span className="sub">{actas.length} acta(s) registrada(s)</span>
-        </div>
-        <div className="row-flex">
-          <div className="exp-actions">
-            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
-              <Icon name="file-excel" /> Excel
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
-              <Icon name="file-pdf" /> PDF
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
-              <Icon name="file-csv" /> CSV
-            </Button>
+    <div className="ws-tab-pane">
+      <SectionHeader as="h3"
+        icon="file-signature"
+        title="Actas suscritas del contrato"
+        description={`${actas.length} acta(s) registrada(s) · Inicio, avance, suspensión, reinicio y liquidación.`}
+        action={
+          <div className="row-flex" style={{ gap: 8 }}>
+            <div className="exp-actions">
+              <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar a Excel">
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar a PDF">
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar a CSV">
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </div>
+            <Link className="btn sm pri" href={nuevoHref(cid, 'actas')} aria-label="Registrar nueva acta">
+              <Icon name="plus" /> Nueva acta
+            </Link>
           </div>
-          <Link className="btn sm pri" href={nuevoHref(cid, 'actas')}>
-            <Icon name="plus" /> Nueva acta
-          </Link>
-        </div>
+        }
+      />
+
+      <div className="kpis">
+        <Kpi
+          label="Total actas"
+          value={actas.length}
+          sub="Expediente formal"
+          color="brand"
+          icon="file-signature"
+        />
+        <Kpi
+          label="Actas firmadas"
+          value={firmadas}
+          sub="Formalizadas"
+          color="ok"
+          sem="ok"
+          icon="check-circle"
+        />
+        <Kpi
+          label="En trámite de firmas"
+          value={enFirmas}
+          sub="Pendientes de suscripción"
+          color={enFirmas > 0 ? 'warn' : 'ok'}
+          sem={enFirmas > 0 ? 'warn' : 'ok'}
+          icon="clock"
+        />
+        <Kpi
+          label="Actas anuladas"
+          value={anuladas}
+          sub="Conservadas en auditoría"
+          color="na"
+          icon="ban"
+        />
       </div>
 
       {tipos.length > 0 && (
-        <div className="row-flex px-4 py-2" style={{ gap: '6px', borderBottom: '1px solid var(--line)' }}>
+        <div className="ws-t-filters">
           <Button
             className={`btn sm ${filterTipo === '' ? 'pri' : 'ghost'}`}
             onClick={() => setFilterTipo('')}
+            aria-pressed={filterTipo === ''}
           >
             Todas ({actas.length})
           </Button>
@@ -83,6 +125,7 @@ export const TabActas = ({ cid }: { cid: string }) => {
               key={t}
               className={`btn sm ${filterTipo === t ? 'pri' : 'ghost'}`}
               onClick={() => setFilterTipo(t)}
+              aria-pressed={filterTipo === t}
             >
               {t} ({actas.filter((a) => a.tipo === t).length})
             </Button>
@@ -90,7 +133,8 @@ export const TabActas = ({ cid }: { cid: string }) => {
         </div>
       )}
 
-      <TableViewport className="tbl-wrap">
+      <Surface className="panel">
+        <TableViewport className="tbl-wrap">
         <DataTable className="tbl" aria-label="Actas suscritas del contrato">
           <thead>
             <tr>
@@ -181,6 +225,7 @@ export const TabActas = ({ cid }: { cid: string }) => {
           }
         />
       )}
-    </Surface>
+      </Surface>
+    </div>
   );
 };

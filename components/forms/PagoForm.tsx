@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Payment } from '../../lib/types';
 import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
@@ -129,16 +130,8 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
       </PageHeader>
 
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="money-check-dollar" /> Identificación del pago
-            </h2>
-            <span className="sub small muted">Contrato, referencia y fechas del desembolso</span>
-          </div>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Identificación del pago</>} icon="money-check-dollar" description={<>Contrato, referencia y fechas del desembolso</>} accent>
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
             <Select name="contractId"
@@ -154,7 +147,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
               ))}
             </Select>
             {err('contractId') && (
-              <span className="emsg" id="err-pcontrato">
+              <span className="emsg" id="err-pcontrato"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('contractId')}
               </span>
             )}
@@ -169,7 +162,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
               aria-describedby={err('numero') ? 'err-pnumero' : undefined}
             />
             {err('numero') && (
-              <span className="emsg" id="err-pnumero">
+              <span className="emsg" id="err-pnumero"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('numero')}
               </span>
             )}
@@ -193,7 +186,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
               aria-describedby={err('fecha') ? 'err-pfecha' : undefined}
             />
             {err('fecha') && (
-              <span className="emsg" id="err-pfecha">
+              <span className="emsg" id="err-pfecha"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('fecha')}
               </span>
             )}
@@ -228,20 +221,12 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
               </Select>
             </div>
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="scale-balanced" /> Valores y retenciones
-            </h2>
-            <span className="sub small muted">Neto = bruto + IVA − retenciones</span>
-          </div>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Valores y retenciones</>} icon="scale-balanced" description={<>Neto = bruto + IVA − retenciones</>} accent>
           <Field className={`f${err('bruto') ? ' err' : ''}`}>
             <label className="req">Valor bruto (antes de IVA)</label>
             <Input name="bruto"
@@ -252,7 +237,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
               aria-describedby={err('bruto') ? 'err-pbruto' : undefined}
             />
             {err('bruto') ? (
-              <span className="emsg" id="err-pbruto">
+              <span className="emsg" id="err-pbruto"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('bruto')}
               </span>
             ) : (
@@ -297,7 +282,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
                 : 'Si se deja vacío se genera «' + (numero || 'pago') + '.pdf». No se realiza ninguna transferencia real.'}
             </span>
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       {seleccion && mSel && (
@@ -337,8 +322,6 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
           </div>
         </Surface>
       )}
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

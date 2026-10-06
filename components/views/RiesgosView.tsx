@@ -1,4 +1,6 @@
 'use client';
+import { SectionHeader } from '../ui/SectionHeader';
+import { fieldIcon } from '../forms/fieldIcon';
 import { Select, Input } from '../ui/Controls';
 import { requestReason } from '../ui/Feedback';
 import { Button } from '../ui/button';
@@ -372,19 +374,25 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
       <div className="grid g-12 mb">
         {/* Heatmap */}
         <Surface className="panel">
-          <div className="panel-h">
-            <div>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="map" size={14} /> Mapa de calor
-              </h3>
-              <span className="sub">Riesgos no cerrados · Haz clic en una celda para filtrar la tabla</span>
-            </div>
-            {heatmapCell && (
-              <Button className="btn xs" onClick={() => setHeatmapCell(null)}>
-                <Icon name="xmark" /> Limpiar celda (P:{heatmapCell.p} × I:{heatmapCell.i})
-              </Button>
-            )}
-          </div>
+          <SectionHeader
+            icon="map"
+            title="Mapa de calor"
+            as="h3"
+            description={
+              <>
+                Riesgos no cerrados · Haz clic en una celda para filtrar la tabla
+              </>
+            }
+            action={
+              <>
+                {heatmapCell && (
+                  <Button className="btn xs" onClick={() => setHeatmapCell(null)}>
+                    <Icon name="xmark" /> Limpiar celda (P:{heatmapCell.p} × I:{heatmapCell.i})
+                  </Button>
+                )}
+              </>
+            }
+          />
           <div className="panel-b" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             {openRisks.length === 0 ? (
               <EmptyState
@@ -413,14 +421,16 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
 
         {/* Gráfica por categoría */}
         <Surface className="panel">
-          <div className="panel-h">
-            <div>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="chart-pie" size={14} /> Riesgos por categoría
-              </h3>
-              <span className="sub">Distribución por severidad</span>
-            </div>
-          </div>
+          <SectionHeader
+            icon="chart-pie"
+            title="Riesgos por categoría"
+            as="h3"
+            description={
+              <>
+                Distribución por severidad
+              </>
+            }
+          />
           <div className="panel-b">
             {catData.length === 0 ? (
               <EmptyState
@@ -438,20 +448,23 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
 
       {/* Tabla completa de riesgos */}
       <Surface className="panel">
-        <div className="panel-h">
-          <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="list-check" size={14} /> Matriz de riesgos
+        <SectionHeader
+          icon="triangle-exclamation"
+          title="Matriz de riesgos"
+          as="h3"
+          description={
+            <>
+              Registro completo con nivel calculado (P × I)
+              {' · '}
               <span className="badge b-na">{filteredRisks.length}</span>
-            </h3>
-            <span className="sub">Registro completo con nivel calculado (P × I)</span>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         <div className="filters">
           <Field className="f" style={{ flex: '2 1 240px', minWidth: 200 }}>
             <label>Buscador</label>
-            <Input
+            <Input icon={fieldIcon("q", "Buscador", "")}
               aria-label="Buscar riesgos por descripción, categoría o contrato"
               value={q}
               onChange={(e) => {
@@ -463,7 +476,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
           </Field>
           <Field className="f" style={{ flex: '1 1 160px', minWidth: 140 }}>
             <label>Categoría</label>
-            <Select
+            <Select icon={fieldIcon("filterCat", "Categoría", "")}
               value={filterCat}
               onChange={(e) => {
                 setFilterCat(e.target.value);
@@ -480,7 +493,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
           </Field>
           <Field className="f" style={{ flex: '1 1 140px', minWidth: 130 }}>
             <label>Estado</label>
-            <Select
+            <Select icon={fieldIcon("filterEstado", "Estado", "")}
               value={filterEstado}
               onChange={(e) => {
                 setFilterEstado(e.target.value);
@@ -495,7 +508,7 @@ export const RiesgosView: React.FC<RiesgosViewProps> = ({ onSelectContract }) =>
           </Field>
           <Field className="f" style={{ flex: '1 1 140px', minWidth: 130 }}>
             <label>Severidad</label>
-            <Select
+            <Select icon={fieldIcon("filterSev", "Severidad", "")}
               value={filterSev}
               onChange={(e) => {
                 setFilterSev(e.target.value);

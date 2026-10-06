@@ -1,4 +1,5 @@
 'use client';
+import { fieldIcon } from '../forms/fieldIcon';
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
@@ -244,7 +245,7 @@ export const GarantiasView = ({
           </div>
           <Field className="f">
             <label>Aseguradora</label>
-            <Select
+            <Select icon={fieldIcon("filterAseg", "Aseguradora", "")}
               className="inp sm"
               value={filterAseg}
               onChange={(e) => { setFilterAseg(e.target.value); setPage(1); }}
@@ -259,7 +260,7 @@ export const GarantiasView = ({
           </Field>
           <Field className="f">
             <label>Tipo de garantía</label>
-            <Select
+            <Select icon={fieldIcon("filterTipo", "Tipo de garantía", "")}
               className="inp sm"
               value={filterTipo}
               onChange={(e) => { setFilterTipo(e.target.value); setPage(1); }}

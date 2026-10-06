@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { Button } from '../ui/button';
 import { Surface } from '../ui/Workspace';
+import { SectionHeader } from '../ui/SectionHeader';
 import { Store } from '../../lib/store';
 import { M } from '../../lib/metrics';
 import { deptoNames } from '../../lib/geo';
@@ -21,14 +21,11 @@ export const TabInformacion = ({ cid }: { cid: string }) => {
   return (
     <div className="tab-info-container">
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h3>Información General y Contratante</h3>
-          {!c.anulado && (
+        <SectionHeader className="dt-panel-title" as="h3" icon="users" title="Información general y contratante" action={!c.anulado && (
             <Link className="btn sm ghost" href={expHref(cid, 'editar')}>
-              <Icon name="edit" /> Editar Contrato
+              <Icon name="edit" /> Editar contrato
             </Link>
-          )}
-        </div>
+          )} />
         <div className="panel-b np">
           <div className="dl">
             <div>
@@ -103,9 +100,7 @@ export const TabInformacion = ({ cid }: { cid: string }) => {
 
       <div className="grid g2 mb">
         <Surface className="panel">
-          <div className="panel-h">
-            <h3>Condiciones Económicas</h3>
-          </div>
+          <SectionHeader className="dt-panel-title" as="h3" icon="coins" title="Condiciones económicas" />
           <div className="panel-b np">
             <div className="dl">
               <div>
@@ -138,7 +133,7 @@ export const TabInformacion = ({ cid }: { cid: string }) => {
               </div>
               <div>
                 <span>Saldo disponible</span>
-                <b className="mono" style={{ color: m.saldo < 0 ? 'var(--crit)' : 'var(--ok-text)' }}>
+                <b className="mono" style={{ color: m.saldo < 0 ? 'var(--crit-text)' : 'var(--ok-text)' }}>
                   {money(m.saldo)} ({pct(m.pctSaldo)})
                 </b>
               </div>
@@ -147,9 +142,7 @@ export const TabInformacion = ({ cid }: { cid: string }) => {
         </Surface>
 
         <Surface className="panel">
-          <div className="panel-h">
-            <h3>Plazos y Vigencias</h3>
-          </div>
+          <SectionHeader className="dt-panel-title" as="h3" icon="calendar-clock" title="Plazos y vigencias" />
           <div className="panel-b np">
             <div className="dl">
               <div>
@@ -174,7 +167,7 @@ export const TabInformacion = ({ cid }: { cid: string }) => {
               </div>
               <div>
                 <span>Días restantes</span>
-                <b style={{ color: m.restantes != null && m.restantes <= 5 ? 'var(--crit)' : 'inherit' }}>
+                <b style={{ color: m.restantes != null && m.restantes <= 5 ? 'var(--crit-text)' : 'inherit' }}>
                   {m.restantes == null ? '—' : m.restantes < 0 ? 'Plazo vencido' : `${m.restantes} días`}
                 </b>
               </div>
@@ -192,25 +185,20 @@ export const TabInformacion = ({ cid }: { cid: string }) => {
       </div>
 
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h3>Objeto y Alcance Contractual</h3>
-        </div>
+        <SectionHeader className="dt-panel-title" as="h3" icon="scroll-text" title="Objeto y alcance contractual" />
         <div className="panel-b">
           {[
-            { t: 'Objeto Contractual', v: c.objeto || c.obj },
-            { t: 'Descripción y Forma de Pago', v: c.descripcion },
-            { t: 'Alcance de los Servicios', v: c.alcance },
-            { t: 'Productos y Entregables Esperados', v: c.productos },
-            { t: 'Indicadores y Acuerdos de Nivel de Servicio', v: c.indicadores }
+            { t: 'Objeto Contractual', v: c.objeto || c.obj, icon: 'scroll-text' },
+            { t: 'Descripción y Forma de Pago', v: c.descripcion, icon: 'receipt' },
+            { t: 'Alcance de los Servicios', v: c.alcance, icon: 'list-check' },
+            { t: 'Productos y Entregables Esperados', v: c.productos, icon: 'package' },
+            { t: 'Indicadores y Acuerdos de Nivel de Servicio', v: c.indicadores, icon: 'gauge' }
           ]
             .filter((b) => !!b.v)
             .map((b) => (
-              <div className="mb-4" key={b.t}>
-                <h5 className="text-xs uppercase text-muted-foreground mb-1 font-semibold">{b.t}</h5>
-                <p
-                  className="text-sm p-3 rounded"
-                  style={{ background: 'var(--bg-sub)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}
-                >
+              <div className="tab-info-description" key={b.t}>
+                <SectionHeader as="h4" icon={b.icon} title={b.t} />
+                <p>
                   {b.v}
                 </p>
               </div>

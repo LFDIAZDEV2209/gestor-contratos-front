@@ -14,6 +14,8 @@ import { Icon } from '../icons';
 import Link from 'next/link';
 import { nuevoHref, editarHref, editarEnHref } from './routes';
 
+import { SectionHeader } from '../ui/SectionHeader';
+
 export const TabEntregables = ({ cid }: { cid: string }) => {
   const c = Store.get('contracts', cid);
   if (!c) {
@@ -68,7 +70,7 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
     const todayX = getX(todayIso());
 
     ganttComponent = (
-      <div className="gantt-wrap mb-2 overflow-x-auto">
+      <div className="gantt-wrap mb-2 overflow-x-auto" tabIndex={0} role="region" aria-label="Cronograma de entregables">
         <div className="gantt" style={{ minWidth: 680 }}>
           {/* Cabecera del Gantt con meses */}
           <div
@@ -217,16 +219,13 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="tab-entregables-container">
+    <div className="ws-tab-pane">
       {/* Encabezado */}
-      <div className="panel-h mb-3 flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h3 className="text-base font-bold text-[var(--ink)]">Cronograma y entregables del contrato</h3>
-          <span className="sub text-xs text-[var(--muted)]">
-            Hitos contractuales, seguimiento de fechas límite y radicación de productos
-          </span>
-        </div>
-        <div className="row-flex">
+      <SectionHeader as="h3"
+        icon="package"
+        title="Cronograma y entregables del contrato"
+        description="Hitos contractuales, seguimiento de fechas límite y radicación de productos."
+        action={
           <Link
             className="btn sm pri"
             href={nuevoHref(cid, 'entregables')}
@@ -234,11 +233,11 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
           >
             <Icon name="plus" /> Nuevo entregable
           </Link>
-        </div>
-      </div>
+        }
+      />
 
-      {/* KPI Cards con jerarquía y tokens canónicos */}
-      <div className="kpis mb [&_.kpi]:!p-2 sm:[&_.kpi]:!p-[14px_16px] [&_.kpi-ic]:!w-7 [&_.kpi-ic]:!h-7 sm:[&_.kpi-ic]:!w-[34px] sm:[&_.kpi-ic]:!h-[34px] [&_.kpi.kpi-v2]:!gap-2 sm:[&_.kpi.kpi-v2]:!gap-3 [&_.kpi-v]:!whitespace-nowrap [&_.kpi-v]:!text-[13.5px] sm:[&_.kpi-v]:!text-[23px] [&_.kpi-s]:!whitespace-nowrap [&_.kpi-s]:!text-[9.5px] sm:[&_.kpi-s]:!text-[11.5px]">
+      {/* KPI Cards canónicos */}
+      <div className="kpis">
         <Kpi
           label="Total entregables"
           value={total}
@@ -249,14 +248,15 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
         <Kpi
           label="Aprobados / Entregados"
           value={aprobados}
-          sub={`${total > 0 ? Math.round((aprobados / total) * 100) : 0}% de cumplimiento`}
+          sub={`${total > 0 ? Math.round((aprobados / total) * 100) : 0}% cumplimiento`}
           color="ok"
+          sem="ok"
           icon="check-circle"
         />
         <Kpi
           label="En curso / Pendientes"
           value={enCurso}
-          sub="En proceso de elaboración"
+          sub="En elaboración"
           color="info"
           icon="clock"
         />
@@ -265,22 +265,21 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
           value={vencidos}
           sub={vencidos > 0 ? 'Requiere seguimiento' : 'Sin demoras'}
           color={vencidos > 0 ? 'crit' : 'ok'}
+          sem={vencidos > 0 ? 'crit' : 'ok'}
           icon="alert-circle"
         />
         <Kpi
           label="Avance ponderado"
           value={pct(avancePromedio, 0)}
-          sub="Promedio de entregables"
+          sub="Promedio entregables"
           color="info"
           icon="percent"
         />
       </div>
 
       {/* Panel del Gantt */}
-      <Surface className="panel mb-4">
-        <div className="panel-h">
-          <h3 className="font-semibold text-sm">Cronograma de Ejecución y Hitos (Gantt)</h3>
-        </div>
+      <Surface className="panel">
+        <SectionHeader className="dt-panel-title" as="h3" icon="calendar-clock" title="Cronograma de Ejecución e Hitos (Gantt)" />
         <div className="panel-b">
           {ganttComponent || (
             <EmptyState
@@ -298,12 +297,7 @@ export const TabEntregables = ({ cid }: { cid: string }) => {
 
       {/* Tabla detallada de entregables */}
       <Surface className="panel">
-        <div className="panel-h flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-sm">Matriz de entregables y productos esperados</h3>
-            <span className="sub text-xs text-[var(--muted)]">{total} entregable(s) en seguimiento</span>
-          </div>
-        </div>
+        <SectionHeader className="dt-panel-title" as="h3" icon="list-check" title="Matriz de entregables y productos esperados" description={<>{total} entregable(s) en seguimiento</>} />
 
         {deliverables.length === 0 ? (
           <EmptyState

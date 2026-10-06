@@ -12,6 +12,13 @@ import { nowStamp, fdate } from '../../lib/format';
 import { contractHref } from '../app/routes';
 import type { Contract, VIssue } from '../../lib/types';
 
+/* Mapa severidad -> (clase de badge, clase de carril semántico de fila). */
+const sevTone: Record<string, { badge: 'crit' | 'warn' | 'info'; rail: string }> = {
+  Alta: { badge: 'crit', rail: 'rail-c-crit' },
+  Media: { badge: 'warn', rail: 'rail-c-warn' },
+  Baja: { badge: 'info', rail: 'rail-c-info' }
+};
+
 /**
  * VISTA dedicada del Validador contractual (fila 16 del mapa): antes un modal de
  * gran tamaño en ExpedienteView. Convierte el listado de inconsistencias en tabla
@@ -92,6 +99,10 @@ export const ValidacionView = ({ cid }: { cid: string }) => {
     setExportado(format);
   };
 
+  const alta = res.issues.filter((i) => i.sev === 'Alta').length;
+  const media = res.issues.filter((i) => i.sev === 'Media').length;
+  const baja = res.issues.length - alta - media;
+
   return (
     <div className="anim-fade-rise" style={{ maxWidth: 1100, margin: '0 auto' }}>
       <PageHeader className="ph">
@@ -105,54 +116,61 @@ export const ValidacionView = ({ cid }: { cid: string }) => {
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             Validador contractual
-            <Badge text={hayIssues ? 'Con hallazgos' : 'Sin hallazgos'} color={hayIssues ? 'warn' : 'ok'} />
+            <Badge text={hayIssues ? 'Con hallazgos' : 'Sin hallazgos'} color={hayIssues ? 'crit' : 'ok'} />
           </h1>
           <p style={{ margin: '4px 0 0' }}>
             Revisión automática de coherencia del expediente {c.numero}: fechas, valores,
             porcentajes, garantías, obligaciones, pagos, documentos, ejecución, modificaciones,
             subcontratos, riesgos, incumplimientos y liquidación.
           </p>
-          <span className="small muted">Ejecutado el {fdate(nowStamp())}</span>
         </div>
       </PageHeader>
 
-      <Surface className="panel mb" role="status">
-        <div
-          className="result-banner"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '14px 16px',
-            borderRadius: '10px',
-            background: hayIssues ? 'var(--crit-s)' : 'var(--ok-s)',
-            color: hayIssues ? 'var(--crit)' : 'var(--ok-text)',
-            fontWeight: 600
-          }}
-        >
-          <Icon name={hayIssues ? 'triangle-exclamation' : 'circle-check'} />
-          <span>
-            {hayIssues
-              ? `Se encontraron ${res.issues.length} inconsistencia${res.issues.length === 1 ? '' : 's'}`
-              : 'Contrato validado correctamente'}
+      <Surface className="panel mb val-score" role="status">
+        {/* Veredicto: título, resumen por severidad y sello de ejecución */}
+        <div className="val-verdict">
+          <span className={`val-verdict-ic ${hayIssues ? 'bad' : 'ok'}`} aria-hidden="true">
+            <Icon name={hayIssues ? 'triangle-exclamation' : 'circle-check'} size={22} />
           </span>
+          <div style={{ minWidth: 0 }}>
+            <h2 className="val-verdict-t">
+              {hayIssues
+                ? `Se encontraron ${res.issues.length} inconsistencia${res.issues.length === 1 ? '' : 's'}`
+                : 'Contrato validado correctamente'}
+            </h2>
+            {hayIssues ? (
+              <div className="val-sev" role="list" aria-label="Hallazgos por severidad">
+                {[
+                  { n: alta, l: 'Alta', c: 'crit' },
+                  { n: media, l: 'Media', c: 'warn' },
+                  { n: baja, l: 'Baja', c: 'info' }
+                ]
+                  .filter((s) => s.n > 0)
+                  .map((s) => (
+                    <Badge key={s.l} text={`${s.n} de severidad ${s.l}`} color={s.c} />
+                  ))}
+              </div>
+            ) : (
+              <p className="val-verdict-d">
+                Las 13 áreas del expediente se revisaron en esta pasada. No se detectaron
+                inconsistencias de fechas, valores, porcentajes, garantías, obligaciones, pagos,
+                documentos, ejecución, modificaciones, subcontratos, riesgos, incumplimientos ni
+                liquidación.
+              </p>
+            )}
+            <span className="val-stamp">
+              <Icon name="clock" /> Ejecutado el {fdate(nowStamp())}
+            </span>
+          </div>
         </div>
 
-        <div className="check-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: 16 }}>
+        {/* Checklist de las 13 áreas verificadas, compacta y escaneable */}
+        <div className="val-checks" role="list" aria-label="Áreas verificadas">
           {res.areas.map((a) => (
-            <span
-              key={a.a}
-              className="small"
-              style={{
-                padding: '4px 10px',
-                borderRadius: '999px',
-                border: '1px solid var(--line)',
-                background: a.ok ? 'var(--ok-s)' : 'var(--crit-s)',
-                color: a.ok ? 'var(--ok-text)' : 'var(--crit)',
-                fontWeight: 600
-              }}
-            >
-              {a.ok ? '✓ ' : '✗ '}
+            <span key={a.a} className={`val-check ${a.ok ? '' : 'bad'}`} role="listitem" title={a.ok ? 'Área coherente' : 'Área con hallazgos'}>
+              <span className="val-dot" aria-hidden="true">
+                <Icon name={a.ok ? 'check' : 'close'} size={11} />
+              </span>
               {a.a}
             </span>
           ))}
@@ -163,8 +181,11 @@ export const ValidacionView = ({ cid }: { cid: string }) => {
         <Surface className="panel mb">
           <div className="panel-h">
             <div>
-              <h2 style={{ fontSize: '15px', margin: 0, fontWeight: 600 }}>Inconsistencias detectadas</h2>
-              <span className="sub">{res.issues.length} hallazgos ordenados por severidad</span>
+              <h2 style={{ fontSize: '15px', margin: 0, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="list" size={15} /> Inconsistencias detectadas
+                <span className="badge b-crit">{res.issues.length}</span>
+              </h2>
+              <span className="sub">Ordenadas por severidad; exporta el detalle para el archivo del expediente</span>
             </div>
             <div className="row-flex">
               <Button className="btn sm" onClick={() => exportar('xlsx')} title="Exportar hallazgos a Excel">
@@ -176,7 +197,7 @@ export const ValidacionView = ({ cid }: { cid: string }) => {
             </div>
           </div>
 
-          <TableViewport className="tbl-wrap">
+          <TableViewport className="tbl-wrap" aria-label="Listado de inconsistencias contractuales">
             <DataTable className="tbl" aria-label="Listado de inconsistencias contractuales">
               <thead>
                 <tr>
@@ -189,25 +210,25 @@ export const ValidacionView = ({ cid }: { cid: string }) => {
                 </tr>
               </thead>
               <tbody>
-                {res.issues.map((i: VIssue, idx: number) => (
-                  <tr key={idx}>
-                    <td className="nw">
-                      <Badge
-                        text={i.sev}
-                        color={i.sev === 'Alta' ? 'crit' : i.sev === 'Media' ? 'warn' : 'info'}
-                      />
-                    </td>
-                    <td className="small muted">{i.area}</td>
-                    <td className="strong" style={{ minWidth: 160 }}>{i.campo}</td>
-                    <td style={{ color: 'var(--crit)', minWidth: 130 }} title={String(i.actual)}>
-                      {i.actual}
-                    </td>
-                    <td style={{ color: 'var(--ok-text)', minWidth: 130 }} title={String(i.esperado)}>
-                      {i.esperado}
-                    </td>
-                    <td className="small" style={{ minWidth: 180 }}>{i.rec}</td>
-                  </tr>
-                ))}
+                {res.issues.map((i: VIssue, idx: number) => {
+                  const tone = sevTone[i.sev] || sevTone.Baja;
+                  return (
+                    <tr key={idx} className={`rail ${tone.rail}`}>
+                      <td className="nw">
+                        <Badge text={i.sev} color={tone.badge} />
+                      </td>
+                      <td className="small muted">{i.area}</td>
+                      <td className="strong" style={{ minWidth: 160 }}>{i.campo}</td>
+                      <td style={{ color: 'var(--crit-text)', minWidth: 130 }} title={String(i.actual)}>
+                        {i.actual}
+                      </td>
+                      <td style={{ color: 'var(--ok-text)', minWidth: 130 }} title={String(i.esperado)}>
+                        {i.esperado}
+                      </td>
+                      <td className="small" style={{ minWidth: 180 }}>{i.rec}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </DataTable>
           </TableViewport>

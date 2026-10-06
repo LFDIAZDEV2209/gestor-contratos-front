@@ -1,4 +1,5 @@
 'use client';
+import { fieldIcon } from '../forms/fieldIcon';
 import { PBar } from '../ui/PBar';
 import { Input, Select } from '../ui/Controls';
 import { Button } from '../ui/button';
@@ -247,12 +248,27 @@ export const ObligacionesView = ({
       {/* Main Panel */}
       <Surface className="panel">
         {/* Quick Views Tabs con icono */}
-        <div className="tabs" style={{ padding: '0 12px' }} role="tablist" aria-label="Filtro de obligaciones por estado">
+        <div
+          className="tabs"
+          style={{ padding: '0 12px' }}
+          role="tablist"
+          aria-label="Filtro de obligaciones por estado"
+          onKeyDown={(e) => {
+            // Patrón WAI-ARIA tabs: flechas, Inicio y Fin mueven y activan la pestaña.
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+            const tabs = [...e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')];
+            const i = tabs.indexOf(document.activeElement as HTMLElement);
+            if (i < 0) return;
+            e.preventDefault();
+            const n = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+            tabs[n].focus();
+            tabs[n].click();
+          }}
+        >
           <Button
             role="tab"
             aria-selected={activeTab === 'todas'}
-            className={`tab ${activeTab === 'todas' ? 'on' : ''}`}
-            aria-pressed={activeTab === 'todas'}
+            className={`tab ${activeTab === 'todas' ? 'on' : ''}`}
             onClick={() => {
               setActiveTab('todas');
               setPage(1);
@@ -263,8 +279,7 @@ export const ObligacionesView = ({
           <Button
             role="tab"
             aria-selected={activeTab === 'pendientes'}
-            className={`tab ${activeTab === 'pendientes' ? 'on' : ''}`}
-            aria-pressed={activeTab === 'pendientes'}
+            className={`tab ${activeTab === 'pendientes' ? 'on' : ''}`}
             onClick={() => {
               setActiveTab('pendientes');
               setPage(1);
@@ -275,8 +290,7 @@ export const ObligacionesView = ({
           <Button
             role="tab"
             aria-selected={activeTab === 'vencidas'}
-            className={`tab ${activeTab === 'vencidas' ? 'on' : ''}`}
-            aria-pressed={activeTab === 'vencidas'}
+            className={`tab ${activeTab === 'vencidas' ? 'on' : ''}`}
             onClick={() => {
               setActiveTab('vencidas');
               setPage(1);
@@ -287,8 +301,7 @@ export const ObligacionesView = ({
           <Button
             role="tab"
             aria-selected={activeTab === 'cumplidas'}
-            className={`tab ${activeTab === 'cumplidas' ? 'on' : ''}`}
-            aria-pressed={activeTab === 'cumplidas'}
+            className={`tab ${activeTab === 'cumplidas' ? 'on' : ''}`}
             onClick={() => {
               setActiveTab('cumplidas');
               setPage(1);
@@ -314,7 +327,7 @@ export const ObligacionesView = ({
           </div>
           <Field className="f">
             <label>Contrato</label>
-            <Select
+            <Select icon={fieldIcon("filterContract", "Contrato", "")}
               className="inp sm"
               value={filterContract}
               onChange={(e) => {
@@ -332,7 +345,7 @@ export const ObligacionesView = ({
           </Field>
           <Field className="f">
             <label>Tipo</label>
-            <Select
+            <Select icon={fieldIcon("filterTipo", "Tipo", "")}
               className="inp sm"
               value={filterTipo}
               onChange={(e) => {

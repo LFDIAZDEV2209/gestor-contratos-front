@@ -1,7 +1,11 @@
 'use client';
+import { AccessibleForm } from '../forms/AccessibleForm';
+import { FormSection } from '../ui/FormSection';
+import { fieldIcon } from '../forms/fieldIcon';
 import { Select, Input, Textarea } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, EmptyState, Field } from '../ui/Workspace';
+import { SectionHeader } from '../ui/SectionHeader';
 import Link from 'next/link';
 import { contractHref } from '../app/routes';
 
@@ -361,6 +365,12 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
       <div className="grid g-21">
         {/* Panel izquierdo: Lista de alertas */}
         <Surface className="panel">
+          <SectionHeader
+            as="h3"
+            icon="alert-triangle"
+            title="Centro de alertas"
+            description={`${openAlerts.length} alertas activas en el portafolio`}
+          />
           <div className="tabs" style={{ padding: '0 8px', display: 'flex', alignItems: 'center' }}>
             {[
               { id: '', label: 'Todas', count: openAlerts.length },
@@ -385,7 +395,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
             <span className="sp" style={{ flex: 1 }} />
             {/* Estado con etiqueta visible y ancho estable (evita el colapso a
                 «botón-caret» sin texto en 1280 — hallazgo P1 del baseline QA). */}
-            <Select
+            <Select icon={fieldIcon("estadoFilter", "Filtrar por estado de alerta", "")}
               className="inp"
               style={{ margin: '6px', width: 150, padding: '4px 8px', fontSize: '12px' }}
               value={estadoFilter}
@@ -536,12 +546,13 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
 
         {/* Panel derecho: Tareas de seguimiento */}
         <Surface className="panel" id="panel-tareas">
-          <div className="panel-h">
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="list-check" size={14} /> Tareas
-            </h3>
-            <span className="sub">Seguimiento de acciones</span>
-          </div>
+          <SectionHeader
+            as="h3"
+            icon="list-check"
+            title="Tareas"
+            description="Seguimiento de acciones"
+            action={<span className="ws-section-meta">{tasks.length} tareas</span>}
+          />
           <div style={{ padding: '12px' }}>
             {tasks.length === 0 ? (
               <EmptyState
@@ -608,12 +619,13 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
             </>
           }
         >
+          <AccessibleForm errors={{}} attempted={false}><FormSection title="Gestión de la alerta" icon="clipboard-check" className="form-section-inline">
           <p className="small muted" style={{ marginTop: 0 }}>
             {resolveAlert.tipo} · {resolveAlert.numero}: {resolveAlert.descripcion}
           </p>
           <Field className="f" style={{ marginTop: 12 }}>
             <label>Gestión realizada / soporte de resolución *</label>
-            <Textarea
+            <Textarea icon={fieldIcon("resolveNote", "Gestión realizada / soporte de resolución *", "")}
               className="inp"
               rows={3}
               placeholder="Ej.: se radicó la prórroga No. 2 / se aportó soporte de pago"
@@ -622,6 +634,7 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
               autoFocus
             />
           </Field>
+          </FormSection></AccessibleForm>
         </Modal>
       )}
 
@@ -641,12 +654,13 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
             </>
           }
         >
+          <AccessibleForm errors={{}} attempted={false}><FormSection title="Asignación de responsable" icon="user" className="form-section-inline">
           <p className="small muted" style={{ marginTop: 0 }}>
             {delegateAlert.tipo} · {delegateAlert.numero}: {delegateAlert.descripcion}
           </p>
-          <div className="form-group" style={{ marginTop: 12 }}>
+          <Field className="f" style={{ marginTop: 12 }}>
             <label className="form-label">Delegar a usuario responsable *</label>
-            <Select
+            <Select icon={fieldIcon("delegateUser", "Delegar a usuario responsable *", "")}
               className="inp"
               value={delegateUser}
               onChange={(e) => setDelegateUser(e.target.value)}
@@ -658,7 +672,8 @@ export const AlertasView: React.FC<AlertasViewProps> = ({ onSelectContract, init
                 </option>
               ))}
             </Select>
-          </div>
+          </Field>
+          </FormSection></AccessibleForm>
         </Modal>
       )}
     </div>

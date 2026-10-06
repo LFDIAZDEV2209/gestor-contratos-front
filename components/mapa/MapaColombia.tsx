@@ -2,6 +2,7 @@
 import { Select } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { Surface, Field, MetricCard } from '../ui/Workspace';
+import { SectionHeader } from '../ui/SectionHeader';
 
 import React, { useState, useRef } from 'react';
 import { Store } from '@/lib/store';
@@ -159,15 +160,13 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
   return (
     <Surface className="panel mb" id="mapPanel">
       {/* Panel Header */}
-      <div className="panel-h">
-        <h3>
-          <Icon name="map" /> Presencia contractual en Colombia
-        </h3>
-        <span className="sub">
-          {present.length} de 33 departamentos · región líder: <b>{leadReg}</b>
-        </span>
-        <div className="row-flex">
-          <div className="seg" style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+      <SectionHeader
+        as="h3"
+        icon="map"
+        title="Presencia contractual en Colombia"
+        description={`${present.length} de 33 departamentos · región líder: ${leadReg}`}
+        action={
+          <div className="seg" style={{ display: 'inline-flex', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: 6, overflow: 'hidden' }}>
             <Button
               className={`btn sm ${metric === 'contratos' ? 'pri' : 'ghost'}`}
               style={{ borderRadius: 0, margin: 0, border: 'none' }}
@@ -190,8 +189,8 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
               <Icon name="user" /> Clientes <b>{tot.clientes}</b>
             </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filtros del mapa */}
       <div className="filters" style={{ padding: '10px 16px', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', borderBottom: '1px solid var(--border)' }}>
@@ -275,7 +274,7 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
           <svg
             viewBox={`0 0 ${CO_GEO.W} 760`}
             className="comap"
-            role="img"
+            role="group"
             aria-label="Mapa de Colombia por departamentos"
             style={{ width: '100%', height: 'auto', maxHeight: 560, display: 'block' }}
           >
@@ -486,10 +485,10 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
               </div>
 
               {/* Lista de contratos del depto */}
-              <h4 className="mh4" style={{ fontSize: '12.5px', margin: '14px 0 8px' }}>
+              <h3 className="mh4" style={{ fontSize: '12.5px', margin: '14px 0 8px' }}>
                 Contratos ({selectedDeptoData.contratos.length})
-              </h4>
-              <div style={{ maxHeight: 180, overflow: 'auto' }}>
+              </h3>
+              <div style={{ maxHeight: 180, overflow: 'auto' }} tabIndex={0} role="region" aria-label="Contratos del departamento">
                 {selectedDeptoData.contratos.length === 0 ? (
                   <p className="small muted">Sin contratos con estos filtros.</p>
                 ) : (
@@ -524,10 +523,10 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
               </div>
 
               {/* Pólizas por aseguradora */}
-              <h4 className="mh4" style={{ fontSize: '12.5px', margin: '14px 0 8px' }}>
+              <h3 className="mh4" style={{ fontSize: '12.5px', margin: '14px 0 8px' }}>
                 Pólizas por aseguradora
-              </h4>
-              <div style={{ maxHeight: 120, overflow: 'auto' }}>
+              </h3>
+              <div style={{ maxHeight: 120, overflow: 'auto' }} tabIndex={0} role="region" aria-label="Pólizas por aseguradora">
                 {selectedDeptoData.polizas.length === 0 ? (
                   <p className="small muted">Sin pólizas registradas.</p>
                 ) : (
@@ -555,9 +554,9 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
               </div>
 
               {/* Clientes contratistas */}
-              <h4 className="mh4" style={{ fontSize: '12.5px', margin: '14px 0 6px' }}>
+              <h3 className="mh4" style={{ fontSize: '12.5px', margin: '14px 0 6px' }}>
                 Clientes (contratistas)
-              </h4>
+              </h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {selClients.length ? (
                   selClients.map((nit) => (
@@ -582,9 +581,9 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
           ) : (
             <div>
               {/* Resumen por región */}
-              <h4 className="mh4" style={{ fontSize: '12.5px', margin: '0 0 10px' }}>
+              <h3 className="mh4" style={{ fontSize: '12.5px', margin: '0 0 10px' }}>
                 Por región
-              </h4>
+              </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {REGIONES.map((r) => {
                   const b = byReg[r];
@@ -625,15 +624,15 @@ export const MapaColombia: React.FC<MapaColombiaProps> = ({
               </div>
 
               {/* Departamentos líderes */}
-              <h4 className="mh4" style={{ fontSize: '12.5px', margin: '16px 0 8px' }}>
+              <h3 className="mh4" style={{ fontSize: '12.5px', margin: '16px 0 8px' }}>
                 Departamentos con mayor{' '}
                 {metric === 'contratos'
                   ? 'contratación'
                   : metric === 'polizas'
                   ? 'cobertura de pólizas'
                   : 'número de clientes'}
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflow: 'auto' }}>
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflow: 'auto' }} tabIndex={0} role="region" aria-label="Detalle regional">
                 {topDepts.length === 0 ? (
                   <p className="small muted">Sin datos con estos filtros.</p>
                 ) : (

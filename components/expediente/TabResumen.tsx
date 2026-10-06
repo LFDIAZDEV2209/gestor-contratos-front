@@ -5,6 +5,7 @@ import { M } from '../../lib/metrics';
 import { Store } from '../../lib/store';
 import { money, moneyM, pct, fdate, clamp } from '../../lib/format';
 import { Kpi } from '../ui/Kpi';
+import { SectionHeader } from '../ui/SectionHeader';
 import { Chart } from '../ui/Chart';
 import { Icon } from '../icons';
 import { LEVEL_TXT } from '../../lib/catalog';
@@ -71,9 +72,7 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
   return (
     <div className="tab-resumen-container">
       {/* 1. KPIs FINANCIEROS */}
-      <div className="section-head mb-2 mt-2">
-        <h4 style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>FINANCIERO</h4>
-      </div>
+      <SectionHeader as="h3" icon="coins" title="Financiero" />
       <div className="kpis mb">
         <Kpi label="Valor inicial" value={nb(moneyM(m.valorInicial))} sub={money(m.valorInicial)} color={tone(null)} />
         <Kpi
@@ -101,9 +100,7 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
       </div>
 
       {/* 2. KPIs FECHAS */}
-      <div className="section-head mb-2">
-        <h4 style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>FECHAS</h4>
-      </div>
+      <SectionHeader as="h3" icon="calendar-clock" title="Fechas" />
       <div className="kpis mb">
         <Kpi label="Fecha de firma" value={fdate(c.fechaFirma || c.signDate)} color={tone(null)} />
         <Kpi label="Fecha de inicio" value={fdate(c.fechaInicio || c.startDate)} color={tone(null)} />
@@ -125,9 +122,7 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
       </div>
 
       {/* 3. KPIs CUMPLIMIENTO */}
-      <div className="section-head mb-2">
-        <h4 style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>CUMPLIMIENTO</h4>
-      </div>
+      <SectionHeader as="h3" icon="shield-check" title="Cumplimiento" />
       <div className="kpis mb">
         <Kpi
           label="% ejecución física"
@@ -185,22 +180,14 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
       {/* 4. GRÁFICAS Y NIVEL DE CONTROL */}
       <div className="grid g-21 mb">
         <Surface className="panel">
-          <div className="panel-h">
-            <h3>Ejecución del contrato</h3>
-            <span className="sub">Mensual y acumulado vs. valor actualizado</span>
-          </div>
+          <SectionHeader className="dt-panel-title" as="h3" icon="activity" title="Ejecución del contrato" description="Mensual y acumulado vs. valor actualizado" />
           <div className="panel-b" style={{ minHeight: 280 }}>
             <Chart type="bar" data={chartData} options={chartOptions} height={260} />
           </div>
         </Surface>
 
         <Surface className="panel">
-          <div className="panel-h">
-            <h3>Nivel de control documental</h3>
-            <span className="sub" title="Indicador interno de completitud del expediente. No califica al contratista.">
-              <Icon name="info-circle" />
-            </span>
-          </div>
+          <SectionHeader className="dt-panel-title" as="h3" icon="clipboard-check" title="Nivel de control documental" description="Indicador interno de completitud del expediente. No califica al contratista." />
           <div className="panel-b">
             <div className="score flex items-center gap-4 mb-4">
               <div
@@ -240,10 +227,7 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
       {/* 5. FACTORES DEL SEMÁFORO Y DETALLES */}
       <div className="grid g2 mb">
         <Surface className="panel">
-          <div className="panel-h">
-            <h3>Factores del semáforo</h3>
-            <span className="sub">{LEVEL_TXT[m.nivel]}</span>
-          </div>
+          <SectionHeader className="dt-panel-title" as="h3" icon="alert-triangle" title="Factores del semáforo" description={LEVEL_TXT[m.nivel]} />
           <div className="panel-b">
             {reasons.map((r, i) => (
               <div key={i} className="row-flex" style={{ padding: '6px 0', alignItems: 'flex-start', borderBottom: '1px solid var(--line-2)' }}>
@@ -255,12 +239,9 @@ export const TabResumen = ({ cid, onTabChange }: { cid: string; onTabChange?: (t
         </Surface>
 
         <Surface className="panel">
-          <div className="panel-h">
-            <h3>Documentos faltantes del expediente</h3>
-            <Button className="btn xs" onClick={() => onTabChange?.('documentos')}>
+          <SectionHeader className="dt-panel-title" as="h3" icon="folder" title="Documentos faltantes del expediente" action={<Button className="btn xs" onClick={() => onTabChange?.('documentos')}>
               Ver documentos
-            </Button>
-          </div>
+            </Button>} />
           <div className="panel-b">
             {m.docsFaltantes.length > 0 ? (
               <div className="alert-box warn">

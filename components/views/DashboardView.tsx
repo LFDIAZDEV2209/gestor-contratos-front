@@ -28,6 +28,7 @@ import { LEVEL_COLOR, LEVEL_TXT, CLOSED_STATES } from '@/lib/catalog';
 import { Icon } from '../icons';
 import { Chart } from '../ui/Chart';
 import { Kpi } from '../ui/Kpi';
+import { SectionHeader } from '../ui/SectionHeader';
 import { Badge } from '../ui/Badge';
 import { MapaColombia } from '../mapa/MapaColombia';
 import type { Contract, Obligation, Risk, Payment, Exec } from '@/lib/types';
@@ -77,8 +78,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       cutout: '64%',
       plugins: {
         legend: {
-          position: 'right' as const,
-          labels: { boxWidth: 12, font: { size: 11 } }
+          display: false
         }
       }
     }
@@ -334,6 +334,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Cabecera con acciones elevadas; se conserva la navegación existente. */}
       <PageHeader variant="hero" className="page-h anim-fade-rise">
         <div>
+          <nav className="crumb" aria-label="Ruta de navegación" style={{ marginBottom: 8 }}>
+            <span>Seven Save</span>
+            <Icon name="chevron-right" size={12} />
+            <span aria-current="page">Dashboard</span>
+          </nav>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span
               style={{
@@ -389,297 +394,529 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </PageHeader>
 
-      {/* Grid: Qué debo hacer hoy (66%) + Semáforo contractual (33%) */}
-      <div className="grid g-21 mb">
-        {/* Qué debo hacer hoy */}
-        <Surface className="panel anim-fade-rise" style={{ animationDelay: '40ms' }}>
-          <div className="panel-h">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="clipboard-check" />
-              <h3 style={{ margin: 0 }}>Qué debo hacer hoy</h3>
-            </div>
-            <span className="sub">
-              {T.length} frente{T.length === 1 ? '' : 's'} de trabajo
-            </span>
+      {/* Secciones semánticas: whitespace + divisores sutiles; los datos y la navegación no cambian. */}
+      <div className="ws-stack">
+        {/* 1. Panorama general (KPIs) */}
+        <section className="ws-section ws-kpis anim-fade-rise" aria-labelledby="dash-sec-panorama">
+          <SectionHeader
+            id="dash-sec-panorama"
+            icon="layers"
+            title="Panorama general"
+            description="Estado contractual, finanzas y control del portafolio."
+            action={<span className="ws-section-meta">{P.n} contratos · {P.act} activos</span>}
+          />
+          <div className="kpi-group-title">
+            <Icon name="folder" /> Estado contractual
           </div>
-          <div style={{ padding: '8px 12px' }}>
-            {T.length === 0 ? (
-              <EmptyState
-                title="Sin frentes de trabajo para hoy"
-                description="Cuando existan vencimientos, alertas o pendientes críticos aparecerán aquí para actuar con un clic."
-                action={
-                  <Button className="btn sm pri" onClick={() => onNavigate?.('agenda')}>
-                    <Icon name="calendar-days" /> Revisar agenda
-                  </Button>
-                }
-              />
-            ) : (
-              T.map((t, idx) => (
-                <button
-                  type="button"
-                  key={idx}
-                  className="todo anim-fade-rise w-full text-left hover:shadow-[var(--shadow-2)] focus-visible:shadow-[var(--shadow-2)] motion-safe:hover:-translate-y-0.5"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '8px 12px',
-                    border: '1px solid var(--border)',
-                    borderRadius: 6,
-                    marginBottom: 6,
-                    cursor: 'pointer',
-                    fontSize: '12.5px',
-                    animationDelay: `${idx * 40}ms`,
-                    transition: 'translate var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease)'
-                  }}
-                  onClick={() => {
-                    if (t.view) onNavigate?.(t.view, t.filterKey);
-                    else if (t.a === 'agenda') onNavigate?.('agenda');
-                    else if (t.a === 'contratos') onNavigate?.('contratos', t.filterKey);
-                    else onNavigate?.(t.a);
-                  }}
-                >
-                  <span className={`sem ${t.l}`} style={{ flexShrink: 0 }} />
-                  <span className="n" style={{ fontWeight: 700, minWidth: 20 }}>
-                    {t.n}
-                  </span>
-                  <span className="x" style={{ flex: 1 }}>
-                    {t.t}
-                  </span>
-                  <Icon name="chevron-right" />
-                </button>
-              ))
-            )}
+          <div className="kpis">
+            <Kpi
+              icon="folder"
+              color="brand"
+              label="Total contratos"
+              value={P.n}
+              sub={`${P.act} activos en portafolio`}
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '0ms' }}
+              onClick={() => onNavigate?.('contratos')}
+            />
+            <Kpi
+              icon="check-circle"
+              label="Contratos activos"
+              value={P.act}
+              sub={`${pct(P.n ? (P.act / P.n) * 100 : 0)} del total`}
+              sem="ok"
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '40ms' }}
+              onClick={() => onNavigate?.('contratos', 'activos')}
+            />
+            <Kpi
+              icon="clock"
+              label="Próximos a vencer"
+              value={P.prox}
+              sub="En ≤ 30 días"
+              sem={P.prox > 0 ? 'warn' : 'ok'}
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '80ms' }}
+              onClick={() => onNavigate?.('agenda')}
+            />
+            <Kpi
+              icon="alert-circle"
+              label="Contratos vencidos"
+              value={P.venc}
+              sub="Sin liquidar / prorrogar"
+              sem={P.venc > 0 ? 'crit' : 'ok'}
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '120ms' }}
+              onClick={() => onNavigate?.('contratos', 'vencidos')}
+            />
+            <Kpi
+              icon="pause"
+              label="Suspendidos"
+              value={P.susp}
+              sub="Con acta de suspensión"
+              sem={P.susp > 0 ? 'warn' : 'na'}
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '160ms' }}
+              onClick={() => onNavigate?.('contratos', 'Suspendido')}
+            />
+            <Kpi
+              icon="file-signature"
+              color="na"
+              label="En liquidación"
+              value={P.liq}
+              sub="Pendientes de cierre"
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '200ms' }}
+              onClick={() => onNavigate?.('contratos', 'En liquidación')}
+            />
           </div>
-        </Surface>
 
-        {/* Semáforo contractual (la gráfica estira para llenar el alto del panel) */}
-        <Surface
-          className="panel anim-fade-rise"
-          style={{ animationDelay: '80ms', display: 'flex', flexDirection: 'column' }}
-        >
-          <div className="panel-h">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="chart-pie" />
-              <h3 style={{ margin: 0 }}>Semáforo contractual</h3>
-            </div>
-            <span className="sub">{P.n} contratos</span>
+          {/* Grupo 2: Finanzas y Avance (5) */}
+          <div className="kpi-group-title">
+            <Icon name="dollar-sign" /> Finanzas y avance
           </div>
-          <div className="panel-b" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div className="chart-box sm" style={{ height: 'auto', flex: 1, minHeight: 210 }}>
-              {P.n > 0 ? (
-                <Chart config={semDoughnut} />
-              ) : (
+          <div className="kpis">
+            <Kpi
+              icon="dollar-sign"
+              color="info"
+              label="Valor contratado"
+              value={moneyM(P.valor)}
+              sub={money(P.valor)}
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '240ms' }}
+              onClick={() => onNavigate?.('ejecucion')}
+            />
+            <Kpi
+              icon="wallet"
+              color="info"
+              label="Valor ejecutado"
+              value={moneyM(P.ejec)}
+              sub={money(P.ejec)}
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '280ms' }}
+              onClick={() => onNavigate?.('ejecucion')}
+            />
+            <Kpi
+              icon="chart-pie"
+              label="Saldo contractual"
+              value={moneyM(P.saldo)}
+              sub={money(P.saldo)}
+              sem={P.saldo < 0 ? 'crit' : 'ok'}
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '320ms' }}
+              onClick={() => onNavigate?.('ejecucion')}
+            />
+            <Kpi
+              icon="trending-up"
+              label="% Ejecución financiera"
+              value={pct(P.pctFin)}
+              sub="Ejecutado ÷ valor"
+              sem={P.pctFin > 100 ? 'crit' : 'ok'}
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '360ms' }}
+              onClick={() => onNavigate?.('ejecucion')}
+            />
+            <Kpi
+              icon="list-check"
+              label="% Ejecución contractual"
+              value={pct(P.pctCont)}
+              sub="Avance físico ponderado"
+              color="info"
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '400ms' }}
+              onClick={() => onNavigate?.('ejecucion')}
+            />
+          </div>
+
+          {/* Grupo 3: Control y Riesgos (3) */}
+          <div className="kpi-group-title">
+            <Icon name="shield-alert" /> Control y riesgos
+          </div>
+          <div className="kpis">
+            <Kpi
+              icon="alert-triangle"
+              label="Con alertas activas"
+              value={P.conAlerta}
+              sub="Requieren gestión"
+              sem={P.conAlerta > 0 ? 'risk' : 'ok'}
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '440ms' }}
+              onClick={() => onNavigate?.('alertas')}
+            />
+            <Kpi
+              icon="circle-exclamation"
+              label="Con incumplimientos"
+              value={P.conInc}
+              sub="Casos abiertos"
+              sem={P.conInc > 0 ? 'risk' : 'ok'}
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '480ms' }}
+              onClick={() => onNavigate?.('incumplimientos')}
+            />
+            <Kpi
+              icon="shield"
+              label="Garantías por vencer"
+              value={P.garProx}
+              sub="En los próximos 30 días"
+              sem={P.garProx > 0 ? 'warn' : 'ok'}
+              className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
+              style={{ animationDelay: '520ms' }}
+              onClick={() => onNavigate?.('garantias', 'proximas')}
+            />
+          </div>
+        </section>
+
+        {/* 2. Qué debo hacer hoy */}
+        <section className="ws-section anim-fade-rise" aria-labelledby="dash-sec-hoy" style={{ animationDelay: '40ms' }}>
+          <SectionHeader
+            id="dash-sec-hoy"
+            icon="clipboard-check"
+            title="Qué debo hacer hoy"
+            description={`${T.length} frente${T.length === 1 ? '' : 's'} de trabajo priorizados para hoy.`}
+            action={
+              <Button className="btn sm" onClick={() => onNavigate?.('agenda')} title="Ver agenda de vencimientos">
+                <Icon name="calendar-days" /> Ver agenda
+              </Button>
+            }
+          />
+          <Surface className="panel">
+            {T.length === 0 ? (
+              <div className="ws-todo-empty">
                 <EmptyState
-                  title="Sin contratos en el portafolio"
-                  description="El semáforo contractual se dibujará en cuanto se registre el primer contrato."
+                  title="Sin frentes de trabajo para hoy"
+                  description="Cuando existan vencimientos, alertas o pendientes críticos aparecerán aquí para actuar con un clic."
                   action={
-                    <Button className="btn sm pri" onClick={() => onNavigate?.('contratos')}>
-                      <Icon name="folder" /> Ir a contratos
+                    <Button className="btn sm pri" onClick={() => onNavigate?.('agenda')}>
+                      <Icon name="calendar-days" /> Revisar agenda
                     </Button>
                   }
                 />
-              )}
-            </div>
-          </div>
-        </Surface>
-      </div>
+              </div>
+            ) : (
+              <div className="ws-todo-list">
+                {T.map((t, idx) => (
+                  <button
+                    type="button"
+                    key={idx}
+                    className="ws-todo-item anim-fade-rise"
+                    style={{ animationDelay: `${idx * 40}ms` }}
+                    onClick={() => {
+                      if (t.view) onNavigate?.(t.view, t.filterKey);
+                      else if (t.a === 'agenda') onNavigate?.('agenda');
+                      else if (t.a === 'contratos') onNavigate?.('contratos', t.filterKey);
+                      else onNavigate?.(t.a);
+                    }}
+                  >
+                    <span className={`sem ${t.l}`} style={{ flexShrink: 0 }} />
+                    <span className="n">{t.n}</span>
+                    <span className="x">{t.t}</span>
+                    <Icon name="chevron-right" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </Surface>
+        </section>
 
-      {/* 14 KPIs agrupados en Estado (6), Finanzas (5) y Control (3) */}
-      <div className="mb">
-        {/* Grupo 1: Estado Contractual (6) */}
-        <div className="kpi-group-title">
-          <Icon name="folder" /> Estado contractual (6)
-        </div>
-        <div className="kpis mb">
-          <Kpi
-            icon="folder"
-            color="brand"
-            label="Total contratos"
-            value={P.n}
-            sub={`${P.act} activos en portafolio`}
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '0ms' }}
-            onClick={() => onNavigate?.('contratos')}
-          />
-          <Kpi
-            icon="check-circle"
-            label="Contratos activos"
-            value={P.act}
-            sub={`${pct(P.n ? (P.act / P.n) * 100 : 0)} del total`}
-            sem="ok"
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '40ms' }}
-            onClick={() => onNavigate?.('contratos', 'activos')}
-          />
-          <Kpi
-            icon="clock"
-            label="Próximos a vencer"
-            value={P.prox}
-            sub="En ≤ 30 días"
-            sem={P.prox > 0 ? 'warn' : 'ok'}
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '80ms' }}
-            onClick={() => onNavigate?.('agenda')}
-          />
-          <Kpi
-            icon="alert-circle"
-            label="Contratos vencidos"
-            value={P.venc}
-            sub="Sin liquidar / prorrogar"
-            sem={P.venc > 0 ? 'crit' : 'ok'}
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '120ms' }}
-            onClick={() => onNavigate?.('contratos', 'vencidos')}
-          />
-          <Kpi
-            icon="pause"
-            label="Suspendidos"
-            value={P.susp}
-            sub="Con acta de suspensión"
-            sem={P.susp > 0 ? 'warn' : 'na'}
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '160ms' }}
-            onClick={() => onNavigate?.('contratos', 'Suspendido')}
-          />
-          <Kpi
-            icon="file-signature"
-            color="na"
-            label="En liquidación"
-            value={P.liq}
-            sub="Pendientes de cierre"
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '200ms' }}
-            onClick={() => onNavigate?.('contratos', 'En liquidación')}
-          />
-        </div>
-
-        {/* Grupo 2: Finanzas y Avance (5) */}
-        <div className="kpi-group-title">
-          <Icon name="dollar-sign" /> Finanzas y avance (5)
-        </div>
-        <div className="kpis mb">
-          <Kpi
-            icon="dollar-sign"
-            color="info"
-            label="Valor contratado"
-            value={moneyM(P.valor)}
-            sub={money(P.valor)}
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '240ms' }}
-            onClick={() => onNavigate?.('ejecucion')}
-          />
-          <Kpi
-            icon="wallet"
-            color="info"
-            label="Valor ejecutado"
-            value={moneyM(P.ejec)}
-            sub={money(P.ejec)}
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '280ms' }}
-            onClick={() => onNavigate?.('ejecucion')}
-          />
-          <Kpi
+        {/* 3. Semáforo contractual + mapa */}
+        <section className="ws-section anim-fade-rise" aria-labelledby="dash-sec-semaforo" style={{ animationDelay: '80ms' }}>
+          <SectionHeader
+            id="dash-sec-semaforo"
             icon="chart-pie"
-            label="Saldo contractual"
-            value={moneyM(P.saldo)}
-            sub={money(P.saldo)}
-            sem={P.saldo < 0 ? 'crit' : 'ok'}
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '320ms' }}
-            onClick={() => onNavigate?.('ejecucion')}
+            title="Semáforo contractual"
+            description="Distribución por nivel de alerta y presencia geográfica del portafolio."
+            action={<span className="ws-section-meta">{P.n} contratos</span>}
           />
-          <Kpi
-            icon="trending-up"
-            label="% Ejecución financiera"
-            value={pct(P.pctFin)}
-            sub="Ejecutado ÷ valor"
-            sem={P.pctFin > 100 ? 'crit' : 'ok'}
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '360ms' }}
-            onClick={() => onNavigate?.('ejecucion')}
-          />
-          <Kpi
-            icon="list-check"
-            label="% Ejecución contractual"
-            value={pct(P.pctCont)}
-            sub="Avance físico ponderado"
-            color="info"
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '400ms' }}
-            onClick={() => onNavigate?.('ejecucion')}
-          />
-        </div>
+          <div className="ws-sem-map">
+            <Surface className="panel">
+              <SectionHeader
+                as="h3"
+                icon="shield-alert"
+                title="Nivel de criticidad"
+                description="Distribución del portafolio por nivel de riesgo"
+              />
+              <div className="ws-sem-card-body">
+                <div className="chart-box sm" style={{ height: 230 }}>
+                  {P.n > 0 ? (
+                    <Chart config={semDoughnut} />
+                  ) : (
+                    <EmptyState
+                      title="Sin contratos en el portafolio"
+                      description="El semáforo contractual se dibujará en cuanto se registre el primer contrato."
+                      action={
+                        <Button className="btn sm pri" onClick={() => onNavigate?.('contratos')}>
+                          <Icon name="folder" /> Ir a contratos
+                        </Button>
+                      }
+                    />
+                  )}
+                </div>
+                {P.n > 0 && (
+                  <ul className="ws-sem-list" aria-label="Contratos por nivel del semáforo">
+                    {lvKeys.map((l, i) => {
+                      const n = P.byLevel[l] || 0;
+                      const p = P.n ? (n / P.n) * 100 : 0;
+                      return (
+                        <li key={l}>
+                          <span className={`sem ${l}`} />
+                          <span className="ws-sem-lbl">{semDoughnut.data.labels[i]}</span>
+                          <div className="ws-sem-bar-wrap" aria-hidden="true">
+                            <div className={`ws-sem-bar sem-${l}`} style={{ width: `${Math.min(100, Math.max(p > 0 ? 4 : 0, p))}%` }} />
+                          </div>
+                          <span className="ws-sem-n">{n}</span>
+                          <span className="ws-sem-p">{pct(p)}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                {P.n > 0 && (
+                  <div className="ws-sem-callouts">
+                    <div
+                      className="ws-sem-callout crit"
+                      onClick={() => onNavigate?.('alertas')}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter') onNavigate?.('alertas'); }}
+                      title="Ver contratos con alertas críticas"
+                    >
+                      <div className="ws-sem-callout-icon">
+                        <Icon name="alert-triangle" size={18} />
+                      </div>
+                      <div className="ws-sem-callout-info">
+                        <b>{P.byLevel.crit || 0} contratos en nivel crítico</b>
+                        <span>Exigen atención inmediata o tienen alertas graves</span>
+                      </div>
+                      <Icon name="chevron-right" size={14} className="ws-sem-callout-arrow" />
+                    </div>
 
-        {/* Grupo 3: Control y Riesgos (3) */}
-        <div className="kpi-group-title">
-          <Icon name="shield-alert" /> Control y riesgos (3)
-        </div>
-        <div className="kpis mb">
-          <Kpi
-            icon="alert-triangle"
-            label="Con alertas activas"
-            value={P.conAlerta}
-            sub="Requieren gestión"
-            sem={P.conAlerta > 0 ? 'risk' : 'ok'}
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '440ms' }}
-            onClick={() => onNavigate?.('alertas')}
-          />
-          <Kpi
-            icon="circle-exclamation"
-            label="Con incumplimientos"
-            value={P.conInc}
-            sub="Casos abiertos"
-            sem={P.conInc > 0 ? 'risk' : 'ok'}
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '480ms' }}
-            onClick={() => onNavigate?.('incumplimientos')}
-          />
-          <Kpi
-            icon="shield"
-            label="Garantías por vencer"
-            value={P.garProx}
-            sub="En los próximos 30 días"
-            sem={P.garProx > 0 ? 'warn' : 'ok'}
-            className="anim-fade-rise motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5"
-            style={{ animationDelay: '520ms' }}
-            onClick={() => onNavigate?.('garantias', 'proximas')}
-          />
-        </div>
-      </div>
+                    <div
+                      className="ws-sem-callout warn"
+                      onClick={() => onNavigate?.('contratos', 'proximos')}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter') onNavigate?.('contratos', 'proximos'); }}
+                      title="Ver contratos que requieren atención"
+                    >
+                      <div className="ws-sem-callout-icon">
+                        <Icon name="clock" size={18} />
+                      </div>
+                      <div className="ws-sem-callout-info">
+                        <b>{P.byLevel.warn || 0} contratos que requieren atención</b>
+                        <span>Vencimiento próximo o trámites contractuales en curso</span>
+                      </div>
+                      <Icon name="chevron-right" size={14} className="ws-sem-callout-arrow" />
+                    </div>
 
-      {/* Mapa de Colombia coroplético */}
-      <div className="anim-fade-rise stagger-3">
-        <MapaColombia
-          onSelectContract={onSelectContract}
-          onNavigateToContractsFilter={(k, v) => onNavigate?.('contratos', `${k}:${v}`)}
-        />
-      </div>
+                    <div
+                      className="ws-sem-callout ok"
+                      onClick={() => onNavigate?.('contratos', 'activos')}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter') onNavigate?.('contratos', 'activos'); }}
+                      title="Ver contratos en ejecución normal"
+                    >
+                      <div className="ws-sem-callout-icon">
+                        <Icon name="check-circle" size={18} />
+                      </div>
+                      <div className="ws-sem-callout-info">
+                        <b>{P.byLevel.ok || 0} contratos en ejecución normal</b>
+                        <span>Cronograma y obligaciones al día sin novedades</span>
+                      </div>
+                      <Icon name="chevron-right" size={14} className="ws-sem-callout-arrow" />
+                    </div>
 
-      {/* Tarjetas: Contratos próximos a vencer (siempre visibles, con estado vacío) */}
-      <Surface className="panel mb anim-fade-rise" style={{ animationDelay: '120ms' }}>
-        <div className="panel-h">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="clock" />
-            <h3 style={{ margin: 0 }}>Contratos próximos a vencer</h3>
-          </div>
-          <span className="sub">Alerta crítica a los {S.criticalDays} días</span>
-        </div>
-        {soon.length === 0 ? (
-          <div className="panel-b">
-            <EmptyState
-              title="Nada crítico en los próximos 15 días"
-              description="Ningún contrato activo vence dentro de los próximos 15 días. Revisa la agenda completa para ver vencimientos más lejanos."
-              action={
-                <Button className="btn sm pri" onClick={() => onNavigate?.('agenda')}>
-                  <Icon name="calendar-days" /> Ver agenda completa
-                </Button>
-              }
+                    <div className="ws-sem-action">
+                      <Button className="btn sm block" onClick={() => onNavigate?.('alertas')}>
+                        <Icon name="shield-alert" /> Gestionar alertas de riesgo
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Surface>
+
+            <MapaColombia
+              onSelectContract={onSelectContract}
+              onNavigateToContractsFilter={(k, v) => onNavigate?.('contratos', `${k}:${v}`)}
             />
           </div>
-        ) : (
-          <div className="panel-b grid g3">
+        </section>
+
+        {/* 4. Tendencias y evolución */}
+        <section className="ws-section anim-fade-rise" aria-labelledby="dash-sec-tendencias" style={{ animationDelay: '120ms' }}>
+          <SectionHeader
+            id="dash-sec-tendencias"
+            icon="trending-up"
+            title="Tendencias y evolución"
+            description="Evolución financiera y distribución del portafolio por estado, empresa y vencimiento."
+          />
+          {/* Primario: evolución financiera (2-up) */}
+          <Surface className="panel">
+            <div className="ws-split cols-2">
+              <div className="ws-cell">
+                <div className="ws-cell-h">
+                  <h3 className="ws-cell-t">
+                    <Icon name="dollar-sign" /> Valor contratado vs. ejecutado
+                  </h3>
+                  <p className="ws-cell-s">Top contratos (escala logarítmica)</p>
+                </div>
+                <div className="chart-box lg" style={{ height: 260 }}>
+                  {topContracts.length > 0 ? (
+                    <Chart config={chCvEConfig} />
+                  ) : (
+                    <EmptyState title="Sin contratos valorados" description="Aparecerá una comparación de valores cuando existan contratos registrados." />
+                  )}
+                </div>
+              </div>
+              <div className="ws-cell">
+                <div className="ws-cell-h">
+                  <h3 className="ws-cell-t">
+                    <Icon name="trending-up" /> Ejecución mensual
+                  </h3>
+                  <p className="ws-cell-s">Últimos 12 meses</p>
+                </div>
+                <div className="chart-box lg" style={{ height: 260 }}>
+                  {mesHayDatos ? (
+                    <Chart config={chMesConfig} />
+                  ) : (
+                    <EmptyState title="Sin movimientos registrados" description="La serie mensual de ejecutado y pagado aparecerá al registrar ejecuciones o pagos." />
+                  )}
+                </div>
+              </div>
+            </div>
+          </Surface>
+
+          {/* Secundario: distribución del portafolio */}
+          <Surface className="panel" style={{ marginTop: 24 }}>
+            <div className="ws-split cols-3 secondary">
+              <div className="ws-cell">
+                <div className="ws-cell-h">
+                  <h3 className="ws-cell-t">
+                    <Icon name="chart-pie" /> Contratos por estado
+                  </h3>
+                </div>
+                <div className="chart-box" style={{ height: 210 }}>
+                  {estKeys.length > 0 ? (
+                    <Chart config={chEstadoConfig} />
+                  ) : (
+                    <EmptyState title="Sin contratos" description="Aún no hay contratos clasificados por estado." />
+                  )}
+                </div>
+              </div>
+              <div className="ws-cell">
+                <div className="ws-cell-h">
+                  <h3 className="ws-cell-t">
+                    <Icon name="building" /> Contratos por empresa
+                  </h3>
+                </div>
+                <div className="chart-box" style={{ height: 210 }}>
+                  {empKeys.length > 0 ? (
+                    <Chart config={chEmpConfig} />
+                  ) : (
+                    <EmptyState title="Sin empresas asociadas" description="Asocia contratos a una empresa para ver su distribución." />
+                  )}
+                </div>
+              </div>
+              <div className="ws-cell">
+                <div className="ws-cell-h">
+                  <h3 className="ws-cell-t">
+                    <Icon name="clock" /> Vencimientos próximos
+                  </h3>
+                </div>
+                <div className="chart-box" style={{ height: 210 }}>
+                  {bucketCounts.some((n) => n > 0) ? (
+                    <Chart config={chVencConfig} />
+                  ) : (
+                    <EmptyState title="Sin vencimientos próximos" description="No hay contratos próximos a vencer ni vencidos sin liquidar." />
+                  )}
+                </div>
+              </div>
+            </div>
+          </Surface>
+        </section>
+
+        {/* 5. Riesgos y cumplimiento */}
+        <section className="ws-section anim-fade-rise" aria-labelledby="dash-sec-riesgos" style={{ animationDelay: '160ms' }}>
+          <SectionHeader
+            id="dash-sec-riesgos"
+            icon="shield-alert"
+            title="Riesgos y cumplimiento"
+            description="Riesgos abiertos por nivel y estado de cumplimiento de las obligaciones."
+            action={
+              <>
+                <Button className="btn sm" onClick={() => onNavigate?.('riesgos')} title="Ir al módulo de riesgos">
+                  <Icon name="shield-alert" /> Ver riesgos
+                </Button>
+                <Button className="btn sm" onClick={() => onNavigate?.('obligaciones')} title="Ir al módulo de obligaciones">
+                  <Icon name="list-check" /> Ver obligaciones
+                </Button>
+              </>
+            }
+          />
+          <Surface className="panel">
+            <div className="ws-split cols-2">
+              <div className="ws-cell">
+                <div className="ws-cell-h">
+                  <h3 className="ws-cell-t">
+                    <Icon name="alert-triangle" /> Riesgos por nivel
+                  </h3>
+                </div>
+                <div className="chart-box" style={{ height: 220 }}>
+                  {risksList.length > 0 ? (
+                    <Chart config={chRiesgoConfig} />
+                  ) : (
+                    <EmptyState title="Sin riesgos abiertos" description="Los riesgos identificados en los contratos se mostrarán aquí por nivel." />
+                  )}
+                </div>
+              </div>
+              <div className="ws-cell">
+                <div className="ws-cell-h">
+                  <h3 className="ws-cell-t">
+                    <Icon name="clipboard-check" /> Cumplimiento de obligaciones
+                  </h3>
+                </div>
+                <div className="chart-box" style={{ height: 220 }}>
+                  {obligationsList.length > 0 ? (
+                    <Chart config={chOblConfig} />
+                  ) : (
+                    <EmptyState title="Sin obligaciones registradas" description="El cumplimiento de obligaciones contractuales se graficará aquí." />
+                  )}
+                </div>
+              </div>
+            </div>
+          </Surface>
+        </section>
+
+        {/* 6. Contratos próximos a vencer (siempre visible, con estado vacío) */}
+        <section className="ws-section anim-fade-rise" aria-labelledby="dash-sec-vencer" style={{ animationDelay: '200ms' }}>
+          <SectionHeader
+            id="dash-sec-vencer"
+            icon="clock"
+            title="Contratos próximos a vencer"
+            description={`Vencen en 15 días o menos. Alerta crítica a los ${S.criticalDays} días.`}
+            action={
+              <Button className="btn sm" onClick={() => onNavigate?.('agenda')} title="Ver agenda de vencimientos">
+                <Icon name="calendar-days" /> Ver agenda completa
+              </Button>
+            }
+          />
+          {soon.length === 0 ? (
+            <Surface className="panel">
+              <div className="panel-b">
+                <EmptyState
+                  title="Nada crítico en los próximos 15 días"
+                  description="Ningún contrato activo vence dentro de los próximos 15 días. Revisa la agenda completa para ver vencimientos más lejanos."
+                  action={
+                    <Button className="btn sm pri" onClick={() => onNavigate?.('agenda')}>
+                      <Icon name="calendar-days" /> Ver agenda completa
+                    </Button>
+                  }
+                />
+              </div>
+            </Surface>
+          ) : (
+            <div className="ws-soon-grid">
             {soon.map((c, idx) => {
               const m = M(c);
               const r = m.restantes ?? 0;
@@ -757,156 +994,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </div>
               );
             })}
-          </div>
-        )}
-      </Surface>
-
-      {/* Fila de 3 gráficas */}
-      <div className="grid g3 mb">
-        {/* Contratos por estado */}
-        <Surface className="panel anim-fade-rise" style={{ animationDelay: '160ms' }}>
-          <div className="panel-h">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="chart-pie" />
-              <h3 style={{ margin: 0 }}>Contratos por estado</h3>
             </div>
-          </div>
-          <div className="panel-b">
-            <div className="chart-box" style={{ height: 210 }}>
-              {estKeys.length > 0 ? (
-                <Chart config={chEstadoConfig} />
-              ) : (
-                <EmptyState title="Sin contratos" description="Aún no hay contratos clasificados por estado." />
-              )}
-            </div>
-          </div>
-        </Surface>
-
-        {/* Contratos por empresa */}
-        <Surface className="panel anim-fade-rise" style={{ animationDelay: '200ms' }}>
-          <div className="panel-h">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="building" />
-              <h3 style={{ margin: 0 }}>Contratos por empresa</h3>
-            </div>
-          </div>
-          <div className="panel-b">
-            <div className="chart-box" style={{ height: 210 }}>
-              {empKeys.length > 0 ? (
-                <Chart config={chEmpConfig} />
-              ) : (
-                <EmptyState title="Sin empresas asociadas" description="Asocia contratos a una empresa para ver su distribución." />
-              )}
-            </div>
-          </div>
-        </Surface>
-
-        {/* Vencimientos próximos */}
-        <Surface className="panel anim-fade-rise" style={{ animationDelay: '240ms' }}>
-          <div className="panel-h">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="clock" />
-              <h3 style={{ margin: 0 }}>Vencimientos próximos</h3>
-            </div>
-          </div>
-          <div className="panel-b">
-            <div className="chart-box" style={{ height: 210 }}>
-              {bucketCounts.some((n) => n > 0) ? (
-                <Chart config={chVencConfig} />
-              ) : (
-                <EmptyState title="Sin vencimientos próximos" description="No hay contratos próximos a vencer ni vencidos sin liquidar." />
-              )}
-            </div>
-          </div>
-        </Surface>
-      </div>
-
-      {/* Fila de 2 gráficas grandes */}
-      <div className="grid g2 mb">
-        {/* Valor contratado vs ejecutado */}
-        <Surface className="panel anim-fade-rise" style={{ animationDelay: '40ms' }}>
-          <div className="panel-h">
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="dollar-sign" />
-                <h3 style={{ margin: 0 }}>Valor contratado vs. ejecutado</h3>
-              </div>
-              <span className="sub">Top contratos (escala logarítmica)</span>
-            </div>
-          </div>
-          <div className="panel-b">
-            <div className="chart-box lg" style={{ height: 250 }}>
-              {topContracts.length > 0 ? (
-                <Chart config={chCvEConfig} />
-              ) : (
-                <EmptyState title="Sin contratos valorados" description="Aparecerá una comparación de valores cuando existan contratos registrados." />
-              )}
-            </div>
-          </div>
-        </Surface>
-
-        {/* Ejecución mensual */}
-        <Surface className="panel anim-fade-rise" style={{ animationDelay: '80ms' }}>
-          <div className="panel-h">
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="trending-up" />
-                <h3 style={{ margin: 0 }}>Ejecución mensual</h3>
-              </div>
-              <span className="sub">Últimos 12 meses</span>
-            </div>
-          </div>
-          <div className="panel-b">
-            <div className="chart-box lg" style={{ height: 250 }}>
-              {mesHayDatos ? (
-                <Chart config={chMesConfig} />
-              ) : (
-                <EmptyState title="Sin movimientos registrados" description="La serie mensual de ejecutado y pagado aparecerá al registrar ejecuciones o pagos." />
-              )}
-            </div>
-          </div>
-        </Surface>
-      </div>
-
-      {/* Fila de 2 gráficas finales */}
-      <div className="grid g2">
-        {/* Riesgos por nivel */}
-        <Surface className="panel anim-fade-rise" style={{ animationDelay: '120ms' }}>
-          <div className="panel-h">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="alert-triangle" />
-              <h3 style={{ margin: 0 }}>Riesgos por nivel</h3>
-            </div>
-          </div>
-          <div className="panel-b">
-            <div className="chart-box" style={{ height: 210 }}>
-              {risksList.length > 0 ? (
-                <Chart config={chRiesgoConfig} />
-              ) : (
-                <EmptyState title="Sin riesgos abiertos" description="Los riesgos identificados en los contratos se mostrarán aquí por nivel." />
-              )}
-            </div>
-          </div>
-        </Surface>
-
-        {/* Cumplimiento de obligaciones */}
-        <Surface className="panel anim-fade-rise" style={{ animationDelay: '160ms' }}>
-          <div className="panel-h">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="clipboard-check" />
-              <h3 style={{ margin: 0 }}>Cumplimiento de obligaciones</h3>
-            </div>
-          </div>
-          <div className="panel-b">
-            <div className="chart-box" style={{ height: 210 }}>
-              {obligationsList.length > 0 ? (
-                <Chart config={chOblConfig} />
-              ) : (
-                <EmptyState title="Sin obligaciones registradas" description="El cumplimiento de obligaciones contractuales se graficará aquí." />
-              )}
-            </div>
-          </div>
-        </Surface>
+          )}
+        </section>
       </div>
     </div>
   );

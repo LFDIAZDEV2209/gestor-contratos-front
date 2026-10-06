@@ -1,4 +1,5 @@
 'use client';
+import { fieldIcon } from '../forms/fieldIcon';
 import { Input, Select } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { Surface, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
@@ -9,6 +10,8 @@ import { fdate } from '../../lib/format';
 import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Icon } from '../icons';
+import { SectionHeader } from '../ui/SectionHeader';
+import { Kpi } from '../ui/Kpi';
 
 type Vista = 'tabla' | 'timeline';
 
@@ -54,56 +57,83 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
     exportRows('Auditoria - ' + c.numero, cols, filtered, format);
   };
 
+  const creaciones = allAudit.filter((a) => a.accion === 'Creación').length;
+  const ediciones = allAudit.filter((a) => a.accion === 'Edición' || a.accion === 'Modificación').length;
+  const anulaciones = allAudit.filter((a) => a.accion === 'Anulación' || a.accion === 'Eliminación').length;
+  const aprobaciones = allAudit.filter((a) => a.accion === 'Aprobación').length;
+
   return (
-    <Surface className="panel">
-      <div className="panel-h" style={{ borderTop: 0 }}>
-        <div>
-          <h3>Auditoría del contrato</h3>
-          <span className="sub">Bitácora inmutable · solo lectura</span>
-        </div>
-        <div className="row-flex">
-          <div className="row-flex" style={{ gap: 0 }}>
-            <Button className={`btn sm ${vista === 'tabla' ? 'pri' : 'ghost'}`} onClick={() => setVista('tabla')} title="Vista de tabla">
-              <Icon name="list-check" /> Tabla
-            </Button>
-            <Button className={`btn sm ${vista === 'timeline' ? 'pri' : 'ghost'}`} onClick={() => setVista('timeline')} title="Vista de línea de tiempo">
-              <Icon name="clock" /> Timeline
-            </Button>
+    <div className="ws-tab-pane">
+      <SectionHeader as="h3"
+        icon="fingerprint"
+        title="Auditoría y trazabilidad del contrato"
+        description={`${allAudit.length} movimientos registrados · Bitácora inmutable de solo lectura.`}
+        action={
+          <div className="row-flex" style={{ gap: 8 }}>
+            <div className="row-flex" style={{ gap: 0 }}>
+              <Button className={`btn sm ${vista === 'tabla' ? 'pri' : 'ghost'}`} onClick={() => setVista('tabla')} title="Vista de tabla" aria-pressed={vista === 'tabla'}>
+                <Icon name="list-check" /> Tabla
+              </Button>
+              <Button className={`btn sm ${vista === 'timeline' ? 'pri' : 'ghost'}`} onClick={() => setVista('timeline')} title="Vista de línea de tiempo" aria-pressed={vista === 'timeline'}>
+                <Icon name="clock" /> Timeline
+              </Button>
+            </div>
+            <div className="exp-actions">
+              <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </div>
           </div>
-          <div className="exp-actions">
-            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel">
-              <Icon name="file-excel" /> Excel
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF">
-              <Icon name="file-pdf" /> PDF
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV">
-              <Icon name="file-csv" /> CSV
-            </Button>
-          </div>
-        </div>
+        }
+      />
+
+      <div className="kpis">
+        <Kpi
+          label="Total eventos auditados"
+          value={allAudit.length}
+          sub={`${users.length} usuario(s) activos`}
+          color="brand"
+          icon="fingerprint"
+        />
+        <Kpi
+          label="Aprobaciones formales"
+          value={aprobaciones}
+          sub="Operaciones aprobadas"
+          color="ok"
+          sem="ok"
+          icon="check-circle"
+        />
+        <Kpi
+          label="Ediciones de datos"
+          value={ediciones}
+          sub="Ajustes y registros"
+          color="info"
+          icon="pencil"
+        />
+        <Kpi
+          label="Anulaciones / Bajas"
+          value={anulaciones}
+          sub="Con motivo registrado"
+          color={anulaciones > 0 ? 'warn' : 'ok'}
+          sem={anulaciones > 0 ? 'warn' : 'ok'}
+          icon="ban"
+        />
       </div>
 
-      <div
-        className="mx-4 mt-3 p-3 readonly-note"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: 'var(--bg-sub)',
-          border: '1px solid var(--line)',
-          borderRadius: '10px',
-          fontSize: '13px',
-          color: 'var(--muted)'
-        }}
-      >
+      <div className="ws-t-banner warn" role="status">
         <Icon name="lock" />
-        <span>Los registros de auditoría no pueden editarse ni eliminarse desde la interfaz.</span>
+        <span className="flex-1 font-medium">Los registros de auditoría son inmutables y no pueden editarse ni eliminarse desde la interfaz.</span>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="row-flex p-4" style={{ gap: '12px', flexWrap: 'wrap' }}>
-        <Input
+      <div className="ws-t-filters">
+        <Input icon={fieldIcon("search", "Buscar en la auditoría del contrato", "")}
           className="inp sm"
           style={{ maxWidth: '240px' }}
           placeholder="Buscar en auditoría..."
@@ -112,7 +142,7 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
           onChange={(e) => setSearch(e.target.value)}
         />
         {users.length > 0 && (
-          <Select
+          <Select icon={fieldIcon("filterUser", "Filtrar auditoría por usuario", "")}
             className="inp sm"
             style={{ maxWidth: '180px' }}
             value={filterUser}
@@ -128,7 +158,7 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
           </Select>
         )}
         {modules.length > 0 && (
-          <Select
+          <Select icon={fieldIcon("filterModule", "Filtrar auditoría por módulo", "")}
             className="inp sm"
             style={{ maxWidth: '180px' }}
             value={filterModule}
@@ -159,6 +189,8 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
           {filtered.length} registro(s)
         </span>
       </div>
+
+      <Surface className="panel">
 
       {vista === 'tabla' ? (
         <TableViewport className="tbl-wrap">
@@ -242,5 +274,6 @@ export const TabAuditoria = ({ cid }: { cid: string }) => {
         </div>
       )}
     </Surface>
+    </div>
   );
 };

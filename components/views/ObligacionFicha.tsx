@@ -1,4 +1,8 @@
 'use client';
+import { SectionHeader } from '../ui/SectionHeader';
+import { AccessibleForm } from '../forms/AccessibleForm';
+import { FormSection } from '../ui/FormSection';
+import { fieldIcon } from '../forms/fieldIcon';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -241,22 +245,22 @@ const ObligacionFichaContent = ({
 
       {/* Contexto y seguimiento */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="list-check" /> Contexto de la obligación
-            </h2>
-            <span className="sub small muted">
+        <SectionHeader
+          icon="list-check"
+          title="Contexto de la obligación"
+          as="h2"
+          description={
+            <>
               {c ? (
-                <Link className="link" href={contractHref(c.id, 'obligaciones')} title="Abrir expediente del contrato">
+                  <Link className="link" style={{ color: 'inherit' }} href={contractHref(c.id, 'obligaciones')} title="Abrir expediente del contrato">
                   {c.numero} · {c.contratista}
                 </Link>
               ) : (
                 'Sin contrato asociado'
               )}
-            </span>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         <FormGrid className="mb" role="group" aria-label="Datos principales de la obligación">
           <div>
@@ -312,14 +316,18 @@ const ObligacionFichaContent = ({
 
       {/* Checklist */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="clipboard-check" /> Checklist de actividades ({ob.checklist?.length || 0})
-            </h2>
-            <span className="sub small muted">Cada ítem marcado recalcula el cumplimiento de la obligación</span>
-          </div>
-        </div>
+        <SectionHeader
+          icon="clipboard-check"
+          title="Checklist de actividades"
+          as="h2"
+          description={
+            <>
+              Cada ítem marcado recalcula el cumplimiento de la obligación
+              {' · '}
+              {ob.checklist?.length || 0}
+            </>
+          }
+        />
         <div className="panel-b" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {(ob.checklist || []).map((chk) => (
             <label
@@ -362,11 +370,11 @@ const ObligacionFichaContent = ({
           )}
 
           {AuthService.can('editar') && (
-            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+            <AccessibleForm errors={{}} attempted={false}><FormSection title="Agregar actividad de verificación" icon="list-check" className="form-section-inline"><div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
                 <Field style={{ flex: '1 1 240px', minWidth: 200 }}>
                   <label htmlFor="nuevo-check-item">Nuevo ítem de verificación</label>
-                  <Input
+                  <Input icon={fieldIcon("newCheckItem", "Nuevo ítem de verificación", "")}
                     id="nuevo-check-item"
                     className="inp sm"
                     placeholder="Descripción del entregable o actividad a verificar..."
@@ -384,21 +392,25 @@ const ObligacionFichaContent = ({
                   <Icon name="plus" /> Agregar ítem
                 </Button>
               </div>
-            </div>
+            </div></FormSection></AccessibleForm>
           )}
         </div>
       </Surface>
 
       {/* Bitácora */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="comment" /> Bitácora y comentarios ({ob.comentarios?.length || 0})
-            </h2>
-            <span className="sub small muted">Historial de gestiones y observaciones del equipo</span>
-          </div>
-        </div>
+        <SectionHeader
+          icon="scroll-text"
+          title="Bitácora y comentarios"
+          as="h2"
+          description={
+            <>
+              Historial de gestiones y observaciones del equipo
+              {' · '}
+              {ob.comentarios?.length || 0}
+            </>
+          }
+        />
         <div className="panel-b">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
             {(ob.comentarios || []).map((com) => (
@@ -425,8 +437,8 @@ const ObligacionFichaContent = ({
             )}
           </div>
 
-          <div className="row-flex" style={{ gap: '8px' }}>
-            <Input
+          <AccessibleForm errors={{}} attempted={false}><FormSection title="Registrar comentario" icon="comment" className="form-section-inline"><div className="row-flex" style={{ gap: '8px' }}>
+            <Input icon={fieldIcon("newComment", "Nuevo comentario de la obligación", "")}
               className="inp sm"
               placeholder="Escribir comentario u observación..."
               aria-label="Nuevo comentario de la obligación"
@@ -439,7 +451,7 @@ const ObligacionFichaContent = ({
             <Button className="btn sm pri" onClick={handleAddComment}>
               Agregar
             </Button>
-          </div>
+          </div></FormSection></AccessibleForm>
         </div>
       </Surface>
     </div>

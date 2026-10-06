@@ -7,7 +7,8 @@ import Link from "next/link";
 import { Input, Select } from "../ui/Controls";
 import { notify } from "../ui/Feedback";
 import { Button } from "../ui/button";
-import { PageHeader, Surface, FormGrid, Field } from "../ui/Workspace";
+import { PageHeader, Surface, Field } from "../ui/Workspace";
+import { FormSection } from '../ui/FormSection';
 import type { User } from "../../lib/types";
 import { Store, AuthService, Audit } from "../../lib/store";
 import { ROLES } from "../../lib/catalog";
@@ -16,7 +17,7 @@ import { Icon } from "../icons";
 /**
  * Formulario de usuario en VISTA dedicada (creación y edición) — sin modal.
  * Réplica de la anatomía canónica de EmpresaForm: breadcrumb, título con
- * descripción, FormGrid, resumen de validación visible y footer con acciones.
+ * descripción, resumen de validación visible y footer con acciones.
  * Reglas del flujo original (fila 7 del mapa): nombre/email trim obligatorios,
  * guard ADMINISTRADOR al guardar, Store + Audit + Feedback al persistir.
  */
@@ -138,7 +139,7 @@ export const UsuarioForm = ({
       </PageHeader>
 
       <Surface className="panel mb">
-        <FormGrid className="form-grid">
+        <FormSection title={<>Perfil y acceso</>} icon="user" description={<>Identidad del usuario, rol y estado de acceso.</>} accent>
           <Field className="f span2">
             <label className="req">Nombre completo</label>
             <Input name="nombre"
@@ -188,10 +189,8 @@ export const UsuarioForm = ({
               Un usuario inactivo no inicia sesión.
             </span>
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

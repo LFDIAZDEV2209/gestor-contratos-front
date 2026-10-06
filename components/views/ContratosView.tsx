@@ -1,4 +1,5 @@
 'use client';
+import { fieldIcon } from '../forms/fieldIcon';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -272,7 +273,7 @@ export const ContratosView = () => {
 
           <Field className="f">
             <label>Estado</label>
-            <Select
+            <Select icon={fieldIcon("filterEstado", "Estado", "")}
               className="inp"
               style={{ transition: 'border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
               value={filterEstado}
@@ -292,7 +293,7 @@ export const ContratosView = () => {
 
           <Field className="f">
             <label>Empresa</label>
-            <Select
+            <Select icon={fieldIcon("filterEmpresa", "Empresa", "")}
               className="inp"
               style={{ transition: 'border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
               value={filterEmpresa}
@@ -312,7 +313,7 @@ export const ContratosView = () => {
 
           <Field className="f">
             <label>Semáforo</label>
-            <Select
+            <Select icon={fieldIcon("filterSem", "Semáforo", "")}
               className="inp"
               style={{ transition: 'border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease)' }}
               value={filterSem}

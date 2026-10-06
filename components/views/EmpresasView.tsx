@@ -1,4 +1,5 @@
 'use client';
+import { fieldIcon } from '../forms/fieldIcon';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -225,7 +226,7 @@ export const EmpresasView = ({ onSelect }: { onSelect: (id: string) => void }) =
 
           <Field className="f">
             <label>Naturaleza</label>
-            <Select
+            <Select icon={fieldIcon("filterTipo", "Naturaleza", "")}
               value={filterTipo}
               onChange={(e) => {
                 setFilterTipo(e.target.value);

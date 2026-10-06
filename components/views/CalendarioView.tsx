@@ -1,6 +1,7 @@
 "use client";
 import { Button } from "../ui/button";
 import { PageHeader, Surface, EmptyState } from "../ui/Workspace";
+import { SectionHeader } from "../ui/SectionHeader";
 import { useState } from "react";
 import type {
   Contract,
@@ -398,50 +399,40 @@ export const CalendarioView = ({
 
       <Surface className="panel anim-fade-rise stagger-2">
         {/* Navegación del calendario */}
-        <div className="panel-h" style={{ flexWrap: "wrap", gap: 12 }}>
-          <div className="row-flex" style={{ gap: 8, alignItems: "center" }}>
-            <Button
-              className="icon-btn"
-              onClick={() => handleNav(-1)}
-              aria-label="Anterior"
-              title="Anterior"
-            >
-              <Icon name="chevron-left" />
-            </Button>
-            <Button
-              className="btn sm aria-pressed:border-[var(--brand)]! aria-pressed:bg-[var(--brand-soft)]! aria-pressed:text-[var(--brand-2)]!"
-              onClick={handleToday}
-              aria-pressed={iso(currentDate) === todayStr}
-              title="Ir a la fecha actual"
-            >
-              Hoy
-            </Button>
-            <Button
-              className="icon-btn"
-              onClick={() => handleNav(1)}
-              aria-label="Siguiente"
-              title="Siguiente"
-            >
-              <Icon name="chevron-right" />
-            </Button>
-            <h3
-              style={{
-                marginLeft: 8,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <Icon name="calendar-days" />
-              <span>{title}</span>
-            </h3>
-          </div>
-
-          <span className="sub">
-            {events.length} evento{events.length === 1 ? "" : "s"} activo
-            {events.length === 1 ? "" : "s"}
-          </span>
-        </div>
+        <SectionHeader
+          as="h3"
+          icon="calendar-days"
+          title={title}
+          description={`${events.length} evento${events.length === 1 ? "" : "s"} activo${events.length === 1 ? "" : "s"}`}
+          action={
+            <div className="row-flex" style={{ gap: 6, alignItems: "center" }}>
+              <Button
+                className="icon-btn"
+                onClick={() => handleNav(-1)}
+                aria-label="Anterior"
+                title="Anterior"
+              >
+                <Icon name="chevron-left" />
+              </Button>
+              <Button
+                className="btn sm"
+                onClick={handleToday}
+                aria-pressed={iso(currentDate) === todayStr}
+                title="Ir a la fecha actual"
+              >
+                Hoy
+              </Button>
+              <Button
+                className="icon-btn"
+                onClick={() => handleNav(1)}
+                aria-label="Siguiente"
+                title="Siguiente"
+              >
+                <Icon name="chevron-right" />
+              </Button>
+            </div>
+          }
+        />
 
         {/* Estados vacíos: sin eventos o con todos los tipos ocultos */}
         {!hayEventos && tiposOcultos > 0 && (
@@ -638,7 +629,7 @@ export const CalendarioView = ({
               const dayEvts: CalEvt[] = eventsByDay[k] || [];
               return (
                 <div>
-                  <h4
+                  <h4 aria-level={2}
                     style={{
                       marginBottom: "16px",
                       display: "flex",

@@ -1,4 +1,5 @@
 'use client';
+import { fieldIcon } from '../forms/fieldIcon';
 import { Select } from '../ui/Controls';
 import { Button } from '../ui/button';
 import { Surface, EmptyState } from '../ui/Workspace';
@@ -15,6 +16,7 @@ import { pct, clamp, fdate, nowStamp, money, moneyM } from '../../lib/format';
 import { deptoNames } from '../../lib/geo';
 import { saveFile } from '../../lib/export';
 import { Badge } from '../ui/Badge';
+import { SectionHeader } from '../ui/SectionHeader';
 import { notify, requestReason } from '../ui/Feedback';
 import { Icon } from '../icons';
 
@@ -39,27 +41,28 @@ import { TabTimeline } from '../expediente/TabTimeline';
 interface TabDef {
   id: string;
   label: string;
+  icon: string;
   countKey?: string;
 }
 
 const TABS: TabDef[] = [
-  { id: 'resumen', label: 'Resumen' },
-  { id: 'info', label: 'Información contractual' },
-  { id: 'documentos', label: 'Documentos', countKey: 'documents' },
-  { id: 'obligaciones', label: 'Obligaciones', countKey: 'obligations' },
-  { id: 'entregables', label: 'Entregables', countKey: 'deliverables' },
-  { id: 'ejecucion', label: 'Ejecución' },
-  { id: 'pagos', label: 'Pagos', countKey: 'payments' },
-  { id: 'garantias', label: 'Seguros y garantías', countKey: 'guarantees' },
-  { id: 'actas', label: 'Actas', countKey: 'actas' },
-  { id: 'modificaciones', label: 'Modificaciones', countKey: 'modifications' },
-  { id: 'suspensiones', label: 'Suspensiones', countKey: 'suspensiones' },
-  { id: 'prorrogas', label: 'Prórrogas', countKey: 'prorrogas' },
-  { id: 'riesgos', label: 'Riesgos', countKey: 'risks' },
-  { id: 'incumplimientos', label: 'Incumplimientos', countKey: 'breaches' },
-  { id: 'subcontratos', label: 'Subcontratos', countKey: 'subcontracts' },
-  { id: 'auditoria', label: 'Auditoría', countKey: 'audit' },
-  { id: 'timeline', label: 'Línea de Tiempo' }
+  { id: 'resumen', label: 'Resumen', icon: 'gauge' },
+  { id: 'info', label: 'Información contractual', icon: 'scroll-text' },
+  { id: 'documentos', label: 'Documentos', icon: 'folder', countKey: 'documents' },
+  { id: 'obligaciones', label: 'Obligaciones', icon: 'list-check', countKey: 'obligations' },
+  { id: 'entregables', label: 'Entregables', icon: 'package', countKey: 'deliverables' },
+  { id: 'ejecucion', label: 'Ejecución', icon: 'activity' },
+  { id: 'pagos', label: 'Pagos', icon: 'receipt', countKey: 'payments' },
+  { id: 'garantias', label: 'Seguros y garantías', icon: 'shield-check', countKey: 'guarantees' },
+  { id: 'actas', label: 'Actas', icon: 'file-signature', countKey: 'actas' },
+  { id: 'modificaciones', label: 'Modificaciones', icon: 'edit', countKey: 'modifications' },
+  { id: 'suspensiones', label: 'Suspensiones', icon: 'circle-pause', countKey: 'suspensiones' },
+  { id: 'prorrogas', label: 'Prórrogas', icon: 'calendar-plus', countKey: 'prorrogas' },
+  { id: 'riesgos', label: 'Riesgos', icon: 'alert-triangle', countKey: 'risks' },
+  { id: 'incumplimientos', label: 'Incumplimientos', icon: 'gavel', countKey: 'breaches' },
+  { id: 'subcontratos', label: 'Subcontratos', icon: 'sitemap', countKey: 'subcontracts' },
+  { id: 'auditoria', label: 'Auditoría', icon: 'fingerprint', countKey: 'audit' },
+  { id: 'timeline', label: 'Línea de tiempo', icon: 'calendar-clock' }
 ];
 
 /** Estado del contrato → color semántico del badge (files/08). */
@@ -85,13 +88,14 @@ export const ExpedienteView = ({
   const setActiveTab = (tab: string) => router.push(contractHref(id, tab), { scroll: false });
   const onBack = () => router.push('/contratos');
   const tabsRef = useRef<HTMLDivElement>(null);
+  const contextRef = useRef<HTMLDetailsElement>(null);
 
   const scrollTabs = (direction: 'left' | 'right') => {
     if (tabsRef.current) {
       const scrollAmount = 260;
       tabsRef.current.scrollBy({
         left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
       });
     }
   };
@@ -100,7 +104,7 @@ export const ExpedienteView = ({
     if (tabsRef.current) {
       const activeEl = tabsRef.current.querySelector<HTMLElement>('.tab.on');
       if (activeEl) {
-        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        activeEl.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest', inline: 'center' });
       }
     }
   }, [activeTab]);
@@ -111,11 +115,15 @@ export const ExpedienteView = ({
   // El menú de acciones se cierra al hacer clic fuera o con Escape.
   useEffect(() => {
     if (!actionsOpen) return;
+    actionsRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
     const onDoc = (e: MouseEvent) => {
       if (actionsRef.current && !actionsRef.current.contains(e.target as Node)) setActionsOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setActionsOpen(false);
+      if (e.key === 'Escape') {
+        setActionsOpen(false);
+        actionsRef.current?.querySelector<HTMLElement>('[aria-haspopup="menu"]')?.focus();
+      }
     };
     document.addEventListener('mousedown', onDoc);
     document.addEventListener('keydown', onKey);
@@ -223,87 +231,94 @@ export const ExpedienteView = ({
       {/* Expediente Header */}
       <header className="exp-head" style={{ '--railc': `var(--${m.sem})` } as any}>
         <div className="exp-top">
-          <div>
-            <h1 className="exp-num" style={{ margin: 0, fontSize: 'inherit', fontWeight: 'inherit', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-              CONTRATO #{c.numero}{' '}
+          <div className="exp-identity">
+            <div className="exp-identity-row">
+              <h1 className="exp-num">Contrato #{c.numero}</h1>
               <Badge
                 text={m.estado}
                 color={colorEstado(m.estado)}
               />
-              <div className={`semtag ${m.sem}`}>
-                <div className={`sem ${m.sem}`}></div> {LEVEL_TXT[m.nivel]}
-              </div>
-              <small style={{ marginLeft: '8px', color: 'var(--muted)', fontSize: '13px' }}>
-                {c.tipo} {c.modalidad ? `· ${c.modalidad}` : ''}
-              </small>
-            </h1>
-            <div className="exp-obj">{c.objeto}</div>
+              <span className={`semtag ${m.sem}`}>
+                <span className={`sem ${m.sem}`} aria-hidden="true" /> {LEVEL_TXT[m.nivel]}
+              </span>
+            </div>
+            <div className="exp-type">{c.tipo}{c.modalidad ? ` · ${c.modalidad}` : ''}</div>
           </div>
 
-          <div className="ph-actions">
+          <div className="exp-actions">
+            <Link className="btn pri" href={expHref(id, 'validacion')}>
+              <Icon name="clipboard-check" /> VALIDAR CONTRATO
+            </Link>
+            {!c.anulado && (
+              <Link className="btn" href={expHref(id, 'editar')}><Icon name="pen" /> Editar</Link>
+            )}
+            <Link className="btn" href={expHref(id, 'conciliacion')}><Icon name="scale-balanced" /> Conciliación</Link>
             {/* Menú de acciones del expediente */}
-            <div ref={actionsRef} style={{ position: 'relative' }}>
+            <div ref={actionsRef} className="exp-actions-menu">
               <Button
                 className="btn"
                 aria-haspopup="menu"
                 aria-expanded={actionsOpen}
+                aria-controls="exp-actions-list"
                 onClick={() => setActionsOpen(!actionsOpen)}
               >
-                <Icon name="bars" /> Acciones <Icon name="chevron-down" />
+                <Icon name="ellipsis" /> Acciones <Icon name="chevron-down" />
               </Button>
               {actionsOpen && (
-                <div className="dropdown" role="menu" aria-label="Acciones del expediente" style={{ minWidth: 280 }}>
-                  <Button className="btn sm ghost" onClick={handlePrint} style={{ width: '100%', justifyContent: 'flex-start' }}>
+                <div className="exp-actions-dropdown" id="exp-actions-list" role="menu" aria-label="Acciones del expediente" onKeyDown={(event) => {
+                  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+                  event.preventDefault();
+                  const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+                  const index = items.indexOf(document.activeElement as HTMLElement);
+                  const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+                  items[next]?.focus();
+                }} onBlur={(event) => { if (!event.currentTarget.parentElement?.contains(event.relatedTarget as Node)) setActionsOpen(false); }}>
+                  <Button role="menuitem" className="btn sm ghost" onClick={() => { setActionsOpen(false); handlePrint(); }}>
                     <Icon name="print" /> Imprimir expediente
                   </Button>
-                  <Button className="btn sm ghost" onClick={handleExportExpediente} style={{ width: '100%', justifyContent: 'flex-start' }}>
+                  <Button role="menuitem" className="btn sm ghost" onClick={() => { setActionsOpen(false); handleExportExpediente(); }}>
                     <Icon name="file-export" /> Exportar expediente (JSON)
                   </Button>
                   {!c.anulado && (
                     <Button
                       className="btn sm ghost"
+                      role="menuitem"
                       onClick={() => {
                         setActionsOpen(false);
                         void handleAnularContrato();
                       }}
-                      style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--crit)' }}
+                      style={{ color: 'var(--crit-text)' }}
                     >
-                      <Icon name="gavel" /> Anular contrato…
+                      <Icon name="ban" /> Anular contrato…
                     </Button>
                   )}
                 </div>
               )}
             </div>
-            {!c.anulado && (
-              <Link className="btn" href={expHref(id, 'editar')}>
-                <Icon name="pen" /> Editar
-              </Link>
-            )}
-            <Link className="btn" href={expHref(id, 'conciliacion')}>
-              <Icon name="scale-balanced" /> Conciliación
-            </Link>
-            <Link className="btn pri" href={expHref(id, 'validacion')}>
-              <Icon name="clipboard-check" /> VALIDAR CONTRATO
-            </Link>
           </div>
+        </div>
+
+        <div className="exp-context-preview">
+          <span className="exp-context-icon" aria-hidden="true"><Icon name="building" /></span>
+          <div className="exp-context-copy" title={`${company?.razon || 'Empresa no registrada'} · ${c.objeto}`}>
+            {company ? <Link className="exp-company" href={companyHref(company.id)}>{company.razon}</Link> : <span>Empresa no registrada</span>}
+            <span className="exp-context-separator"> · </span>
+            <span className="exp-obj" title={c.objeto}>{c.objeto}</span>
+          </div>
+          <button className="exp-context-toggle" type="button" aria-controls="exp-context-full" onClick={() => {
+            if (contextRef.current) {
+              contextRef.current.open = true;
+              contextRef.current.querySelector<HTMLElement>('summary')?.focus();
+            }
+          }}>
+            Ver contexto <Icon name="chevron-down" />
+          </button>
         </div>
 
         {/* Aviso crítico: contrato anulado (solo consulta) */}
         {c.anulado && (
           <div
-            role="alert"
-            style={{
-              marginTop: 14,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '12px 14px',
-              borderRadius: 10,
-              background: 'var(--crit-s)',
-              color: 'var(--crit)',
-              fontWeight: 600,
-              fontSize: 13.5
-            }}
+            role="alert" className="exp-annulled"
           >
             <Icon name="triangle-exclamation" />
             <span>
@@ -314,199 +329,148 @@ export const ExpedienteView = ({
         )}
 
         {/* Cifras clave siempre visibles */}
-        <div className="exp-meta" style={{ marginTop: '14px' }}>
+        <div className="exp-meta exp-key-strip">
           <div>
-            <span>Valor actualizado</span>
-            <b className="mono">{nb(moneyM(m.valorActual))}</b>
+            <span><Icon name="coins" /> Valor actualizado</span>
+            <b className="mono" title={money(m.valorActual)}>{nb(moneyM(m.valorActual))}</b>
           </div>
           <div>
-            <span>Ejecutado</span>
-            <b className="mono">{nb(moneyM(m.ejecutado))} <span className="muted small">{pct(m.pctFin, 0)}</span></b>
+            <span><Icon name="activity" /> Ejecutado</span>
+            <b className="mono" title={money(m.ejecutado)}>{nb(moneyM(m.ejecutado))} <span className="exp-value-detail">{pct(m.pctFin, 0)}</span></b>
           </div>
           <div>
-            <span>Saldo</span>
-            <b className="mono" style={{ color: m.saldo < 0 ? 'var(--crit)' : 'inherit' }}>
-              {nb(moneyM(m.saldo))} <span className="muted small">{pct(m.pctSaldo, 0)}</span>
+            <span><Icon name="money-check-dollar" /> Saldo</span>
+            <b className="mono" title={money(m.saldo)} style={{ color: m.saldo < 0 ? 'var(--crit-text)' : 'inherit' }}>
+              {nb(moneyM(m.saldo))} <span className="exp-value-detail">{pct(m.pctSaldo, 0)}</span>
             </b>
           </div>
           <div>
-            <span>Días restantes</span>
-            <b className="mono" style={{ color: m.restantes != null && m.restantes < 0 && m.activo ? 'var(--crit)' : 'inherit' }}>
-              {m.restantes == null ? '—' : m.restantes < 0 ? 'Vencido' : m.restantes}
+            <span><Icon name="calendar-clock" /> Días restantes</span>
+            <b className="mono" style={{ color: m.restantes != null && m.restantes <= 5 && (m.activo || m.estado === 'Vencido') ? 'var(--crit-text)' : 'inherit' }}>
+              {m.restantes == null ? '—' : m.restantes < 0 ? `Vencido (${m.restantes} d)` : `${m.restantes} d`}
             </b>
           </div>
           <div>
-            <span>Valor pagado</span>
-            <b className="mono">{nb(moneyM(m.pagado))}</b>
+            <span><Icon name="receipt" /> Valor pagado</span>
+            <b className="mono" title={money(m.pagado)}>{nb(moneyM(m.pagado))}</b>
           </div>
           <div>
-            <span>Cobertura</span>
-            <b>{c.municipio ? `${c.municipio} · ` : ''}{cobertura.join(', ') || '—'}</b>
+            <span><Icon name="map-pin" /> Cobertura</span>
+            <b className="exp-coverage" tabIndex={0} title={`${c.municipio ? `${c.municipio} · ` : ''}${cobertura.join(', ') || '—'}`}>{c.municipio ? `${c.municipio} · ` : ''}{cobertura.join(', ') || '—'}</b>
           </div>
         </div>
 
         {/* Razón principal del semáforo, siempre visible cuando hay alerta */}
         {m.nivel !== 'ok' && (
-          <div className="reason" style={{ marginTop: '12px' }}>
-            <span className={`sem ${m.sem}`} style={{ display: 'inline-block', marginRight: '6px' }}></span>
-            <b>{LEVEL_TXT[m.nivel]}</b> — {razonesClave.join(' ')}
+          <div className={`reason exp-reason ${m.sem}`}>
+            <Icon name={m.sem === 'crit' ? 'alert-circle' : m.sem === 'na' ? 'info' : 'alert-triangle'} />
+            <div><b>{LEVEL_TXT[m.nivel]}</b> — {razonesClave.join(' ')}
             {razonesExtras > 0 && (
-              <details style={{ display: 'inline-block', marginLeft: '4px' }}>
-                <summary style={{ cursor: 'pointer', color: 'var(--brand)', fontWeight: 600, listStyle: 'none' }}>
+              <details className="exp-reason-more">
+                <summary>
                   +{razonesExtras} factor{razonesExtras > 1 ? 'es' : ''} más
                 </summary>
-                <span className="small muted"> · {razones.slice(2).join(' · ')}</span>
+                <span className="small"> · {razones.slice(2).join(' · ')}</span>
               </details>
-            )}
+            )}</div>
           </div>
         )}
 
         {/* 3 Progress Bars con clamp y badge de exceso */}
-        <div className="dual" style={{ marginTop: '16px', maxWidth: '780px' }}>
+        <div className="dual exp-progress">
           <div className="row">
-            <span>Tiempo transcurrido</span>
-            <div className="bar lg" role="progressbar" aria-label="Porcentaje de tiempo transcurrido" aria-valuenow={Math.round(clamp(m.pctTiempo, 0, 100))} aria-valuemin={0} aria-valuemax={100}>
-              <i style={{ width: `${clamp(m.pctTiempo, 0, 100)}%`, background: 'var(--info)' }}></i>
+            <span><Icon name="calendar-clock" /> Tiempo transcurrido</span>
+            <div className="bar lg" role="progressbar" aria-label="Porcentaje de tiempo transcurrido" aria-valuetext={pct(m.pctTiempo)} aria-valuenow={Math.round(clamp(m.pctTiempo, 0, 100))} aria-valuemin={0} aria-valuemax={100}>
+              <i style={{ width: `${clamp(m.pctTiempo, 0, 100)}%`, background: m.pctTiempo > 100 || (m.restantes != null && m.restantes <= 5 && m.activo) ? 'var(--crit)' : m.pctTiempo >= 85 ? 'var(--warn)' : 'var(--info)' }}></i>
             </div>
             <b>{pct(m.pctTiempo, 0)}</b>
           </div>
           <div className="row">
-            <span>Ejecución financiera</span>
-            <div className="bar lg" role="progressbar" aria-label="Porcentaje de ejecución financiera" aria-valuenow={Math.round(clamp(m.pctFin, 0, 100))} aria-valuemin={0} aria-valuemax={100}>
+            <span><Icon name="coins" /> Ejecución financiera</span>
+            <div className="bar lg" role="progressbar" aria-label="Porcentaje de ejecución financiera" aria-valuetext={pct(m.pctFin)} aria-valuenow={Math.round(clamp(m.pctFin, 0, 100))} aria-valuemin={0} aria-valuemax={100}>
               <i
                 style={{
                   width: `${clamp(m.pctFin, 0, 100)}%`,
-                  background: m.pctFin > 100 ? 'var(--crit)' : 'var(--brand)'
+                  background: m.pctFin > 100 ? 'var(--crit)' : 'var(--ok)'
                 }}
               ></i>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div className="exp-progress-value">
               <b>{pct(m.pctFin, 0)}</b>
               {m.pctFin > 100 && (
-                <span className="badge b-crit" style={{ fontSize: '10px', padding: '1px 6px' }}>
+                <span className="badge b-crit">
                   Excede {Math.round(m.pctFin - 100)}%
                 </span>
               )}
             </div>
           </div>
           <div className="row">
-            <span>Ejecución física</span>
-            <div className="bar lg" role="progressbar" aria-label="Porcentaje de ejecución física" aria-valuenow={Math.round(clamp(m.pctFis, 0, 100))} aria-valuemin={0} aria-valuemax={100}>
-              <i style={{ width: `${clamp(m.pctFis, 0, 100)}%`, background: 'var(--brand-3)' }}></i>
+            <span><Icon name="gauge" /> Ejecución física</span>
+            <div className="bar lg" role="progressbar" aria-label="Porcentaje de ejecución física" aria-valuetext={pct(m.pctFis)} aria-valuenow={Math.round(clamp(m.pctFis, 0, 100))} aria-valuemin={0} aria-valuemax={100}>
+              <i style={{ width: `${clamp(m.pctFis, 0, 100)}%`, background: m.pctFis > 100 ? 'var(--crit)' : 'var(--info)' }}></i>
             </div>
             <b>{pct(m.pctFis, 0)}</b>
           </div>
         </div>
 
         {/* Contexto completo plegado */}
-        <details className="context-disclosure">
-          <summary>Contexto contractual y metadatos completos</summary>
-          <div className="exp-meta" style={{ marginTop: '12px' }}>
-            <div>
-              <span>Empresa</span>
-              <b>
-                {company ? (
-                  <Link
-                    className="link"
-                    href={companyHref(company.id)}
-                    title={`Abrir la ficha de ${company.razon}`}
-                    style={{ color: 'var(--brand)', textDecoration: 'underline', textUnderlineOffset: 3 }}
-                  >
-                    {company.razon}
-                  </Link>
-                ) : (
-                  '—'
-                )}
-              </b>
-            </div>
-            <div>
-              <span>Contratista</span>
-              <b>
-                {c.contratista}{' '}
-                {c.nitContratista && <span className="muted small">NIT {c.nitContratista}</span>}
-              </b>
-            </div>
-            <div>
-              <span>Representante legal</span>
-              <b>{c.repContratista || '—'}</b>
-            </div>
-            <div>
-              <span>Responsable</span>
-              <b>{c.responsable || '—'}</b>
-            </div>
-            <div>
-              <span>Supervisor / Interventor</span>
-              <b>
-                {c.supervisor || '—'}
-                {c.interventor ? ` / ${c.interventor}` : ''}
-              </b>
-            </div>
-            <div>
-              <span>Aseguradoras</span>
-              <b>
-                <Link
-                  className="link"
-                  href={contractHref(id, 'garantias')}
-                  title="Ver la pestaña de seguros y garantías"
-                  style={{ color: 'var(--brand)', textDecoration: 'underline', textUnderlineOffset: 3 }}
-                >
-                  {uniqueInsurers.length > 0 ? (
-                    uniqueInsurers.join(' · ')
-                  ) : (
-                    <span style={{ color: 'var(--crit)' }}>Sin pólizas</span>
-                  )}
-                </Link>
-              </b>
-            </div>
-            <div>
-              <span>Fechas</span>
-              <b>
-                {fdate(c.fechaFirma)} · {fdate(c.fechaInicio)} → {fdate(c.fechaFin)}
-              </b>
-            </div>
-            <div>
-              <span>Departamentos de cobertura</span>
-              <b>{cobertura.join(', ') || '—'}</b>
-            </div>
+        <details className="context-disclosure" id="exp-context-full" ref={contextRef}>
+          <summary><Icon name="folder" /> Contexto contractual y metadatos completos <span className="exp-disclosure-chevron" aria-hidden="true"><Icon name="chevron-down" /></span></summary>
+          <div className="exp-context-object"><SectionHeader as="h3" icon="scroll-text" title="Objeto contractual" /><p>{c.objeto}</p></div>
+          <div className="exp-context-groups">
+            <section className="exp-context-group" aria-labelledby="exp-partes-title">
+              <SectionHeader as="h3" id="exp-partes-title" icon="users" title="Partes involucradas" />
+              <dl className="exp-parties">
+                <div><dt>Empresa</dt><dd>{company ? <Link href={companyHref(company.id)}>{company.razon}</Link> : '—'}</dd></div>
+                <div><dt>Contratista</dt><dd>{c.contratista}{c.nitContratista && <span className="exp-context-note">NIT {c.nitContratista}</span>}</dd></div>
+                <div><dt>Representante legal</dt><dd>{c.repContratista || '—'}</dd></div>
+                <div><dt>Responsable</dt><dd>{c.responsable || '—'}</dd></div>
+                <div><dt>Supervisor / Interventor</dt><dd>{c.supervisor || '—'}{c.interventor ? ` / ${c.interventor}` : ''}</dd></div>
+                <div><dt>Aseguradoras</dt><dd><Link href={contractHref(id, 'garantias')} title="Ver la pestaña de seguros y garantías">{uniqueInsurers.length > 0 ? uniqueInsurers.join(' · ') : <span className="exp-no-policies">Sin pólizas</span>}</Link></dd></div>
+              </dl>
+            </section>
+            <section className="exp-context-group" aria-labelledby="exp-fechas-title">
+              <SectionHeader as="h3" id="exp-fechas-title" icon="calendar-clock" title="Fechas y plazos" />
+              <dl>
+                <div><dt>Firma</dt><dd>{fdate(c.fechaFirma)}</dd></div>
+                <div><dt>Inicio</dt><dd>{fdate(c.fechaInicio)}</dd></div>
+                <div><dt>Terminación</dt><dd>{fdate(c.fechaFin)}</dd></div>
+              </dl>
+            </section>
+            <section className="exp-context-group" aria-labelledby="exp-cobertura-title">
+              <SectionHeader as="h3" id="exp-cobertura-title" icon="map-pin" title="Cobertura territorial" />
+              <dl>
+                <div><dt>Municipio</dt><dd>{c.municipio || '—'}</dd></div>
+                <div><dt>Departamentos de cobertura</dt><dd>{cobertura.join(', ') || '—'}</dd></div>
+              </dl>
+            </section>
           </div>
 
           {/* Factores del semáforo completos */}
-          {razones.length > 2 && (
-            <div className="reason" style={{ marginTop: '12px' }}>
-              <b className="small">Factores evaluados ({razones.length})</b>
-              <div className="mt-2">
+          {razones.length > 0 && (
+            <section className="exp-context-factors" aria-labelledby="exp-factores-title">
+              <SectionHeader as="h3" id="exp-factores-title" icon="alert-triangle" title={`Factores evaluados (${razones.length})`} />
+              <ul>
                 {m.razones.map((r, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0' }}>
-                    <span className={`sem ${r.l}`} style={{ marginTop: 3 }}></span>
-                    <span className="small">{r.t}</span>
-                  </div>
+                  <li key={i}><span className={`sem ${r.l}`} aria-hidden="true" /><span>{r.t}</span></li>
                 ))}
-              </div>
-            </div>
+              </ul>
+            </section>
           )}
         </details>
       </header>
 
       {/* Tabs con navegación horizontal y selector móvil para 17 pestañas */}
-      <Surface className="panel" style={{ marginTop: '16px' }}>
+      <Surface className="panel exp-tabs-panel">
         <div
           className="section-tabs-toolbar"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            borderBottom: '1px solid var(--line)',
-            background: 'var(--surface-2)',
-            padding: '4px 8px',
-            gap: 6
-          }}
         >
           {/* Botón flecha izquierda */}
           <Button
-            className="icon-btn"
+            className="icon-btn section-tabs-arrow"
             onClick={() => scrollTabs('left')}
             title="Desplazar pestañas hacia la izquierda"
             aria-label="Pestañas anteriores"
-            style={{ width: 28, height: 28 }}
           >
             <Icon name="chevron-left" />
           </Button>
@@ -532,15 +496,6 @@ export const ExpedienteView = ({
               setActiveTab(TABS[next].id);
               requestAnimationFrame(()=>tabsRef.current?.querySelector<HTMLElement>(`#tab-${TABS[next].id}`)?.focus());
             }}
-            style={{
-              padding: '0 4px',
-              overflowX: 'auto',
-              flexWrap: 'nowrap',
-              borderBottom: 'none',
-              flex: 1,
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none'
-            }}
           >
             {TABS.map((t) => {
               const count = getTabCount(t);
@@ -551,18 +506,15 @@ export const ExpedienteView = ({
                   className={`tab ${isActive ? 'on' : ''}`}
                   href={contractHref(id, t.id)}
                   scroll={false}
-                  style={{
-                    whiteSpace: 'nowrap',
-                    fontWeight: isActive ? 700 : 500
-                  }}
                   aria-selected={isActive}
                   id={`tab-${t.id}`}
                   aria-controls="expediente-panel"
                   tabIndex={isActive ? 0 : -1}
                   role="tab"
                 >
+                  <span aria-hidden="true"><Icon name={t.icon} /></span>
                   {t.label}
-                  {count != null && <span className="n">{count}</span>}
+                  {count != null && <span className="n" aria-label={`${count} registros`}>{count}</span>}
                 </Link>
               );
             })}
@@ -570,30 +522,20 @@ export const ExpedienteView = ({
 
           {/* Botón flecha derecha */}
           <Button
-            className="icon-btn"
+            className="icon-btn section-tabs-arrow"
             onClick={() => scrollTabs('right')}
             title="Desplazar pestañas hacia la derecha"
             aria-label="Siguientes pestañas"
-            style={{ width: 28, height: 28 }}
           >
             <Icon name="chevron-right" />
           </Button>
 
           {/* Selector desplegable de sección (muy útil en tablet y móvil) */}
-          <div style={{ marginLeft: 4, display: 'flex', alignItems: 'center' }}>
-            <Select
+          <div className="section-tabs-select">
+            <Select icon={fieldIcon("activeTab", "Ir a sección del expediente", "")}
               value={activeTab}
               onChange={(e) => setActiveTab(e.target.value)}
               aria-label="Ir a sección del expediente"
-              style={{
-                height: 30,
-                fontSize: '11.5px',
-                borderRadius: 8,
-                padding: '0 8px',
-                border: '1px solid var(--border-control)',
-                background: '#FFFFFF',
-                color: 'var(--ink)'
-              }}
             >
               {TABS.map((t, idx) => (
                 <option key={t.id} value={t.id}>

@@ -1,4 +1,5 @@
 'use client';
+import { SectionHeader } from '../ui/SectionHeader';
 
 import React from 'react';
 import Link from 'next/link';
@@ -176,12 +177,16 @@ export const EmpresaView = ({ id, onBack }: { id: string; onBack: () => void }) 
       <div className="grid g2 mb" style={{ gap: 'var(--sp-4, 20px)' }}>
         {/* Panel 1: Información General */}
         <Surface className="panel anim-fade-rise stagger-2">
-          <div className="panel-h">
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="building" size={16} /> Identificación Institucional
-            </h3>
-            <span className="sub">Datos de registro</span>
-          </div>
+          <SectionHeader
+            icon="building"
+            title="Identificación Institucional"
+            as="h3"
+            description={
+              <>
+                Datos de registro
+              </>
+            }
+          />
           <div className="panel-b">
             <FormGrid role="group" aria-label="Datos institucionales de la empresa">
               <div>
@@ -232,12 +237,16 @@ export const EmpresaView = ({ id, onBack }: { id: string; onBack: () => void }) 
 
         {/* Panel 2: Concentración de Valor por Contrato */}
         <Surface className="panel anim-fade-rise stagger-3">
-          <div className="panel-h">
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="chart-pie" size={16} /> Distribución Económica
-            </h3>
-            <span className="sub">Participación por expediente</span>
-          </div>
+          <SectionHeader
+            icon="chart-pie"
+            title="Distribución Económica"
+            as="h3"
+            description={
+              <>
+                Participación por expediente
+              </>
+            }
+          />
           <div className="panel-b">
             {contracts.length > 0 ? (
               contracts.map((c) => {
@@ -291,14 +300,16 @@ export const EmpresaView = ({ id, onBack }: { id: string; onBack: () => void }) 
 
       {/* Panel 3: Lista de Expedientes de Contratos */}
       <Surface className="panel anim-fade-rise stagger-4" style={{ marginTop: 4 }}>
-        <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="file-contract" size={16} /> Expedientes Contractuales Vinculados
-          </h3>
-          <span className="sub">
-            {contracts.length} {contracts.length === 1 ? 'contrato vinculado' : 'contratos vinculados'}
-          </span>
-        </div>
+        <SectionHeader
+          icon="file-contract"
+          title="Expedientes Contractuales Vinculados"
+          as="h3"
+          description={
+            <>
+              {contracts.length} {contracts.length === 1 ? 'contrato vinculado' : 'contratos vinculados'}
+            </>
+          }
+        />
 
         {contracts.length > 0 ? (
           <TableViewport className="tbl-wrap" aria-label="Contratos vinculados a la empresa">

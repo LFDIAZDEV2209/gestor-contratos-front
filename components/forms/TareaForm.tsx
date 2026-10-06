@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Alert, Task, User } from '../../lib/types';
 import { Alerts } from '../../lib/alerts';
 import { Store, AuthService, Audit } from '../../lib/store';
@@ -130,14 +131,8 @@ export const TareaForm = ({ alert, onDone }: { alert: Alert; onDone: (id: string
 
       {/* Datos de la tarea */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="list-check" size={16} /> Datos de la tarea
-          </h2>
-          <span className="sub">Los campos con * son obligatorios</span>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Datos de la tarea</>} icon="list-check" description={<>Los campos con * son obligatorios</>} accent>
           <Field className="f span3">
             <label className="req">Título de la tarea</label>
             <Input name="titulo"
@@ -174,10 +169,8 @@ export const TareaForm = ({ alert, onDone }: { alert: Alert; onDone: (id: string
                 : `Sugerida: ${fdate(addDays(todayIso(), 3))} (tres días).`}
             </small>
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

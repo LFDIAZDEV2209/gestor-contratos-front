@@ -1,4 +1,6 @@
 'use client';
+import { SectionHeader } from '../ui/SectionHeader';
+import { fieldIcon } from '../forms/fieldIcon';
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
 import { PBar } from '../ui/PBar';
@@ -246,14 +248,16 @@ export const SubcontratosView = ({
       {/* Visual Tree Mode */}
       {showTree ? (
         <Surface className="panel mb">
-          <div className="panel-h">
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="diagram-project" size={16} /> Red de Subcontratación
-            </h3>
-            <span className="sub">
-              {allCompanies.length} empresas · {allContracts.length} contratos · {totalSubs} subcontratos
-            </span>
-          </div>
+          <SectionHeader
+            icon="diagram-project"
+            title="Red de Subcontratación"
+            as="h3"
+            description={
+              <>
+                {allCompanies.length} empresas · {allContracts.length} contratos · {totalSubs} subcontratos
+              </>
+            }
+          />
           <div className="tree">
             {totalSubs === 0 ? (
               <EmptyState
@@ -360,7 +364,7 @@ export const SubcontratosView = ({
             </div>
             <Field className="f">
               <label>Empresa</label>
-              <Select value={filterCompany} onChange={(e) => {
+              <Select icon={fieldIcon("filterCompany", "Empresa", "")} value={filterCompany} onChange={(e) => {
                 setFilterCompany(e.target.value);
                 setPage(1);
               }}>
@@ -374,7 +378,7 @@ export const SubcontratosView = ({
             </Field>
             <Field className="f">
               <label>Estado</label>
-              <Select value={filterEstado} onChange={(e) => {
+              <Select icon={fieldIcon("filterEstado", "Estado", "")} value={filterEstado} onChange={(e) => {
                 setFilterEstado(e.target.value);
                 setPage(1);
               }}>

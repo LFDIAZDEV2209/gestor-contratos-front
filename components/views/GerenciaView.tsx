@@ -1,6 +1,7 @@
 "use client";
 import { Button } from "../ui/button";
 import { PageHeader, Surface, EmptyState } from "../ui/Workspace";
+import { SectionHeader } from "../ui/SectionHeader";
 import type {
   Contract,
   Guarantee,
@@ -28,6 +29,9 @@ import {
 import { exportRows } from "../../lib/export";
 import { Chart } from "../ui/Chart";
 import { Icon } from "../icons";
+
+// Conserva la unidad monetaria completa cuando la franja necesita dos líneas.
+const nb = (value: string) => value.replace("mil M", "mil\u00A0M");
 
 export const GerenciaView = ({
   onSelectContract,
@@ -378,7 +382,7 @@ export const GerenciaView = ({
             />
             <span>Valor administrado</span>
           </div>
-          <div className="v">{moneyM(P.valor)}</div>
+          <div className="v">{nb(moneyM(P.valor))}</div>
           <div className="s">Valor actualizado</div>
         </div>
         <div
@@ -396,7 +400,7 @@ export const GerenciaView = ({
             <Icon name="wallet" size={13} style={{ color: "var(--brand-3)" }} />
             <span>Valor ejecutado</span>
           </div>
-          <div className="v">{moneyM(P.ejec)}</div>
+          <div className="v">{nb(moneyM(P.ejec))}</div>
           <div className="s">{pct(P.pctFin)} del total</div>
         </div>
         <div
@@ -418,7 +422,7 @@ export const GerenciaView = ({
             />
             <span>Saldo disponible</span>
           </div>
-          <div className="v">{moneyM(P.saldo)}</div>
+          <div className="v">{nb(moneyM(P.saldo))}</div>
           <div className="s">Por ejecutar</div>
         </div>
         <div
@@ -539,17 +543,12 @@ export const GerenciaView = ({
           className="panel anim-fade-rise"
           style={{ animationDelay: "80ms" }}
         >
-          <div className="panel-h">
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Icon name="trending-up" />
-                <h3 style={{ margin: 0 }}>Evolución mensual</h3>
-              </div>
-              <span className="sub">
-                Ejecución y pagos acumulados (últimos 12 meses)
-              </span>
-            </div>
-          </div>
+          <SectionHeader
+            as="h3"
+            icon="trending-up"
+            title="Evolución mensual"
+            description="Ejecución y pagos acumulados (últimos 12 meses)"
+          />
           <div className="panel-b">
             <div className="chart-box lg" style={{ height: "260px" }}>
               {evoHayDatos ? (
@@ -580,17 +579,12 @@ export const GerenciaView = ({
           className="panel anim-fade-rise"
           style={{ animationDelay: "120ms" }}
         >
-          <div className="panel-h">
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Icon name="shield" />
-                <h3 style={{ margin: 0 }}>Garantías</h3>
-              </div>
-              <span className="sub">
-                {allGuarantees.length} pólizas aprobadas
-              </span>
-            </div>
-          </div>
+          <SectionHeader
+            as="h3"
+            icon="shield"
+            title="Garantías"
+            description={`${allGuarantees.length} pólizas aprobadas`}
+          />
           <div className="panel-b">
             <div className="chart-box lg" style={{ height: "260px" }}>
               {allGuarantees.length > 0 ? (
@@ -616,17 +610,12 @@ export const GerenciaView = ({
           className="panel anim-fade-rise"
           style={{ animationDelay: "160ms" }}
         >
-          <div className="panel-h">
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Icon name="building" />
-                <h3 style={{ margin: 0 }}>Valor por empresa</h3>
-              </div>
-              <span className="sub">
-                Distribución del portafolio contratado
-              </span>
-            </div>
-          </div>
+          <SectionHeader
+            as="h3"
+            icon="building"
+            title="Valor por empresa"
+            description="Distribución del portafolio contratado"
+          />
           <div className="panel-b">
             <div className="chart-box lg" style={{ height: "280px" }}>
               {companyKeys.length > 0 ? (
@@ -654,17 +643,12 @@ export const GerenciaView = ({
           className="panel anim-fade-rise"
           style={{ animationDelay: "200ms" }}
         >
-          <div className="panel-h">
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Icon name="alert-triangle" />
-                <h3 style={{ margin: 0 }}>Contratos que requieren decisión</h3>
-              </div>
-              <span className="sub">
-                Nivel crítico o de riesgo ({criticalContracts.length})
-              </span>
-            </div>
-          </div>
+          <SectionHeader
+            as="h3"
+            icon="alert-triangle"
+            title="Contratos que requieren decisión"
+            description={`Nivel crítico o de riesgo (${criticalContracts.length})`}
+          />
           <div
             className="panel-b np"
             style={{ maxHeight: "310px", overflowY: "auto" }}

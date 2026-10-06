@@ -1,4 +1,6 @@
 import {
+  Mail,
+  Phone,
   PieChart,
   Briefcase,
   Hourglass,
@@ -52,7 +54,33 @@ import {
   X,
   ExternalLink,
   MapPin,
-  Calendar
+  Calendar,
+  // UI PASS agy-expediente: iconografía del expediente (header, pestañas, secciones)
+  Gauge,
+  ScrollText,
+  Package,
+  CirclePause,
+  CalendarPlus,
+  CalendarClock,
+  Coins,
+  Receipt,
+  Ellipsis,
+  Activity,
+  Ban,
+  Users,
+  UserCheck,
+  Hash,
+  ShieldCheck,
+  // UI PASS agy-tabs1
+  Percent,
+  BarChart3,
+  PlusCircle,
+  MinusCircle,
+  // UI PASS agy-tabs2
+  Paperclip,
+  List,
+  CirclePlay,
+  OctagonAlert
 } from 'lucide-react';
 
 export const Icon = ({
@@ -68,6 +96,8 @@ export const Icon = ({
 }) => {
   const cleanName = (name || '').replace(/^fa-/, '').toLowerCase();
   const map: Record<string, any> = {
+    'envelope': Mail,
+    'phone': Phone,
     'chart-pie': PieChart,
     'briefcase': Briefcase,
     'hourglass': Hourglass,
@@ -152,7 +182,37 @@ export const Icon = ({
     'map-location-dot': MapPin,
     'map-pin': MapPin,
     'question': HelpCircle,
-    'file-circle-question': HelpCircle
+    'file-circle-question': HelpCircle,
+    // UI PASS agy-expediente
+    'gauge': Gauge,
+    'scroll-text': ScrollText,
+    'package': Package,
+    'circle-pause': CirclePause,
+    'calendar-plus': CalendarPlus,
+    'calendar-clock': CalendarClock,
+    'coins': Coins,
+    'receipt': Receipt,
+    'wallet': Wallet,
+    'ellipsis': Ellipsis,
+    'activity': Activity,
+    'ban': Ban,
+    'users': Users,
+    'user-check': UserCheck,
+    'hash': Hash,
+    'shield-check': ShieldCheck,
+    // UI PASS agy-tabs1
+    'pencil': Edit,
+    'percent': Percent,
+    'bar-chart': BarChart3,
+    'bar-chart-2': BarChart3,
+    'plus-circle': PlusCircle,
+    'minus-circle': MinusCircle,
+    // UI PASS agy-tabs2
+    'paperclip': Paperclip,
+    'list': List,
+    'pause-circle': CirclePause,
+    'play-circle': CirclePlay,
+    'alert-octagon': OctagonAlert
   };
 
   const Component = map[cleanName] || Info;

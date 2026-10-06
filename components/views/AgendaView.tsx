@@ -9,6 +9,7 @@ import {
   DataTable,
   EmptyState,
 } from "../ui/Workspace";
+import { SectionHeader } from "../ui/SectionHeader";
 import { useRef } from "react";
 import type { Contract } from "../../lib/types";
 import { Store } from "../../lib/store";
@@ -289,17 +290,13 @@ export const AgendaView = ({
             className="panel mb anim-fade-rise"
             style={{ animationDelay: `${idx * 60}ms`, scrollMarginTop: "80px" }}
           >
-            <div className="panel-h">
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span className={`sem ${b.sem}`} />
-                <Icon name={b.icon} />
-                <h3 style={{ margin: 0 }}>{b.title}</h3>
-                <span className="sub">
-                  {rows.length} contrato{rows.length === 1 ? "" : "s"} ·{" "}
-                  {b.desc}
-                </span>
-              </div>
-            </div>
+            <SectionHeader
+              as="h3"
+              icon={b.icon}
+              title={b.title}
+              description={`${rows.length} contrato${rows.length === 1 ? "" : "s"} · ${b.desc}`}
+              action={<span className={`sem ${b.sem}`} aria-hidden="true" />}
+            />
 
             {rows.length === 0 ? (
               // Estado vacío real fuera de la tabla: DataTable envolvería el

@@ -1,4 +1,5 @@
 'use client';
+import { fieldIcon } from '../forms/fieldIcon';
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
@@ -270,7 +271,7 @@ export const DocumentosView = ({
           </div>
           <Field className="f">
             <label>Contrato</label>
-            <Select
+            <Select icon={fieldIcon("filterContract", "Contrato", "")}
               className="inp sm"
               value={filterContract}
               onChange={(e) => { setFilterContract(e.target.value); setPage(1); }}
@@ -285,7 +286,7 @@ export const DocumentosView = ({
           </Field>
           <Field className="f">
             <label>Categoría</label>
-            <Select
+            <Select icon={fieldIcon("filterCat", "Categoría", "")}
               className="inp sm"
               value={filterCat}
               onChange={(e) => { setFilterCat(e.target.value); setPage(1); }}

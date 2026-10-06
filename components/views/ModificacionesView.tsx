@@ -1,4 +1,5 @@
 'use client';
+import { fieldIcon } from '../forms/fieldIcon';
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
@@ -252,7 +253,7 @@ export const ModificacionesView = ({
           </div>
           <Field className="f">
             <label>Contrato</label>
-            <Select
+            <Select icon={fieldIcon("filterContract", "Contrato", "")}
               className="inp sm"
               value={filterContract}
               onChange={(e) => {
@@ -270,7 +271,7 @@ export const ModificacionesView = ({
           </Field>
           <Field className="f">
             <label>Tipo</label>
-            <Select
+            <Select icon={fieldIcon("filterTipo", "Tipo", "")}
               className="inp sm"
               value={filterTipo}
               onChange={(e) => {

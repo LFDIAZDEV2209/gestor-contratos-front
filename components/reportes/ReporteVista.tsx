@@ -10,6 +10,7 @@ import {
   EmptyState,
   FormGrid,
 } from "@/components/ui/Workspace";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Icon } from "@/components/icons";
 import { construirReporte, exportReporte, type ReportDef } from "./catalogo";
 
@@ -170,11 +171,12 @@ export const ReporteVista = ({
       </PageHeader>
 
       <Surface className="panel mb" key={reintento}>
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-            <Icon name={report.ic} size={16} /> Contexto del reporte
-          </h2>
-        </div>
+        <SectionHeader
+          as="h2"
+          icon={report.ic}
+          title="Contexto del reporte"
+          description={`Vista previa de datos · ${data ? `${total} registros` : 'Calculando datos'}`}
+        />
         <div className="panel-b" style={{ paddingBottom: 0 }}>
           <FormGrid role="group" aria-label="Contexto del reporte">
             <div><span className="small muted">Cobertura</span><b>{report.d}</b></div>

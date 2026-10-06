@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Document, DocumentVersion } from '../../lib/types';
 import { Store, Audit, AuthService } from '../../lib/store';
 import { fdate, todayIso } from '../../lib/format';
@@ -151,16 +152,8 @@ export const VersionDocumentoForm = ({
       </Surface>
 
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="upload" /> Carga de la versión v{nextV}
-            </h2>
-            <span className="sub small muted">Archivo, motivo y detalle de los cambios aplicados</span>
-          </div>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Carga de la versión v{nextV}</>} icon="upload" description={<>Archivo, motivo y detalle de los cambios aplicados</>} accent>
           <Field className={`f span3${err('archivo') ? ' err' : ''}`}>
             <label className="req">Nuevo archivo</label>
             <Input name="archivo"
@@ -170,7 +163,7 @@ export const VersionDocumentoForm = ({
               aria-describedby={err('archivo') ? 'err-varchivo' : undefined}
             />
             {err('archivo') && (
-              <span className="emsg" id="err-varchivo">
+              <span className="emsg" id="err-varchivo"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('archivo')}
               </span>
             )}
@@ -195,10 +188,8 @@ export const VersionDocumentoForm = ({
               onChange={(e) => set({ cambios: e.target.value })}
             />
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

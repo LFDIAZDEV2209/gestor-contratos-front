@@ -1,4 +1,5 @@
 'use client';
+import { SectionHeader } from '../ui/SectionHeader';
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
 import { PBar } from '../ui/PBar';
@@ -300,12 +301,16 @@ export const EjecucionView = ({
 
       {/* Chart */}
       <Surface className="panel mb anim-fade-rise stagger-1">
-        <div className="panel-h">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="chart-line" style={{ color: 'var(--brand)' }} /> Evolución de ejecución mensual
-          </h3>
-          <span className="sub">Valor mensual facturado del portafolio (últimos 12 meses)</span>
-        </div>
+                <SectionHeader
+                  icon="trending-up"
+                  title="Evolución de ejecución mensual"
+                  as="h3"
+                  description={
+                    <>
+                      Valor mensual facturado del portafolio (últimos 12 meses)
+                    </>
+                  }
+                />
         <div className="panel-b">
           <div className="chart-box lg" style={{ height: '240px' }}>
             <Chart

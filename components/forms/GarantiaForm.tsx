@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { notify, confirmAction } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Guarantee, Cupo } from '../../lib/types';
 import { Store, Audit, AuthService } from '../../lib/store';
 import { CAT } from '../../lib/catalog';
@@ -18,7 +19,7 @@ import { Icon } from '../icons';
 /**
  * Póliza de garantía en VISTA dedicada (reemplaza al modal de GarantiasView).
  * Sigue la anatomía de referencia: breadcrumb, título con descripción,
- * formulario en secciones con FormGrid, validación visible y footer de acciones.
+ * formulario en secciones con validación visible y footer de acciones.
  * Se conservan intactas las reglas del handler original (contrato, póliza y
  * valor) y la confirmación de exceso de cupo, que sigue siendo un modal.
  */
@@ -168,15 +169,8 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
       {/* Sección 1: contrato y aseguradora */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="file-signature" /> Contrato y aseguradora
-            </h2>
-            <span className="sub small muted">Sujeto asegurado y emisor de la cobertura</span>
-          </div>
-        </div>
-        <FormGrid className="form-grid">
+
+        <FormSection title={<>Contrato y aseguradora</>} icon="file-signature" description={<>Sujeto asegurado y emisor de la cobertura</>} accent>
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
             <Select name="contractId"
@@ -192,7 +186,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
               ))}
             </Select>
             {err('contractId') && (
-              <span className="emsg" id="err-contrato">
+              <span className="emsg" id="err-contrato"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('contractId')}
               </span>
             )}
@@ -230,20 +224,13 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
               <option value="Pendiente">Pendiente</option>
             </Select>
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       {/* Sección 2: póliza, modalidad y partes */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="shield" /> Póliza y modalidad de expedición
-            </h2>
-            <span className="sub small muted">Identificación del documento y esquema de cobertura</span>
-          </div>
-        </div>
-        <FormGrid className="form-grid">
+
+        <FormSection title={<>Póliza y modalidad de expedición</>} icon="shield" description={<>Identificación del documento y esquema de cobertura</>} accent>
           <Field className={`f${err('poliza') ? ' err' : ''}`}>
             <label className="req">Número de póliza</label>
             <Input name="poliza"
@@ -253,7 +240,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
               aria-describedby={err('poliza') ? 'err-poliza' : undefined}
             />
             {err('poliza') && (
-              <span className="emsg" id="err-poliza">
+              <span className="emsg" id="err-poliza"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('poliza')}
               </span>
             )}
@@ -299,7 +286,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
               onChange={(e) => set({ intermediario: e.target.value })}
             />
           </Field>
-        </FormGrid>
+        </FormSection>
 
         {/* Detalle del cupo: saldo y vigencia de la línea, solo en modalidad por cupo */}
         {form.modalidadPoliza === 'Póliza por cupo' && (
@@ -321,7 +308,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
                 })}
               </Select>
               {availableCupos.length === 0 && (
-                <span className="emsg">
+                <span className="emsg"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                   No hay cupos vigentes registrados para {form.aseguradora}.
                 </span>
               )}
@@ -373,15 +360,8 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
 
       {/* Sección 3: cobertura y vigencias */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="hourglass" /> Cobertura y vigencias
-            </h2>
-            <span className="sub small muted">Montos asegurados y periodo de responsabilidad</span>
-          </div>
-        </div>
-        <FormGrid className="form-grid">
+
+        <FormSection title={<>Cobertura y vigencias</>} icon="hourglass" description={<>Montos asegurados y periodo de responsabilidad</>} accent>
           <Field className={`f${err('valor') ? ' err' : ''}`}>
             <label className="req">Valor asegurado</label>
             <Input name="valor"
@@ -393,7 +373,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
               aria-describedby={err('valor') ? 'err-valor' : undefined}
             />
             {err('valor') && (
-              <span className="emsg" id="err-valor">
+              <span className="emsg" id="err-valor"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('valor')}
               </span>
             )}
@@ -428,7 +408,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
               aria-describedby={err('fechaInicio') ? 'err-finicio' : undefined}
             />
             {err('fechaInicio') && (
-              <span className="emsg" id="err-finicio">
+              <span className="emsg" id="err-finicio"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('fechaInicio')}
               </span>
             )}
@@ -443,15 +423,13 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
               aria-describedby={err('fechaVenc') ? 'err-fvenc' : undefined}
             />
             {err('fechaVenc') && (
-              <span className="emsg" id="err-fvenc">
+              <span className="emsg" id="err-fvenc"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('fechaVenc')}
               </span>
             )}
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

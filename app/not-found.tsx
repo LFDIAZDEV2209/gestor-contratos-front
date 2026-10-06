@@ -3,7 +3,7 @@ import { BrandLogo } from '../components/app/BrandLogo';
 
 export default function NotFound() {
   return (
-    <main className="route-standalone">
+    <div className="route-standalone">
       <section className="panel route-state" aria-labelledby="not-found-title">
         <div className="ph">
           <div className="row-flex">
@@ -18,6 +18,6 @@ export default function NotFound() {
           <Link className="btn" href="/login">Iniciar sesión</Link>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

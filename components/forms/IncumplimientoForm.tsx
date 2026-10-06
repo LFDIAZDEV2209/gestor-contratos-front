@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Breach, Contract } from '../../lib/types';
 import { Store, Audit, AuthService } from '../../lib/store';
 import { activeContracts } from '../../lib/metrics';
@@ -170,14 +171,8 @@ export const IncumplimientoForm = ({
 
       {/* Vínculo contractual */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="file-contract" size={16} /> Vínculo contractual
-          </h2>
-          <span className="sub">{contracts.length} contratos vigentes en el portafolio</span>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Vínculo contractual</>} icon="file-contract" description={<>{contracts.length} contratos vigentes en el portafolio</>} accent>
           <Field className="f span3">
             <label className="req">Contrato</label>
             <Select name="contractId" value={contractId} onChange={(e) => set({ contractId: e.target.value })}>
@@ -194,19 +189,13 @@ export const IncumplimientoForm = ({
               </small>
             )}
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       {/* Hecho incumplido */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="triangle-exclamation" size={16} /> Hecho incumplido
-          </h2>
-          <span className="sub">Los campos con * son obligatorios</span>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Hecho incumplido</>} icon="triangle-exclamation" description={<>Los campos con * son obligatorios</>} accent>
           <Field className="f">
             <label className="req">Fecha del hecho</label>
             <Input name="fecha" type="date" value={fecha} onChange={(e) => set({ fecha: e.target.value })} />
@@ -246,19 +235,13 @@ export const IncumplimientoForm = ({
               onChange={(e) => set({ descripcion: e.target.value })}
             />
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       {/* Consecuencias y seguimiento */}
       <Surface className="panel mb">
-        <div className="panel-h">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="scale-balanced" size={16} /> Consecuencias y seguimiento
-          </h2>
-          <span className="sub">Multas en pesos colombianos (COP)</span>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Consecuencias y seguimiento</>} icon="scale-balanced" description={<>Multas en pesos colombianos (COP)</>} accent>
           <Field className="f">
             <label>Multa / sanción económica</label>
             <Input name="multa"
@@ -305,10 +288,8 @@ export const IncumplimientoForm = ({
               Se asocia al plan de mejoramiento en la pestaña contratista posterior.
             </small>
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

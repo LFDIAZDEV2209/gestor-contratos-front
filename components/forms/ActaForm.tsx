@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Input, Select, Textarea } from '../ui/Controls';
 import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
-import { PageHeader, Surface, FormGrid, Field } from '../ui/Workspace';
+import { PageHeader, Surface, Field } from '../ui/Workspace';
+import { FormSection } from '../ui/FormSection';
 import type { Acta } from '../../lib/types';
 import { Store, Audit, AuthService } from '../../lib/store';
 import { CAT } from '../../lib/catalog';
@@ -108,16 +109,8 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
       </PageHeader>
 
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="file-signature" /> Identificación del acta
-            </h2>
-            <span className="sub small muted">Contrato, tipo, consecutivo y fecha</span>
-          </div>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Identificación del acta</>} icon="file-signature" description={<>Contrato, tipo, consecutivo y fecha</>} accent>
           <Field className={`f span3${err('contractId') ? ' err' : ''}`}>
             <label className="req">Contrato</label>
             <Select name="contractId"
@@ -133,7 +126,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
               ))}
             </Select>
             {err('contractId') && (
-              <span className="emsg" id="err-acontrato">
+              <span className="emsg" id="err-acontrato"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('contractId')}
               </span>
             )}
@@ -159,7 +152,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
               aria-describedby={err('numero') ? 'err-anumero' : undefined}
             />
             {err('numero') && (
-              <span className="emsg" id="err-anumero">
+              <span className="emsg" id="err-anumero"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('numero')}
               </span>
             )}
@@ -174,7 +167,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
               aria-describedby={err('fecha') ? 'err-afecha' : undefined}
             />
             {err('fecha') && (
-              <span className="emsg" id="err-afecha">
+              <span className="emsg" id="err-afecha"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
                 {err('fecha')}
               </span>
             )}
@@ -198,20 +191,12 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
               onChange={(e) => set({ descripcion: e.target.value })}
             />
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
 
       <Surface className="panel mb">
-        <div className="panel-h">
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-              <Icon name="check-circle" /> Estado y soporte
-            </h2>
-            <span className="sub small muted">Situación documental y archivo de respaldo</span>
-          </div>
-        </div>
 
-        <FormGrid className="form-grid">
+        <FormSection title={<>Estado y soporte</>} icon="check-circle" description={<>Situación documental y archivo de respaldo</>} accent>
           <Field className="f">
             <label>Estado</label>
             <Select name="estado" value={form.estado} onChange={(e) => set({ estado: e.target.value })}>
@@ -234,10 +219,8 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
               real.
             </span>
           </Field>
-        </FormGrid>
+        </FormSection>
       </Surface>
-
-
 
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>

@@ -69,6 +69,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           {mounted ? <Header
             onUserChanged={() => setUserRevision(v => v + 1)}
             onToggleMobileMenu={() => setMobileOpen(v => !v)}
+            mobileMenuOpen={mobileOpen}
           /> : <header className="header"><div className="skeleton skeleton-title" /></header>}
           <div className="content" id="workspace" tabIndex={-1}>
             {mounted ? children : <WorkspaceSkeleton />}

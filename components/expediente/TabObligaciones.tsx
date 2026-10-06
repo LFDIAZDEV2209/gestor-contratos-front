@@ -1,4 +1,5 @@
 'use client';
+import { fieldIcon } from '../forms/fieldIcon';
 import Link from 'next/link';
 import { obligationHref } from '../app/routes';
 import { nuevoHref } from './routes';
@@ -13,6 +14,8 @@ import { fdate, pct, todayIso, sum, diffDays } from '../../lib/format';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
 import { Icon } from '../icons';
+
+import { SectionHeader } from '../ui/SectionHeader';
 
 type VistaRapida = 'todas' | 'vencidas' | 'porVencer' | 'sinVerificar';
 
@@ -56,29 +59,28 @@ export const TabObligaciones = ({ cid }: { cid: string }) => {
   const nuevaObligacionHref = nuevoHref(cid, 'obligaciones');
 
   return (
-    <div>
-      <div className="panel-h mb-3">
-        <div>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="list-check" size={16} /> Obligaciones contractuales</h3>
-          <span className="sub">{obligations.length} obligaciones pactadas</span>
-        </div>
-        <div className="row-flex">
+    <div className="ws-tab-pane">
+      <SectionHeader as="h3"
+        icon="list-check"
+        title="Obligaciones contractuales"
+        description={`${obligations.length} obligaciones pactadas con seguimiento de periodicidad y cumplimiento.`}
+        action={
           <Link className="btn sm pri" href={nuevaObligacionHref}>
             <Icon name="plus" /> Nueva obligación
           </Link>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="kpis mb">
-        <Kpi label="Total obligaciones" value={obligations.length} color="na" />
-        <Kpi label="Cumplidas" value={cumplidas} sem="ok" color={cumplidas ? undefined : 'na'} />
-        <Kpi label="Vencidas / incumplidas" value={vencidas} sem={vencidas ? 'crit' : 'ok'} color={vencidas ? undefined : 'na'} />
-        <Kpi label="% Cumplimiento promedio" value={pct(avgCumpl)} color="na" />
+      <div className="kpis">
+        <Kpi label="Total obligaciones" value={obligations.length} color="brand" icon="list-check" />
+        <Kpi label="Cumplidas" value={cumplidas} sem="ok" color={cumplidas ? 'ok' : 'na'} icon="check-circle" />
+        <Kpi label="Vencidas / incumplidas" value={vencidas} sem={vencidas ? 'crit' : 'ok'} color={vencidas ? 'crit' : 'ok'} icon="alert-circle" />
+        <Kpi label="% Cumplimiento promedio" value={pct(avgCumpl)} color="info" icon="percent" />
       </div>
 
       {/* Buscador + vistas rápidas */}
-      <div className="row-flex px-4 py-2" style={{ gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <Input
+      <div className="ws-t-filters">
+        <Input icon={fieldIcon("q", "Buscar obligaciones", "")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar por descripción, responsable o evidencia…"

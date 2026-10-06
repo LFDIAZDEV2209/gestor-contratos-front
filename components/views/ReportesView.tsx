@@ -1,4 +1,5 @@
 "use client";
+import { fieldIcon } from '../forms/fieldIcon';
 import { Input } from "@/components/ui/Controls";
 import { notify } from "@/components/ui/Feedback";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import {
   ResourceCard,
   EmptyState,
 } from "@/components/ui/Workspace";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -129,11 +131,23 @@ export const ReportesView: React.FC = () => {
         </div>
       </PageHeader>
 
+      <SectionHeader
+        as="h2"
+        icon="file-chart"
+        title="Catálogo de reportes"
+        description="Biblioteca de reportes exportables en Excel, PDF, CSV o impresión."
+        action={
+          <span className="ws-section-meta" aria-live="polite">
+            {visibles.length} disponibles
+          </span>
+        }
+      />
+
       <div className="filter-bar mb">
         <label htmlFor="report-query" className="strong">
           Biblioteca de reportes
         </label>
-        <Input
+        <Input icon={fieldIcon("query", "Biblioteca de reportes\n        ", "search")}
           id="report-query"
           className="inp"
           type="search"

@@ -12,6 +12,7 @@ import { Kpi } from '../ui/Kpi';
 import { Icon } from '../icons';
 import Link from 'next/link';
 import { nuevoHref } from './routes';
+import { SectionHeader } from '../ui/SectionHeader';
 
 export const TabProrrogas = ({ cid }: { cid: string }) => {
   const c = Store.get('contracts', cid) as Contract | undefined;
@@ -85,35 +86,34 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
   };
 
   return (
-    <div className="tab-prorrogas-container">
+    <div className="ws-tab-pane">
       {/* Encabezado */}
-      <div className="panel-h mb-3 flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h3 className="text-base font-bold text-[var(--ink)]">Prórrogas y ampliaciones de plazo</h3>
-          <span className="sub text-xs text-[var(--muted)]">
-            Control cronológico de adiciones en tiempo sobre el plazo contractual pactado
-          </span>
-        </div>
-        <div className="row-flex">
-          <div className="exp-actions">
-            <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
-              <Icon name="file-excel" /> Excel
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
-              <Icon name="file-pdf" /> PDF
-            </Button>
-            <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
-              <Icon name="file-csv" /> CSV
-            </Button>
+      <SectionHeader as="h3"
+        icon="calendar-plus"
+        title="Prórrogas y ampliaciones de plazo"
+        description="Control cronológico de adiciones en tiempo sobre el plazo contractual pactado."
+        action={
+          <div className="row-flex" style={{ gap: 8 }}>
+            <div className="exp-actions">
+              <Button className="btn sm" onClick={() => handleExport('xlsx')} title="Exportar a Excel" aria-label="Exportar Excel">
+                <Icon name="file-excel" /> Excel
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('pdf')} title="Exportar a PDF" aria-label="Exportar PDF">
+                <Icon name="file-pdf" /> PDF
+              </Button>
+              <Button className="btn sm" onClick={() => handleExport('csv')} title="Exportar a CSV" aria-label="Exportar CSV">
+                <Icon name="file-csv" /> CSV
+              </Button>
+            </div>
+            <Link className="btn sm pri" href={nuevoHref(cid, 'prorrogas')} aria-label="Crear prórroga">
+              <Icon name="calendar-plus" /> Crear prórroga
+            </Link>
           </div>
-          <Link className="btn sm pri" href={nuevoHref(cid, 'prorrogas')} aria-label="Crear prórroga">
-            <Icon name="calendar-plus" /> Crear prórroga
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
-      {/* KPI Cards con datos del plazo */}
-      <div className="kpis mb [&_.kpi]:!p-2 sm:[&_.kpi]:!p-[14px_16px] [&_.kpi-ic]:!w-7 [&_.kpi-ic]:!h-7 sm:[&_.kpi-ic]:!w-[34px] sm:[&_.kpi-ic]:!h-[34px] [&_.kpi.kpi-v2]:!gap-2 sm:[&_.kpi.kpi-v2]:!gap-3 [&_.kpi-v]:!whitespace-nowrap [&_.kpi-v]:!text-[13.5px] sm:[&_.kpi-v]:!text-[23px] [&_.kpi-s]:!whitespace-nowrap [&_.kpi-s]:!text-[9.5px] sm:[&_.kpi-s]:!text-[11.5px]">
+      {/* KPI Cards canónicas */}
+      <div className="kpis">
         <Kpi
           label="Total prórrogas"
           value={prorrogas.length}
@@ -140,18 +140,14 @@ export const TabProrrogas = ({ cid }: { cid: string }) => {
           value={`+${Math.max(0, totalDays)} días`}
           sub={totalDays > 0 ? `${Math.round(totalDays / 30)} mes(es) adicional(es)` : 'Sin adición de tiempo'}
           color={totalDays > 0 ? 'warn' : 'ok'}
+          sem={totalDays > 0 ? 'warn' : 'ok'}
           icon="plus-circle"
         />
       </div>
 
       {/* Tabla detallada de Prórrogas */}
       <Surface className="panel">
-        <div className="panel-h flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-sm">Historial de prórrogas suscritas</h3>
-            <span className="sub text-xs text-[var(--muted)]">{prorrogas.length} registro(s)</span>
-          </div>
-        </div>
+        <SectionHeader className="dt-panel-title" as="h3" icon="calendar-clock" title="Historial de prórrogas suscritas" description={<>{prorrogas.length} registro(s)</>} />
 
         {prorrogas.length === 0 ? (
           <EmptyState
