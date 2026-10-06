@@ -24,6 +24,8 @@ phases:
       - export IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}"
       - export IMAGE_LATEST="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:latest"
       - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
+      - docker pull public.ecr.aws/docker/library/node:22-alpine && docker tag public.ecr.aws/docker/library/node:22-alpine node:22-alpine
+      - export DOCKER_BUILDKIT=0
       - docker build -f "$DOCKERFILE" -t "$IMAGE_URI" -t "$IMAGE_LATEST" .
       - docker push "$IMAGE_URI"
       - docker push "$IMAGE_LATEST"
@@ -32,10 +34,12 @@ phases:
       - aws ecs describe-task-definition --task-definition "$FAMILY" --query taskDefinition > td.json
       - |
         jq --arg img "$IMAGE_URI" --arg c "$CONTAINER" 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy,.deregisteredAt,.deregisteredBy,.createdAt,.enableFaultInjection,.tags) | .containerDefinitions[] |= (if .name == $c then .image = $img else . end)' td.json > td-new.json
-      - export TD_ARN=$(aws ecs register-task-definition --cli-input-json file://td-new.json --query "taskDefinition.taskDefinitionArn" --output text)
+      - TD_ARN=$(aws ecs register-task-definition --cli-input-json file://td-new.json --query "taskDefinition.taskDefinitionArn" --output text) || exit 1
+      - export TD_ARN
       - printf '{"taskDefinitionArn":"%s","imageUri":"%s","imageTag":"%s","commit":"%s"}\n' "$TD_ARN" "$IMAGE_URI" "$IMAGE_TAG" "${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}" > build-out.json
       - echo "TaskDef registrada $TD_ARN / imagen $IMAGE_URI"
 
 artifacts:
   files:
     - build-out.json
+    - infra/buildspecs/deploy.yml
