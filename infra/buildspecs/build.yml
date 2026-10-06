@@ -34,7 +34,7 @@ phases:
         jq --arg img "$IMAGE_URI" --arg c "$CONTAINER" 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy,.deregisteredAt,.deregisteredBy,.createdAt,.enableFaultInjection,.tags) | .containerDefinitions[] |= (if .name == $c then .image = $img else . end)' td.json > td-new.json
       - export TD_ARN=$(aws ecs register-task-definition --cli-input-json file://td-new.json --query "taskDefinition.taskDefinitionArn" --output text)
       - printf '{"taskDefinitionArn":"%s","imageUri":"%s","imageTag":"%s","commit":"%s"}\n' "$TD_ARN" "$IMAGE_URI" "$IMAGE_TAG" "${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}" > build-out.json
-      - echo "TaskDef registrada: $TD_ARN / Imagen: $IMAGE_URI"
+      - echo "TaskDef registrada $TD_ARN / imagen $IMAGE_URI"
 
 artifacts:
   files:

@@ -17,7 +17,7 @@ phases:
       - aws ecs update-service --region "$AWS_DEFAULT_REGION" --cluster "$CLUSTER" --service "$SERVICE" --task-definition "$TD_ARN" --query "service.taskDefinition" --output text
       - aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"
       - export CURRENT=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --query "services[0].taskDefinition" --output text)
-      - echo "Taskdef activa del servicio: $CURRENT"
+      - echo "Taskdef activa del servicio $CURRENT"
       - |
         if [ "$CURRENT" != "$TD_ARN" ]; then
           echo "ERROR: el servicio NO esta en la taskdef nueva (posible rollback del circuit breaker)."
