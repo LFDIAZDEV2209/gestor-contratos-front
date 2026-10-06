@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input, Select, Textarea } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -26,6 +28,7 @@ type FormState = {
  * hallazgo/causa/fecha se conservan tal como se registraron.
  */
 export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'incumplimientos'));
   const actual = recordId ? (Store.get('plans', recordId) as Plan | undefined) : undefined;
   const isEdit = !!actual;
   const [form, setForm] = useState<FormState>({
@@ -46,7 +49,8 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
   if (!form.fecha) addError("fecha", 'La fecha límite de cumplimiento es obligatoria.');
   if (form.avance < 0 || form.avance > 100) addError("avance", 'El avance debe estar entre 0 y 100.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (recordId && !guardExpedienteRecord(cid, 'plans', recordId)) {
       notify('El registro ya no pertenece a este expediente.');
@@ -97,7 +101,7 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
       });
       notify('Plan de mejoramiento registrado');
     }
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -115,6 +119,8 @@ export const PlanForm = ({ cid, recordId, onDone }: { cid: string; recordId?: st
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel={isEdit ? 'Guardar avance' : 'Registrar plan'}
       submitIcon="check"
       onCancel={onDone}

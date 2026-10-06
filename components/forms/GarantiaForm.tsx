@@ -15,6 +15,7 @@ import { CAT } from '../../lib/catalog';
 import { cupoStats } from '../../lib/metrics';
 import { money, moneyM, pct, todayIso, uid } from '../../lib/format';
 import { Icon } from '../icons';
+import { useSoportes } from '../ui/Soportes';
 
 /**
  * Póliza de garantía en VISTA dedicada (reemplaza al modal de GarantiasView).
@@ -93,7 +94,10 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
   const excedeCupo =
     cupoSel && cupoStat && Number(form.valor) > cupoStat.disponible;
 
+  const sop = useSoportes(() => form.contractId, '/garantias');
+
   const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -143,7 +147,7 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
     });
 
     notify(`Póliza «${poliza}» registrada exitosamente.`);
-    onDone(newG.id);
+    await sop.finalizar(() => onDone(newG.id));
   };
 
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
@@ -431,11 +435,13 @@ export const GarantiaForm = ({ onDone }: { onDone: (savedId: string) => void }) 
         </FormSection>
       </Surface>
 
+      {sop.node}
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={guardar}>
+        <Button className="btn pri" onClick={guardar} loading={sop.subiendo}>
           <Icon name="check" /> Registrar póliza
         </Button>
       </div>

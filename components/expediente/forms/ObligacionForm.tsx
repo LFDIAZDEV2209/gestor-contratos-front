@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input, Select, Textarea } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -15,6 +17,7 @@ import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShel
  * obligatorios; registro con estado «Pendiente» y cumplimiento 0 %.
  */
 export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'obligaciones'));
   const [form, setForm] = useState({
     tipo: 'General',
     descripcion: '',
@@ -32,7 +35,8 @@ export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
   if (!form.responsable.trim()) addError("responsable", 'El responsable es obligatorio.');
   if (!form.fechaLimite) addError("fechaLimite", 'La fecha límite es obligatoria.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -63,7 +67,7 @@ export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
       nuevo: nueva.descripcion.slice(0, 80)
     });
     notify('Obligación registrada');
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -77,6 +81,8 @@ export const ObligacionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel="Registrar obligación"
       submitIcon="save"
       onCancel={onDone}

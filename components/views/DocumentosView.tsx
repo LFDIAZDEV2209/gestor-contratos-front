@@ -3,12 +3,14 @@ import { fieldIcon } from '../forms/fieldIcon';
 import { contractHref } from '../app/routes';
 import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
-import { requestReason } from '../ui/Feedback';
+import { requestReason, notify } from '../ui/Feedback';
+import { DescargarVersion } from '../ui/DescargarVersion';
+import { anularDocumento, mensajeErrorDocumento, ultimaVersion } from '../../lib/documents';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
 import { useState } from 'react';
 import type { Document, Contract } from '../../lib/types';
-import { Store, AuthService, Audit } from '../../lib/store';
+import { Store, AuthService } from '../../lib/store';
 import { CAT } from '../../lib/catalog';
 import { M, activeContracts, companyName } from '../../lib/metrics';
 import { fdate, sum } from '../../lib/format';
@@ -83,7 +85,7 @@ export const DocumentosView = ({
     if (filterCat && d.categoria !== filterCat) return false;
     if (q) {
       const matchName = d.nombre.toLowerCase().includes(q.toLowerCase());
-      const matchFile = (d.versions?.[d.versions.length - 1]?.archivo || '')
+      const matchFile = (ultimaVersion(d)?.archivo || '')
         .toLowerCase()
         .includes(q.toLowerCase());
       const c = Store.get('contracts', d.contractId);
@@ -106,21 +108,23 @@ export const DocumentosView = ({
     setPage(1);
   };
 
+  const [anulando, setAnulando] = useState<string | null>(null);
   const handleAnular = async (doc: Document) => {
+    if (anulando) return;
     if (!AuthService.guard('anular')) return;
     const motivo = await requestReason(`Motivo de anulación del documento «${doc.nombre}»:`);
     if (!motivo) return;
 
-    Store.update('documents', doc.id, { estado: 'Anulado' });
-    Audit.log({
-      contractId: doc.contractId,
-      modulo: 'Documentos',
-      accion: 'Anulación',
-      campo: 'Estado del documento ' + doc.nombre,
-      anterior: doc.estado,
-      nuevo: 'Anulado',
-      obs: motivo
-    });
+    setAnulando(doc.id);
+    notify(`Anulando «${doc.nombre}»…`);
+    try {
+      await anularDocumento(doc.id, motivo);
+      // Simplificación aceptada: recarga para que AppShell re-hidrate del API.
+      window.location.reload();
+    } catch (e) {
+      notify(mensajeErrorDocumento(e));
+      setAnulando(null);
+    }
   };
 
   const handleExport = (format: 'xlsx' | 'pdf' | 'csv') => {
@@ -138,7 +142,7 @@ export const DocumentosView = ({
       {
         l: 'Archivo Actual',
         k: 'file',
-        r: (d: any) => d.versions?.[d.versions.length - 1]?.archivo || '—'
+        r: (d: any) => ultimaVersion(d)?.archivo || '—'
       },
       {
         l: 'Versión',
@@ -148,7 +152,7 @@ export const DocumentosView = ({
       {
         l: 'Última Fecha',
         k: 'fecha',
-        r: (d: any) => fdate(d.versions?.[d.versions.length - 1]?.fecha)
+        r: (d: any) => fdate(ultimaVersion(d)?.fecha)
       },
       { l: 'Estado', k: 'estado' }
     ];
@@ -358,7 +362,7 @@ export const DocumentosView = ({
             <tbody>
               {pageRows.map((d, idx) => {
                 const c = Store.get('contracts', d.contractId);
-                const lastVer = d.versions?.[d.versions.length - 1];
+                const lastVer = ultimaVersion(d);
                 const isVoid = d.estado === 'Anulado';
 
                 return (
@@ -451,6 +455,7 @@ export const DocumentosView = ({
                             <Button
                               className="icon-btn"
                               style={{ color: 'var(--crit-text)' }}
+                              disabled={anulando !== null}
                               onClick={() => handleAnular(d)}
                               title="Anular documento"
                               aria-label={`Anular documento ${d.nombre}`}
@@ -557,6 +562,7 @@ export const DocumentosView = ({
                     <th>Usuario</th>
                     <th>Archivo</th>
                     <th>Motivo / Cambios</th>
+                    <th className="nw">Descarga</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -576,6 +582,7 @@ export const DocumentosView = ({
                         {ver.motivo}
                         {ver.cambios && <div className="small muted">Cambios: {ver.cambios}</div>}
                       </td>
+                      <td className="nw"><DescargarVersion documentId={selectedDocHistory.id} v={ver.v} archivo={ver.archivo} /></td>
                     </tr>
                   ))}
                 </tbody>

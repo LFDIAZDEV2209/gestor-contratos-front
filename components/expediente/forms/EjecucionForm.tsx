@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -19,6 +21,7 @@ type FormState = { periodo: string; valor: number; avanceFisico: number; obs: st
  * rango 0–100 del avance físico y control de periodo duplicado por contrato.
  */
 export const EjecucionForm = ({ cid, recordId, onDone }: { cid: string; recordId?: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'ejecucion'));
   const c = Store.get('contracts', cid) as Contract;
   const actual = recordId ? (Store.get('execs', recordId) as Exec | undefined) : undefined;
   const m = M(c);
@@ -42,7 +45,8 @@ export const EjecucionForm = ({ cid, recordId, onDone }: { cid: string; recordId
     addError("avanceFisico", 'El avance físico acumulado debe estar entre 0 y 100.');
   if (duplicado) addError("periodo", 'Ya existe un informe registrado para ese periodo: edítalo en lugar de duplicarlo.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (recordId && !guardExpedienteRecord(cid, 'execs', recordId)) {
       notify('El registro ya no pertenece a este expediente.');
@@ -87,7 +91,7 @@ export const EjecucionForm = ({ cid, recordId, onDone }: { cid: string; recordId
       });
       notify(`Avance para ${monthLabel(form.periodo)} registrado correctamente`);
     }
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -105,6 +109,8 @@ export const EjecucionForm = ({ cid, recordId, onDone }: { cid: string; recordId
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel={isEdit ? 'Guardar cambios' : 'Guardar registro'}
       submitIcon="check"
       onCancel={onDone}

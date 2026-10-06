@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input, Textarea } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -16,6 +18,7 @@ import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShel
  * (nueva fecha posterior a la terminación actual) y días ≥ 1.
  */
 export const ProrrogaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'prorrogas'));
   const c = Store.get('contracts', cid) as Contract;
   const base = c.fechaFin || todayIso();
   const [diasAdd, setDiasAdd] = useState(30);
@@ -32,7 +35,8 @@ export const ProrrogaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
     addError("nuevaFecha", 'La nueva fecha debe ser posterior a la terminación actual: una prórroga amplía el plazo.');
   if (!justificacion.trim()) addError("justificacion", 'La justificación técnica de la prórroga es obligatoria.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -70,7 +74,7 @@ export const ProrrogaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
     }
 
     notify(`Prórroga ${newMod.numero} registrada exitosamente (+${diffDays(c.fechaFin, nuevaFecha)} días)`);
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -84,6 +88,8 @@ export const ProrrogaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel="Registrar prórroga"
       submitIcon="calendar-plus"
       onCancel={onDone}

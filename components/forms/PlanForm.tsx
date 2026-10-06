@@ -15,6 +15,7 @@ import { Store, Audit, AuthService } from '../../lib/store';
 import { activeContracts } from '../../lib/metrics';
 import { todayIso } from '../../lib/format';
 import { Icon } from '../icons';
+import { useSoportes } from '../ui/Soportes';
 
 /** Valores de partida del formulario (mismos defaults que tenía el modal original). */
 const FORM_DEFAULT: Partial<Plan> = {
@@ -81,7 +82,10 @@ export const PlanForm = ({
   const estados = new Set<string>(ESTADOS);
   if (form.estado && !estados.has(form.estado)) estados.add(form.estado);
 
-  const guardar = () => {
+  const sop = useSoportes(() => contractId, '/incumplimientos');
+
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (!AuthService.guard(isEdit ? 'editar' : 'crear')) return;
     if (errores.length) {
@@ -113,7 +117,7 @@ export const PlanForm = ({
         estado: 'Estado del plan'
       });
       notify(`Plan «${accion.slice(0, 60)}» actualizado.`);
-      onDone(id);
+      await sop.finalizar(() => onDone(id));
       return;
     }
 
@@ -128,7 +132,7 @@ export const PlanForm = ({
       nuevo: accion
     });
     notify(`Plan de mejoramiento registrado en el contrato ${contrato?.numero || contractId}.`);
-    onDone(nuevo.id);
+    await sop.finalizar(() => onDone(nuevo.id));
   };
 
   return (
@@ -253,11 +257,13 @@ export const PlanForm = ({
         </FormSection>
       </Surface>
 
+      {sop.node}
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={guardar}>
+        <Button className="btn pri" onClick={guardar} loading={sop.subiendo}>
           <Icon name="check" /> {isEdit ? 'Guardar Cambios' : 'Guardar Plan'}
         </Button>
       </div>

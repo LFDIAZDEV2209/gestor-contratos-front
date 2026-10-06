@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input, Textarea } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -16,6 +18,7 @@ import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShel
  * Endurecimiento: días ≥ 0 y fecha efectiva obligatoria.
  */
 export const ReinicioForm = ({ cid, onDone }: { cid: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'suspensiones'));
   const c = Store.get('contracts', cid) as Contract;
   const modSusp = (Store.byContract('modifications', cid) as Modification[]).filter(
     (mm) => mm.tipo === 'Suspensión' || mm.tipo === 'Reinicio'
@@ -36,7 +39,8 @@ export const ReinicioForm = ({ cid, onDone }: { cid: string; onDone: () => void 
   if (!justificacion.trim()) addError("justificacion", 'La justificación de la actuación es obligatoria.');
   if (diasProrroga < 0) addError("diasProrroga", 'Los días de ampliación no pueden ser negativos.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -87,7 +91,7 @@ export const ReinicioForm = ({ cid, onDone }: { cid: string; onDone: () => void 
     });
 
     notify(`Reinicio formal registrado. Contrato ${c.numero} pasa a estado Activo`);
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -101,6 +105,8 @@ export const ReinicioForm = ({ cid, onDone }: { cid: string; onDone: () => void 
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel="Registrar reinicio"
       submitIcon="play"
       onCancel={onDone}

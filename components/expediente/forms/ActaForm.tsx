@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input, Select, Textarea } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -14,6 +16,7 @@ import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShel
  * número (trim) y fecha obligatorios; archivo demo con nombre derivado del número cuando queda vacío.
  */
 export const ActaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'actas'));
   const [form, setForm] = useState({
     tipo: CAT('tiposActa')[0] || 'Acta de inicio',
     numero: '',
@@ -30,7 +33,8 @@ export const ActaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
   if (!form.numero.trim()) addError("numero", 'El número del acta es obligatorio (se usa como radicado en el expediente).');
   if (!form.fecha) addError("fecha", 'La fecha del acta es obligatoria.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -59,7 +63,7 @@ export const ActaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
       nuevo: `${nueva.tipo} - ${nueva.fecha}`
     });
     notify('Acta registrada');
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -73,6 +77,8 @@ export const ActaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel="Registrar acta"
       submitIcon="save"
       onCancel={onDone}

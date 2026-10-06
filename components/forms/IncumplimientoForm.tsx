@@ -14,6 +14,7 @@ import { Store, Audit, AuthService } from '../../lib/store';
 import { activeContracts } from '../../lib/metrics';
 import { money, todayIso } from '../../lib/format';
 import { Icon } from '../icons';
+import { useSoportes } from '../ui/Soportes';
 
 /** Valores de partida del formulario (mismos defaults que tenía el modal original). */
 const FORM_DEFAULT: Partial<Breach> = {
@@ -90,7 +91,10 @@ export const IncumplimientoForm = ({
   const estados = new Set<string>(ESTADOS);
   if (form.estado && !estados.has(form.estado)) estados.add(form.estado);
 
-  const guardar = () => {
+  const sop = useSoportes(() => contractId, '/incumplimientos');
+
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (!AuthService.guard(isEdit ? 'editar' : 'crear')) return;
     if (errores.length) {
@@ -131,7 +135,7 @@ export const IncumplimientoForm = ({
         estado: 'Estado del incumplimiento'
       });
       notify(`Incumplimiento «${descripcion.slice(0, 60)}» actualizado.`);
-      onDone(id);
+      await sop.finalizar(() => onDone(id));
       return;
     }
 
@@ -146,7 +150,7 @@ export const IncumplimientoForm = ({
       nuevo: descripcion
     });
     notify(`Incumplimiento registrado en el contrato ${contrato?.numero || contractId}.`);
-    onDone(nuevo.id);
+    await sop.finalizar(() => onDone(nuevo.id));
   };
 
   return (
@@ -291,11 +295,13 @@ export const IncumplimientoForm = ({
         </FormSection>
       </Surface>
 
+      {sop.node}
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={guardar}>
+        <Button className="btn pri" onClick={guardar} loading={sop.subiendo}>
           <Icon name="check" /> {isEdit ? 'Guardar Cambios' : 'Guardar Incumplimiento'}
         </Button>
       </div>

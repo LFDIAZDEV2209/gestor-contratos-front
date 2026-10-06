@@ -14,6 +14,7 @@ import { Store, Audit, AuthService } from '../../lib/store';
 import { Validator } from '../../lib/validator';
 import { uid, money, num } from '../../lib/format';
 import { Icon } from '../icons';
+import { useSoportes } from '../ui/Soportes';
 
 type TabId = 'General' | 'Fechas' | 'Económica' | 'Alcance';
 
@@ -160,7 +161,10 @@ export const ContratoForm = ({
   const valReduc = num(form.reducciones || 0);
   const valTotalActual = Math.max(0, valBase + valIva + valOtros + valAdic - valReduc);
 
-  const handleSave = () => {
+  const sop = useSoportes(() => form.id || "", '/contratos');
+
+  const handleSave = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (hasCritical) {
       notify('Corrige los errores críticos marcados antes de guardar.');
@@ -217,7 +221,7 @@ export const ContratoForm = ({
       notify(`Contrato ${finalData.numero} actualizado correctamente.`);
     }
 
-    onDone(saveId);
+    await sop.finalizar(() => onDone(saveId), () => finalData.id);
   };
 
   const currentNumber = form.numero || form.num;
@@ -808,11 +812,13 @@ export const ContratoForm = ({
       )}
 
       {/* Footer de acciones canónico del sistema */}
+      {sop.node}
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={handleSave} aria-disabled={hasCritical} title={hasCritical ? 'Corrija los errores críticos para guardar' : 'Guardar expediente'}>
+        <Button className="btn pri" onClick={handleSave} loading={sop.subiendo} aria-disabled={hasCritical} title={hasCritical ? 'Corrija los errores críticos para guardar' : 'Guardar expediente'}>
           <Icon name="check" /> {isEdit ? 'Guardar Cambios' : 'Guardar Contrato'}
         </Button>
       </div>

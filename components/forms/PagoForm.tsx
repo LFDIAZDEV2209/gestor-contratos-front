@@ -15,6 +15,7 @@ import { M } from '../../lib/metrics';
 import { money, moneyM, todayIso, uid } from '../../lib/format';
 import { Kpi } from '../ui/Kpi';
 import { Icon } from '../icons';
+import { useSoportes } from '../ui/Soportes';
 
 /**
  * Registro de pago o cuenta de cobro en VISTA dedicada (reemplaza al modal de
@@ -66,7 +67,10 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
     addError("fecha", 'La fecha es obligatoria.');
   }
 
-  const guardar = () => {
+  const sop = useSoportes(() => form.contractId, '/pagos');
+
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -105,7 +109,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
     });
 
     notify(`Pago «${numero}» registrado por ${money(neto)} (Pendiente).`);
-    onDone();
+    await sop.finalizar(() => onDone());
   };
 
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
@@ -323,11 +327,13 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
         </Surface>
       )}
 
+      {sop.node}
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={guardar}>
+        <Button className="btn pri" onClick={guardar} loading={sop.subiendo}>
           <Icon name="check" /> Registrar pago
         </Button>
       </div>

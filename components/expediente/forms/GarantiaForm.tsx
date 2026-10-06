@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input, Select } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -30,6 +32,7 @@ type FormState = {
  * en vivo de cupo (disponible insuficiente / vence tras el cupo) no bloquean el guardado.
  */
 export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'garantias'));
   const [form, setForm] = useState<FormState>({
     poliza: '',
     tipo: CAT('tiposGarantia')[0] || 'Cumplimiento',
@@ -62,7 +65,8 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
   if (form.modalidadPoliza === 'Póliza por cupo' && !form.cupoId)
     addError("cupoId", 'Selecciona el cupo de la aseguradora para esta póliza por cupo.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -95,7 +99,7 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
       nuevo: money(form.valor)
     });
     notify('Póliza registrada (Pendiente de aprobación)');
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -109,6 +113,8 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel="Registrar póliza"
       submitIcon="shield"
       onCancel={onDone}

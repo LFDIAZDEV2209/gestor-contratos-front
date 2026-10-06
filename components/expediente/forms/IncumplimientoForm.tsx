@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input, Select, Textarea } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -29,6 +31,7 @@ type FormState = {
  * Gestión (edición): cambia estado de trámite e impacto; el tipo NO se edita (trazabilidad).
  */
 export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'incumplimientos'));
   const c = Store.get('contracts', cid) as Contract;
   const actual = recordId ? (Store.get('breaches', recordId) as Breach | undefined) : undefined;
   const isEdit = !!actual;
@@ -54,7 +57,8 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
   if (!form.descripcion.trim()) addError("descripcion", 'La descripción detallada de los hechos es obligatoria.');
   if (form.multa < 0) addError("multa", 'La multa tasada no puede ser negativa.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (recordId && !guardExpedienteRecord(cid, 'breaches', recordId)) {
       notify('El registro ya no pertenece a este expediente.');
@@ -108,7 +112,7 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
       });
       notify('Incumplimiento registrado correctamente');
     }
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -126,6 +130,8 @@ export const IncumplimientoForm = ({ cid, recordId, onDone }: { cid: string; rec
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel={isEdit ? 'Guardar estado' : 'Guardar incumplimiento'}
       submitIcon="check"
       onCancel={onDone}

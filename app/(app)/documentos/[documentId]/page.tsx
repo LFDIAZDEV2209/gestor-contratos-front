@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { AuthService, Store } from '@/lib/store';
 import type { Document } from '@/lib/types';
 import { fdate } from '@/lib/format';
+import { DescargarVersion } from '@/components/ui/DescargarVersion';
 import { contractHref } from '@/components/app/routes';
 import { RouteState } from '@/components/expediente/forms/RouteState';
 import { PageHeader, Surface, TableViewport, DataTable, EmptyState } from '@/components/ui/Workspace';
@@ -48,11 +49,12 @@ export default function Page({ params }: { params: Promise<{ documentId: string 
       <div className="panel-h"><h2 id="document-history-title" style={{ fontSize: 16 }}>Historial de versiones</h2></div>
       {versions.length ? <TableViewport aria-label="Historial de versiones; desplazamiento horizontal">
         <DataTable aria-labelledby="document-history-title">
-          <thead><tr><th scope="col">Versión</th><th scope="col">Fecha</th><th scope="col">Usuario</th><th scope="col">Archivo</th><th scope="col">Motivo y cambios</th></tr></thead>
+          <thead><tr><th scope="col">Versión</th><th scope="col">Fecha</th><th scope="col">Usuario</th><th scope="col">Archivo</th><th scope="col">Motivo y cambios</th><th scope="col">Descarga</th></tr></thead>
           <tbody>{versions.map((version) => <tr key={version.v}>
             <td>v{version.v}</td><td className="nw">{fdate(version.fecha)}</td><td>{version.usuario}</td>
             <td style={{ overflowWrap: 'anywhere' }}>{version.archivo}</td>
             <td style={{ overflowWrap: 'anywhere' }}>{version.motivo || 'Sin motivo registrado'}{version.cambios && <p className="small muted">{version.cambios}</p>}</td>
+            <td><DescargarVersion documentId={doc.id} v={version.v} archivo={version.archivo} /></td>
           </tr>)}</tbody>
         </DataTable>
       </TableViewport> : <EmptyState title="Sin versiones registradas" description="Las versiones cargadas aparecerán en este historial." />}

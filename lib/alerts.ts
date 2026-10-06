@@ -4,6 +4,7 @@ import { Store, AuthService } from './store';
 import { M, effOblig, effDeliv, cupoStats, activeContracts } from './metrics';
 import { diffDays, todayIso, fdate, money, pct, nowStamp } from './format';
 import { CLOSED_STATES, ALV } from './catalog';
+import { clientKeyToServerKey, serverKeyToClientKeys, gestionarAlertaRemota } from './remote';
 
 export const Alerts = {
   compute(): Alert[] {
@@ -272,7 +273,8 @@ export const Alerts = {
 
     const alertState = db.alertState || {};
     out.forEach((a) => {
-      const st = alertState[a.key] || {};
+      const serverKey = clientKeyToServerKey(a.key);
+      const st = alertState[a.key] || alertState[serverKey] || {};
       a.estado = st.estado || 'Nueva';
       a.delegadoA = st.delegadoA || '';
       if (a.delegadoA) a.responsable = a.delegadoA;
@@ -304,7 +306,25 @@ export const Alerts = {
     s.fechaGestion = nowStamp();
     s.usuario = AuthService.currentUser().nombre;
     db.alertState[key] = s;
+
+    // Sincronizar clave equivalente (cliente <-> servidor) en memoria local
+    const serverKey = clientKeyToServerKey(key);
+    if (serverKey !== key) {
+      db.alertState[serverKey] = { ...s };
+    }
+    const clientKeys = serverKeyToClientKeys(serverKey);
+    for (const ck of clientKeys) {
+      if (ck !== key) {
+        db.alertState[ck] = { ...s };
+      }
+    }
+
     Store.persist();
+
+    // Notificar a la API con la clave codificada (%7C para el separador |)
+    gestionarAlertaRemota(serverKey, patch).catch((err) => {
+      console.warn('[Alerts] No se pudo enviar gestión al servidor:', err);
+    });
   }
 };
 

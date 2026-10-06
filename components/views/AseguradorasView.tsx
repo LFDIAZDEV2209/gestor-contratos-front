@@ -14,6 +14,8 @@ import { exportRows } from '../../lib/export';
 import { Badge } from '../ui/Badge';
 import { Kpi } from '../ui/Kpi';
 import { Icon } from '../icons';
+import { Modal } from '../ui/Modal';
+import { SoportesRef } from '../ui/SoportesRef';
 
 const PAGE_SIZE = 10;
 
@@ -70,6 +72,7 @@ export const AseguradorasView = ({
 }) => {
   const [pageMatrix, setPageMatrix] = useState(1);
   const [pageCupos, setPageCupos] = useState(1);
+  const [cupoSoportes, setCupoSoportes] = useState<Cupo | null>(null);
 
   const allGuarantees = (Store.all('guarantees') as Guarantee[]).filter((g) => {
     const c = Store.get('contracts', g.contractId);
@@ -545,6 +548,7 @@ export const AseguradorasView = ({
                 <th className="nw">Inicio</th>
                 <th className="nw">Vencimiento</th>
                 <th className="nw">Estado</th>
+                <th className="nw">Soportes</th>
               </tr>
             </thead>
             <tbody>
@@ -593,13 +597,18 @@ export const AseguradorasView = ({
                     <td className="nw">
                       <Badge text={cp.estado} color={cp.estado === 'Vigente' ? 'ok' : 'crit'} />
                     </td>
+                    <td className="nw">
+                      <Button className="btn xs ghost" onClick={() => setCupoSoportes(cp)} aria-label={`Ver soportes del cupo ${cp.numero}`}>
+                        <Icon name="folder" /> Soportes
+                      </Button>
+                    </td>
                   </tr>
                 );
               })}
 
               {allCupos.length === 0 && (
                 <tr>
-                  <td colSpan={10}>
+                  <td colSpan={11}>
                     <EmptyState
                       title="No hay cupos registrados"
                       description="Registra la primera línea de afianzamiento para controlar el uso por aseguradora."
@@ -621,7 +630,7 @@ export const AseguradorasView = ({
             {allCupos.length > 0 && (
               <tfoot>
                 <tr>
-                  <td colSpan={10}>
+                  <td colSpan={11}>
                     <div className="tbl-foot">
                       <span>
                         Mostrando {(currentPageCupos - 1) * PAGE_SIZE + 1}–{Math.min(currentPageCupos * PAGE_SIZE, allCupos.length)} de{' '}
@@ -657,6 +666,20 @@ export const AseguradorasView = ({
         </TableViewport>
       </Surface>
 
+      {cupoSoportes && (
+        <Modal
+          title={`Soportes del cupo ${cupoSoportes.numero}`}
+          size="lg"
+          onClose={() => setCupoSoportes(null)}
+          footer={
+            <Button className="btn pri" onClick={() => setCupoSoportes(null)}>
+              Cerrar
+            </Button>
+          }
+        >
+          <SoportesRef refId={cupoSoportes.id} refTipo="cupo" />
+        </Modal>
+      )}
     </div>
   );
 };

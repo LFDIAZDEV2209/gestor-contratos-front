@@ -15,6 +15,7 @@ import { Store, Audit, AuthService } from '../../lib/store';
 import { M, companyName } from '../../lib/metrics';
 import { money, moneyM, fdate, todayIso, addDays, sum, uid } from '../../lib/format';
 import { Icon } from '../icons';
+import { useSoportes } from '../ui/Soportes';
 
 /** Valores de partida del formulario (mismos defaults que tenía el modal original). */
 const FORM_DEFAULT: Partial<Subcontract> = {
@@ -130,7 +131,10 @@ export const SubcontratoForm = ({
     );
   }
 
-  const guardar = () => {
+  const sop = useSoportes(() => form.contractId || '', '/subcontratos');
+
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (!AuthService.guard(isEdit ? 'editar' : 'crear')) return;
     if (errores.length) {
@@ -168,7 +172,7 @@ export const SubcontratoForm = ({
         responsable: 'Responsable del subcontrato'
       });
       notify(`Subcontrato «${numero}» actualizado.`);
-      onDone(id);
+      await sop.finalizar(() => onDone(id));
       return;
     }
 
@@ -198,7 +202,7 @@ export const SubcontratoForm = ({
       nuevo: `${contratista} · ${money(valor)}`
     });
     notify(`Subcontrato «${numero}» registrado en el contrato ${contrato?.numero || contractId}.`);
-    onDone(nuevo.id);
+    await sop.finalizar(() => onDone(nuevo.id));
   };
 
   return (
@@ -418,11 +422,13 @@ export const SubcontratoForm = ({
         </FormSection>
       </Surface>
 
+      {sop.node}
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={guardar}>
+        <Button className="btn pri" onClick={guardar} loading={sop.subiendo}>
           <Icon name="check" /> {isEdit ? 'Guardar Cambios' : 'Guardar Subcontrato'}
         </Button>
       </div>

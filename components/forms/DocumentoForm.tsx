@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { AvisoApi } from '../ui/AvisoApi';
 import { useFormCancel } from './useFormCancel';
 import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
@@ -9,10 +10,9 @@ import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field } from '../ui/Workspace';
 import { FormSection } from '../ui/FormSection';
-import type { Document, DocumentVersion } from '../../lib/types';
-import { Store, Audit, AuthService } from '../../lib/store';
+import { Store, AuthService } from '../../lib/store';
 import { CAT } from '../../lib/catalog';
-import { todayIso, uid } from '../../lib/format';
+import { subirDocumento, advertenciasDe, esConflicto, mensajeErrorDocumento, MAX_ARCHIVO_MB } from '../../lib/documents';
 import { Icon } from '../icons';
 
 /**
@@ -27,10 +27,12 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
     contractId: '',
     nombre: '',
     categoria: 'Contrato',
-    archivo: '',
-    motivo: 'Carga inicial',
     obs: ''
   });
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [errorApi, setErrorApi] = useState('');
+  const [advertencias, setAdvertencias] = useState<string[]>([]);
 
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -48,7 +50,35 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
     addError("nombre", 'El nombre del documento es obligatorio.');
   }
 
-  const guardar = () => {
+  if (!archivo) {
+    errCampo.archivo = 'Selecciona el archivo a subir.';
+    addError("archivo", 'El archivo es obligatorio.');
+  } else if (archivo.size > MAX_ARCHIVO_MB * 1024 * 1024) {
+    errCampo.archivo = `El archivo supera ${MAX_ARCHIVO_MB} MB.`;
+    addError("archivo", errCampo.archivo);
+  }
+
+  const enviar = async (force: boolean) => {
+    setErrorApi('');
+    setAdvertencias([]);
+    setSubiendo(true);
+    try {
+      await subirDocumento(form.contractId, nombre, form.categoria, form.obs.trim() || undefined, archivo!, force);
+      // Simplificación aceptada: recarga completa para que AppShell re-hidrate del API.
+      window.location.assign('/documentos');
+    } catch (e) {
+      const w = advertenciasDe(e);
+      if (w) setAdvertencias(w);
+      else {
+        setErrorApi(mensajeErrorDocumento(e));
+        if (esConflicto(e)) setTimeout(() => window.location.reload(), 1500);
+      }
+      setSubiendo(false);
+    }
+  };
+
+  const guardar = async () => {
+    if (subiendo) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -56,39 +86,7 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
     }
     if (!AuthService.guard('crear')) return;
 
-    const u = AuthService.currentUser();
-    const docId = uid('DOC');
-    const fileName = form.archivo.trim() || `${nombre.replace(/\s+/g, '_')}.pdf`;
-
-    const initialVersion: DocumentVersion = {
-      v: 1,
-      fecha: todayIso(),
-      usuario: u.nombre,
-      archivo: fileName,
-      motivo: form.motivo.trim() || 'Carga inicial'
-    };
-
-    const newDoc: Document = {
-      id: docId,
-      contractId: form.contractId,
-      nombre,
-      categoria: form.categoria,
-      estado: 'Activo',
-      obs: form.obs,
-      versions: [initialVersion]
-    };
-
-    Store.insert('documents', newDoc);
-    Audit.log({
-      contractId: form.contractId,
-      modulo: 'Documentos',
-      accion: 'Creación',
-      campo: 'Documento ' + newDoc.nombre,
-      nuevo: `v1 (${initialVersion.archivo})`
-    });
-
-    notify(`Documento «${nombre}» cargado como v1.`);
-    onDone(newDoc.id);
+    await enviar(false);
   };
 
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
@@ -162,17 +160,20 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
             </Select>
           </Field>
 
-          <Field className="f span3">
-            <label>Archivo (nombre o ruta simulada)</label>
+          <Field className={`f span3${err('archivo') ? ' err' : ''}`}>
+            <label className="req">Archivo</label>
             <Input name="archivo"
-              value={form.archivo}
-              placeholder="Ej. contrato_firmado_final.pdf"
-              onChange={(e) => set({ archivo: e.target.value })}
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+              onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+              aria-describedby={err('archivo') ? 'err-darchivo' : undefined}
             />
-            <span className="hint">
-              Opcional: si se deja vacío se genera «{nombre ? nombre.replace(/\s+/g, '_') : 'documento'}.pdf».
-              No se realiza ninguna transferencia real.
-            </span>
+            {err('archivo') && (
+              <span className="emsg" id="err-darchivo"><span aria-hidden="true"><Icon name="alert-circle" size={13} /></span>
+                {err('archivo')}
+              </span>
+            )}
+            <span className="hint">Máximo {MAX_ARCHIVO_MB} MB. Se registra como versión v1.</span>
           </Field>
         </FormSection>
       </Surface>
@@ -180,15 +181,6 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
       <Surface className="panel mb">
 
         <FormSection title={<>Versión inicial</>} icon="history" description={<>Se registra v1 con el usuario y la fecha de hoy; nunca se elimina</>} accent>
-          <Field className="f span3">
-            <label>Motivo de la carga</label>
-            <Input name="motivo"
-              value={form.motivo}
-              placeholder="Ej. Carga inicial"
-              onChange={(e) => set({ motivo: e.target.value })}
-            />
-          </Field>
-
           <Field className="f span3">
             <label>Observaciones</label>
             <Textarea name="obs"
@@ -201,12 +193,14 @@ export const DocumentoForm = ({ onDone }: { onDone: (savedId: string) => void })
         </FormSection>
       </Surface>
 
+      <AvisoApi error={errorApi} advertencias={advertencias} onForzar={() => enviar(true)} cargando={subiendo} />
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={guardar}>
-          <Icon name="upload" /> Subir documento
+        <Button className="btn pri" onClick={guardar} loading={subiendo}>
+          <Icon name="upload" /> {subiendo ? 'Subiendo…' : 'Subir documento'}
         </Button>
       </div>
     </AccessibleForm>

@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input, Textarea } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -17,6 +19,7 @@ type FormState = { nombre: string; descripcion: string; fechaInicio: string; fec
  * estado/avance/evidencia del seguimiento — eso vive en la vista de gestión de entrega.
  */
 export const EntregableForm = ({ cid, recordId, onDone }: { cid: string; recordId?: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'entregables'));
   const c = Store.get('contracts', cid) as Contract;
   const actual = recordId ? (Store.get('deliverables', recordId) as Deliverable | undefined) : undefined;
   const u = AuthService.currentUser();
@@ -37,7 +40,8 @@ export const EntregableForm = ({ cid, recordId, onDone }: { cid: string; recordI
   if (form.fechaProg && form.fechaInicio && form.fechaProg < form.fechaInicio)
     addError("fechaProg", 'La fecha programada no puede ser anterior a la fecha de inicio.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (recordId && !guardExpedienteRecord(cid, 'deliverables', recordId)) {
       notify('El registro ya no pertenece a este expediente.');
@@ -88,7 +92,7 @@ export const EntregableForm = ({ cid, recordId, onDone }: { cid: string; recordI
       });
       notify(`Entregable "${dObj.nombre}" creado exitosamente`);
     }
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -106,6 +110,8 @@ export const EntregableForm = ({ cid, recordId, onDone }: { cid: string; recordI
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel={isEdit ? 'Guardar cambios' : 'Guardar entregable'}
       submitIcon="check"
       onCancel={onDone}

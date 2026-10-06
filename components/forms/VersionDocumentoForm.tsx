@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { AvisoApi } from '../ui/AvisoApi';
 import { useFormCancel } from './useFormCancel';
 import { AccessibleForm, createFieldValidation } from './AccessibleForm';
 import Link from 'next/link';
@@ -9,9 +10,10 @@ import { notify } from '../ui/Feedback';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field } from '../ui/Workspace';
 import { FormSection } from '../ui/FormSection';
-import type { Document, DocumentVersion } from '../../lib/types';
-import { Store, Audit, AuthService } from '../../lib/store';
-import { fdate, todayIso } from '../../lib/format';
+import type { Document } from '../../lib/types';
+import { AuthService } from '../../lib/store';
+import { fdate } from '../../lib/format';
+import { subirNuevaVersion, advertenciasDe, esConflicto, mensajeErrorDocumento, ultimaVersion, MAX_ARCHIVO_MB } from '../../lib/documents';
 import { Icon } from '../icons';
 
 /**
@@ -28,23 +30,49 @@ export const VersionDocumentoForm = ({
 }) => {
   const cancelar = useFormCancel("/documentos");
   const [intentado, setIntentado] = useState(false);
-  const [form, setForm] = useState({ archivo: '', motivo: '', cambios: '' });
+  const [form, setForm] = useState({ motivo: '', cambios: '' });
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [errorApi, setErrorApi] = useState('');
+  const [advertencias, setAdvertencias] = useState<string[]>([]);
 
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
   const versions = doc.versions || [];
-  const last = versions[versions.length - 1];
-  const nextV = versions.length + 1;
+  const last = ultimaVersion(doc);
+  const nextV = (last?.v ?? 0) + 1;
 
-  const archivo = form.archivo.trim();
   const errCampo: Record<string, string> = {};
   const { errores, fieldErrors, addError } = createFieldValidation();
   if (!archivo) {
-    errCampo.archivo = 'Ingresa el nombre del archivo de esta versión.';
+    errCampo.archivo = 'Selecciona el archivo de esta versión.';
     addError("archivo", 'El archivo es obligatorio.');
+  } else if (archivo.size > MAX_ARCHIVO_MB * 1024 * 1024) {
+    errCampo.archivo = `El archivo supera ${MAX_ARCHIVO_MB} MB.`;
+    addError("archivo", errCampo.archivo);
   }
 
-  const guardar = () => {
+  const enviar = async (force: boolean) => {
+    setErrorApi('');
+    setAdvertencias([]);
+    setSubiendo(true);
+    try {
+      await subirNuevaVersion(doc.id, form.motivo.trim() || 'Actualización de versión', form.cambios.trim() || undefined, archivo!, force);
+      // Simplificación aceptada: recarga completa para que AppShell re-hidrate del API.
+      window.location.assign(`/documentos/${encodeURIComponent(doc.id)}`);
+    } catch (e) {
+      const w = advertenciasDe(e);
+      if (w) setAdvertencias(w);
+      else {
+        setErrorApi(mensajeErrorDocumento(e));
+        if (esConflicto(e)) setTimeout(() => window.location.reload(), 1500);
+      }
+      setSubiendo(false);
+    }
+  };
+
+  const guardar = async () => {
+    if (subiendo) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -52,30 +80,7 @@ export const VersionDocumentoForm = ({
     }
     if (!AuthService.guard('editar')) return;
 
-    const currentVersions = doc.versions || [];
-    const newVer: DocumentVersion = {
-      v: currentVersions.length + 1,
-      fecha: todayIso(),
-      usuario: AuthService.currentUser().nombre,
-      archivo,
-      motivo: form.motivo.trim() || 'Actualización de versión',
-      cambios: form.cambios
-    };
-
-    const updatedVersions = [...currentVersions, newVer];
-    Store.update('documents', doc.id, { versions: updatedVersions });
-
-    Audit.log({
-      contractId: doc.contractId,
-      modulo: 'Documentos',
-      accion: 'Edición',
-      campo: `Documento ${doc.nombre}`,
-      anterior: `v${currentVersions.length}`,
-      nuevo: `v${newVer.v} (${newVer.archivo})`
-    });
-
-    notify(`Documento «${doc.nombre}» actualizado a v${newVer.v}.`);
-    onDone(doc.id);
+    await enviar(false);
   };
 
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
@@ -157,9 +162,9 @@ export const VersionDocumentoForm = ({
           <Field className={`f span3${err('archivo') ? ' err' : ''}`}>
             <label className="req">Nuevo archivo</label>
             <Input name="archivo"
-              value={form.archivo}
-              placeholder="Ej. contrato_firmado_v2.pdf"
-              onChange={(e) => set({ archivo: e.target.value })}
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+              onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
               aria-describedby={err('archivo') ? 'err-varchivo' : undefined}
             />
             {err('archivo') && (
@@ -167,7 +172,7 @@ export const VersionDocumentoForm = ({
                 {err('archivo')}
               </span>
             )}
-            <span className="hint">Nombre o ruta simulada; no se realiza una transferencia real.</span>
+            <span className="hint">Máximo {MAX_ARCHIVO_MB} MB.</span>
           </Field>
 
           <Field className="f span3">
@@ -191,12 +196,14 @@ export const VersionDocumentoForm = ({
         </FormSection>
       </Surface>
 
+      <AvisoApi error={errorApi} advertencias={advertencias} onForzar={() => enviar(true)} cargando={subiendo} />
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={guardar}>
-          <Icon name="upload" /> Guardar versión v{nextV}
+        <Button className="btn pri" onClick={guardar} loading={subiendo}>
+          <Icon name="upload" /> {subiendo ? 'Subiendo…' : `Guardar versión v${nextV}`}
         </Button>
       </div>
     </AccessibleForm>

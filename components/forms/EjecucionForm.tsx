@@ -15,6 +15,7 @@ import { activeContracts, M } from '../../lib/metrics';
 import { money, moneyM, pct, todayIso } from '../../lib/format';
 import { Kpi } from '../ui/Kpi';
 import { Icon } from '../icons';
+import { useSoportes } from '../ui/Soportes';
 
 /**
  * Registro de avance de ejecución en VISTA dedicada (reemplaza al modal de
@@ -56,7 +57,10 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
     addError("valor", 'El valor ejecutado es obligatorio.');
   }
 
-  const guardar = () => {
+  const sop = useSoportes(() => form.contractId, '/ejecucion');
+
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -89,7 +93,7 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
     });
 
     notify(`Ejecución del periodo ${form.periodo} registrada.`);
-    onDone();
+    await sop.finalizar(() => onDone());
   };
 
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
@@ -259,11 +263,13 @@ export const EjecucionForm = ({ onDone }: { onDone: () => void }) => {
         </Surface>
       )}
 
+      {sop.node}
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={guardar}>
+        <Button className="btn pri" onClick={guardar} loading={sop.subiendo}>
           <Icon name="check" /> Guardar registro
         </Button>
       </div>

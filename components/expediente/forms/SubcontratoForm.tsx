@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input, Select, Textarea } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -30,6 +32,7 @@ type FormState = {
  * terminación posterior al inicio y ejecución acotada 0–100.
  */
 export const SubcontratoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'subcontratos'));
   const c = Store.get('contracts', cid) as Contract;
   const actual = recordId ? (Store.get('subcontracts', recordId) as Subcontract | undefined) : undefined;
   const isEdit = !!actual;
@@ -58,7 +61,8 @@ export const SubcontratoForm = ({ cid, recordId, onDone }: { cid: string; record
   if (form.ejecucion < 0 || form.ejecucion > 100) addError("ejecucion", 'El porcentaje de ejecución debe estar entre 0 y 100.');
   if (!form.objeto.trim()) addError("objeto", 'El objeto específico del subcontrato es obligatorio.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (recordId && !guardExpedienteRecord(cid, 'subcontracts', recordId)) {
       notify('El registro ya no pertenece a este expediente.');
@@ -119,7 +123,7 @@ export const SubcontratoForm = ({ cid, recordId, onDone }: { cid: string; record
       });
       notify(`Subcontrato ${newSub.numero} registrado con éxito`);
     }
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -137,6 +141,8 @@ export const SubcontratoForm = ({ cid, recordId, onDone }: { cid: string; record
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel={isEdit ? 'Guardar cambios' : 'Guardar subcontrato'}
       submitIcon="check"
       onCancel={onDone}

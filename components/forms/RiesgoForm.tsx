@@ -14,6 +14,7 @@ import { Store, Audit, AuthService } from '../../lib/store';
 import { activeContracts } from '../../lib/metrics';
 import { CAT } from '../../lib/catalog';
 import { Icon } from '../icons';
+import { useSoportes } from '../ui/Soportes';
 
 /** Valores de partida del formulario (mismos defaults que tenía el modal original). */
 const FORM_DEFAULT: Partial<Risk> = {
@@ -93,7 +94,10 @@ export const RiesgoForm = ({
   const nivelCalc = probabilidad * impacto;
   const nivelSev = nivelCalc >= 15 ? 'Extremo' : nivelCalc >= 10 ? 'Alto' : nivelCalc >= 5 ? 'Moderado' : 'Bajo';
 
-  const guardar = () => {
+  const sop = useSoportes(() => contractId, '/riesgos');
+
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (!AuthService.guard(isEdit ? 'editar' : 'crear')) return;
     if (errores.length) {
@@ -129,7 +133,7 @@ export const RiesgoForm = ({
         estado: 'Estado del riesgo'
       });
       notify(`Riesgo «${descripcion.slice(0, 60)}» actualizado.`);
-      onDone(id);
+      await sop.finalizar(() => onDone(id));
       return;
     }
 
@@ -144,7 +148,7 @@ export const RiesgoForm = ({
       nuevo: descripcion
     });
     notify(`Riesgo «${descripcion.slice(0, 60)}» registrado en el contrato ${contrato?.numero || contractId}.`);
-    onDone(nuevo.id);
+    await sop.finalizar(() => onDone(nuevo.id));
   };
 
   return (
@@ -316,11 +320,13 @@ export const RiesgoForm = ({
         </FormSection>
       </Surface>
 
+      {sop.node}
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={guardar}>
+        <Button className="btn pri" onClick={guardar} loading={sop.subiendo}>
           <Icon name="check" /> {isEdit ? 'Guardar Cambios' : 'Guardar Riesgo'}
         </Button>
       </div>

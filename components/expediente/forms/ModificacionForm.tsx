@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input, Select, Textarea } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -41,6 +43,7 @@ const TIPOS: { value: string; label: string }[] = [
  * Prórroga/Reinicio/Terminación y cesionario/supervisor obligatorio en su tipo.
  */
 export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'modificaciones'));
   const c = Store.get('contracts', cid) as Contract;
   const m = M(c);
   const [form, setForm] = useState<FormState>({
@@ -77,7 +80,8 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
         : 'Indica el nuevo supervisor asignado (nombre y cargo).'
     );
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -159,7 +163,7 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
     }
 
     notify(`Modificación ${newMod.numero} (${form.tipo}) aplicada exitosamente`);
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -173,6 +177,8 @@ export const ModificacionForm = ({ cid, onDone }: { cid: string; onDone: () => v
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel="Aplicar modificación"
       submitIcon="check"
       onCancel={onDone}

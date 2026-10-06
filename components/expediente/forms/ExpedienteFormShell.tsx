@@ -48,6 +48,8 @@ export const ExpedienteFormShell = ({
   onSubmit,
   submitLabel,
   submitIcon = 'check',
+  submitting = false,
+  soportes,
   onCancel,
   nota,
   children,
@@ -67,6 +69,10 @@ export const ExpedienteFormShell = ({
   onSubmit: () => void;
   submitLabel: string;
   submitIcon?: string;
+  /** Operación asíncrona en curso (spinner y botón deshabilitado). */
+  submitting?: boolean;
+  /** Bloque «Soportes (opcional)» (ver useSoportes). */
+  soportes?: ReactNode;
   onCancel?: () => void;
   /** Contenido secundario bajo el formulario (cálculos, avisos, notas de negocio). */
   nota?: ReactNode;
@@ -105,6 +111,8 @@ export const ExpedienteFormShell = ({
         </FormSection>;
       })}</Surface>
 
+      {soportes}
+
       {nota}
 
 
@@ -112,8 +120,8 @@ export const ExpedienteFormShell = ({
         <Button className="btn ghost" onClick={volver}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={onSubmit}>
-          <Icon name={submitIcon} /> {submitLabel}
+        <Button className="btn pri" onClick={onSubmit} loading={submitting}>
+          <Icon name={submitIcon} /> {submitting ? 'Subiendo…' : submitLabel}
         </Button>
       </div>
     </div>

@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input, Select, Textarea } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -29,6 +31,7 @@ type FormState = {
  * (acción breve); aquí se evalúa el riesgo completo.
  */
 export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'riesgos'));
   const c = Store.get('contracts', cid) as Contract;
   const actual = recordId ? (Store.get('risks', recordId) as Risk | undefined) : undefined;
   const isEdit = !!actual;
@@ -55,7 +58,8 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
   if (Number(form.impacto) < 1 || Number(form.impacto) > 5)
     addError("impacto", 'El impacto debe estar entre 1 y 5.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (recordId && !guardExpedienteRecord(cid, 'risks', recordId)) {
       notify('El registro ya no pertenece a este expediente.');
@@ -111,7 +115,7 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
       });
       notify('Riesgo registrado en la matriz');
     }
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -129,6 +133,8 @@ export const RiesgoForm = ({ cid, recordId, onDone }: { cid: string; recordId?: 
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel={isEdit ? 'Guardar cambios' : 'Registrar riesgo'}
       submitIcon="check"
       onCancel={onDone}

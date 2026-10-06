@@ -4,6 +4,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Store, AuthService } from '../../lib/store';
+import { subscribeSyncInfo, getSyncInfo, reintentarHidratacion, type SyncInfo } from '../../lib/remote';
+import { Icon } from '../icons';
 import { WorkspaceSkeleton } from '../ui/Workspace';
 import { FeedbackHost } from '../ui/Feedback';
 import { SessionRevision } from './SessionContext';
@@ -13,7 +15,12 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [mounted, setMounted] = useState(false);
   const [userRevision, setUserRevision] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [syncInfo, setSyncInfo] = useState<SyncInfo>(getSyncInfo());
   const pathname = usePathname();
+
+  useEffect(() => {
+    return subscribeSyncInfo(setSyncInfo);
+  }, []);
   useEffect(() => {
     if (typeof document !== 'undefined') {
       if (mobileOpen) {
@@ -71,6 +78,41 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             onToggleMobileMenu={() => setMobileOpen(v => !v)}
             mobileMenuOpen={mobileOpen}
           /> : <header className="header"><div className="skeleton skeleton-title" /></header>}
+          {mounted && (syncInfo.status === 'syncing' || syncInfo.status === 'offline') && (
+            <div
+              className={`sync-bar sync-bar--${syncInfo.status === 'syncing' ? 'syncing' : 'offline'}`}
+              role="status"
+              aria-live="polite"
+            >
+              {syncInfo.status === 'syncing' ? (
+                <>
+                  <span className="sync-bar__spinner" aria-hidden="true" />
+                  <span>Sincronizando con el servidor...</span>
+                </>
+              ) : (
+                <>
+                  <Icon name="circle-info" size={15} />
+                  <span>
+                    Sin conexión con el servidor — mostrando datos guardados
+                    {syncInfo.retryCount > 0 && syncInfo.retryCount <= 3 && syncInfo.nextRetryMs ? (
+                      <span className="sync-bar__retry">
+                        {' '}(reintento {syncInfo.retryCount}/3 en {Math.round(syncInfo.nextRetryMs / 1000)}s...)
+                      </span>
+                    ) : null}
+                  </span>
+                  {syncInfo.retryCount >= 3 && !syncInfo.nextRetryMs ? (
+                    <button
+                      type="button"
+                      className="sync-bar__btn"
+                      onClick={() => reintentarHidratacion()}
+                    >
+                      Reintentar
+                    </button>
+                  ) : null}
+                </>
+              )}
+            </div>
+          )}
           <div className="content" id="workspace" tabIndex={-1}>
             {mounted ? children : <WorkspaceSkeleton />}
           </div>

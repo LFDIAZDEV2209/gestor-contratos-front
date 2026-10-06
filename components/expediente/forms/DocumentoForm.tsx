@@ -1,12 +1,13 @@
 'use client';
 import { useState } from 'react';
+import { AvisoApi } from '../../ui/AvisoApi';
 import { Input, Select } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
-import { Store, AuthService, Audit } from '../../../lib/store';
-import { nowStamp, fdate, uid } from '../../../lib/format';
+import { AuthService } from '../../../lib/store';
 import { CAT } from '../../../lib/catalog';
-import type { Document } from '../../../lib/types';
+import { subirDocumento, advertenciasDe, esConflicto, mensajeErrorDocumento, MAX_ARCHIVO_MB } from '../../../lib/documents';
+import { contractHref } from '../../app/routes';
 import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShell';
 
 /**
@@ -19,15 +20,41 @@ export const DocumentoForm = ({ cid, catInicial, onDone }: { cid: string; catIni
   const [form, setForm] = useState({
     nombre: '',
     categoria: catInicial && cats.includes(catInicial) ? catInicial : cats[0] || 'Informes',
-    archivo: ''
+    obs: ''
   });
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [errorApi, setErrorApi] = useState('');
+  const [advertencias, setAdvertencias] = useState<string[]>([]);
   const [intentado, setIntentado] = useState(false);
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
   const { errores, fieldErrors, addError } = createFieldValidation();
   if (!form.nombre.trim()) addError("nombre", 'El nombre del documento es obligatorio.');
+  if (!archivo) addError("archivo", 'Selecciona el archivo a subir.');
+  else if (archivo.size > MAX_ARCHIVO_MB * 1024 * 1024) addError("archivo", `El archivo supera ${MAX_ARCHIVO_MB} MB.`);
 
-  const guardar = () => {
+  const enviar = async (force: boolean) => {
+    setErrorApi('');
+    setAdvertencias([]);
+    setSubiendo(true);
+    try {
+      await subirDocumento(cid, form.nombre.trim(), form.categoria, form.obs.trim() || undefined, archivo!, force);
+      // Simplificación aceptada: recarga completa para que AppShell re-hidrate del API.
+      window.location.assign(contractHref(cid, 'documentos'));
+    } catch (e) {
+      const w = advertenciasDe(e);
+      if (w) setAdvertencias(w);
+      else {
+        setErrorApi(mensajeErrorDocumento(e));
+        if (esConflicto(e)) setTimeout(() => window.location.reload(), 1500);
+      }
+      setSubiendo(false);
+    }
+  };
+
+  const guardar = async () => {
+    if (subiendo) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -35,34 +62,7 @@ export const DocumentoForm = ({ cid, catInicial, onDone }: { cid: string; catIni
     }
     if (!AuthService.guard('crear')) return;
 
-    const u = AuthService.currentUser();
-    const docObj: Document = {
-      id: uid('DOC'),
-      contractId: cid,
-      nombre: form.nombre.trim(),
-      categoria: form.categoria,
-      estado: 'Activo',
-      versions: [
-        {
-          v: 1,
-          fecha: fdate(nowStamp()),
-          usuario: u.nombre,
-          archivo: form.archivo.trim() || `${form.nombre.trim()}.pdf`,
-          motivo: 'Carga inicial'
-        }
-      ]
-    };
-
-    Store.insert('documents', docObj);
-    Audit.log({
-      contractId: cid,
-      modulo: 'Documentos',
-      accion: 'Creación',
-      campo: 'Documento',
-      nuevo: docObj.nombre
-    });
-    notify('Documento registrado en el expediente (v1)');
-    onDone();
+    await enviar(false);
   };
 
   return (
@@ -76,14 +76,18 @@ export const DocumentoForm = ({ cid, catInicial, onDone }: { cid: string; catIni
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={subiendo}
       submitLabel="Guardar documento"
       submitIcon="upload"
       onCancel={onDone}
       nota={
-        <p className="small muted" style={{ margin: '0 0 12px' }}>
-          Los archivos son simulados (nombre y metadatos, sin transferencia real). Las sucesivas versiones se
-          registran desde la pestaña Documentos, que conserva el historial completo.
-        </p>
+        <>
+          <p className="small muted" style={{ margin: '0 0 12px' }}>
+            El archivo se almacena de forma segura. Las sucesivas versiones se registran desde la ficha del
+            documento, que conserva el historial completo.
+          </p>
+          <AvisoApi error={errorApi} advertencias={advertencias} onForzar={() => enviar(true)} cargando={subiendo} />
+        </>
       }
     >
       <FormGrid className="form-grid">
@@ -105,14 +109,14 @@ export const DocumentoForm = ({ cid, catInicial, onDone }: { cid: string; catIni
             ))}
           </Select>
         </Field>
-        <Field className="f span2">
-          <label>Archivo adjunto (PDF / Word / Excel)</label>
+        <Field className={`f span2${intentado && fieldErrors.archivo ? ' err' : ''}`}>
+          <label className="req">Archivo adjunto (PDF / Word / Excel)</label>
           <Input name="archivo"
-            type="text"
-            placeholder="Nombre del archivo (ej. Acta_Fase1.pdf)"
-            value={form.archivo}
-            onChange={(e) => set({ archivo: e.target.value })}
+            type="file"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+            onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
           />
+          {intentado && fieldErrors.archivo && <span className="emsg">{fieldErrors.archivo}</span>}
         </Field>
       </FormGrid>
     </ExpedienteFormShell>

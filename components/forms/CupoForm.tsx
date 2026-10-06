@@ -14,6 +14,7 @@ import { Store, Audit, AuthService } from '../../lib/store';
 import { CAT } from '../../lib/catalog';
 import { money, todayIso, uid } from '../../lib/format';
 import { Icon } from '../icons';
+import { useSoportes } from '../ui/Soportes';
 
 /**
  * Cupo de afianzamiento en VISTA dedicada (reemplaza al modal de AseguradorasView).
@@ -59,7 +60,11 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
     addError("fechaVenc", 'La fecha de vencimiento debe ser posterior a la de inicio.');
   }
 
-  const guardar = () => {
+  // Soportes polimórficos: el cupo no tiene contrato; el id real llega tras el remapeo write-through.
+  const sop = useSoportes('', '/aseguradoras', { refTipo: 'cupo' });
+
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -90,7 +95,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
     });
 
     notify(`Cupo «${numero}» registrado exitosamente.`);
-    onDone(newCp.id);
+    await sop.finalizar(() => onDone(newCp.id), () => newCp.id, () => typeof (newCp as { version?: number }).version === 'number');
   };
 
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
@@ -229,12 +234,14 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
         </FormSection>
       </Surface>
 
+      {sop.node}
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={guardar}>
-          <Icon name="check" /> Registrar cupo
+        <Button className="btn pri" onClick={guardar} loading={sop.subiendo}>
+          <Icon name="check" /> {sop.subiendo ? 'Subiendo…' : 'Registrar cupo'}
         </Button>
       </div>
     </AccessibleForm>

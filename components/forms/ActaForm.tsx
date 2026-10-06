@@ -14,6 +14,7 @@ import { Store, Audit, AuthService } from '../../lib/store';
 import { CAT } from '../../lib/catalog';
 import { todayIso, uid } from '../../lib/format';
 import { Icon } from '../icons';
+import { useSoportes } from '../ui/Soportes';
 
 /**
  * Acta contractual en VISTA dedicada (reemplaza al modal de ActasView).
@@ -54,7 +55,10 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
     addError("fecha", 'La fecha del acta es obligatoria.');
   }
 
-  const guardar = () => {
+  const sop = useSoportes(() => form.contractId, '/actas');
+
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -84,7 +88,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
     });
 
     notify(`Acta «${numero}» registrada exitosamente.`);
-    onDone(newActa.id);
+    await sop.finalizar(() => onDone(newActa.id));
   };
 
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
@@ -222,11 +226,13 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
         </FormSection>
       </Surface>
 
+      {sop.node}
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={guardar}>
+        <Button className="btn pri" onClick={guardar} loading={sop.subiendo}>
           <Icon name="check" /> Registrar acta
         </Button>
       </div>

@@ -8,6 +8,8 @@ import { Field, Surface, TableViewport, DataTable, EmptyState } from '../ui/Work
 import { useState } from 'react';
 import type { Document } from '../../lib/types';
 import { Store, AuthService } from '../../lib/store';
+import { anularDocumento, mensajeErrorDocumento, ultimaVersion } from '../../lib/documents';
+import { DescargarVersion } from '../ui/DescargarVersion';
 import { M } from '../../lib/metrics';
 import { fdate } from '../../lib/format';
 import { CAT } from '../../lib/catalog';
@@ -22,6 +24,7 @@ import { Kpi } from '../ui/Kpi';
 export const TabDocumentos = ({ cid }: { cid: string }) => {
   const [catFilter, setCatFilter] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [anulando, setAnulando] = useState<string | null>(null);
 
   const docs = Store.byContract('documents', cid) as Document[];
   const cats = CAT('categoriasDoc');
@@ -37,8 +40,17 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
     if (!AuthService.guard('anular')) return;
     const mot = await requestReason(`Motivo de anulación para «${docName}»:`, 'Documento duplicado en el expediente');
     if (mot) {
-      Store.anular('documents', docId, mot);
-      notify(`Documento «${docName}» anulado (versiones conservadas)`);
+      if (anulando) return;
+      setAnulando(docId);
+      notify(`Anulando «${docName}»…`);
+      try {
+        await anularDocumento(docId, mot);
+        // Simplificación aceptada: recarga para que AppShell re-hidrate del API.
+        window.location.reload();
+      } catch (e) {
+        notify(mensajeErrorDocumento(e));
+        setAnulando(null);
+      }
     }
   };
 
@@ -134,7 +146,7 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
             </thead>
             <tbody>
               {filtered.map((d) => {
-                const latest = d.versions?.[d.versions.length - 1];
+                const latest = ultimaVersion(d);
                 return (
                   <tr key={d.id}>
                     <td>
@@ -168,6 +180,7 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                         {d.estado !== 'Anulado' && (
                           <Button
                             className="icon-btn"
+                            disabled={anulando !== null}
                             onClick={() => handleAnular(d.id, d.nombre)}
                             title="Anular documento (conserva todas las versiones)"
                             aria-label={`Anular documento ${d.nombre}`}
@@ -217,6 +230,7 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                   <th>Usuario</th>
                   <th>Archivo</th>
                   <th>Motivo / Cambios</th>
+                  <th>Descarga</th>
                 </tr>
               </thead>
               <tbody>
@@ -236,6 +250,7 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                       <div>{v.motivo || 'Actualización de versión'}</div>
                       {v.cambios && <div className="small muted">{v.cambios}</div>}
                     </td>
+                    <td><DescargarVersion documentId={selectedDoc.id} v={v.v} archivo={v.archivo} /></td>
                   </tr>
                 ))}
               </tbody>

@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -26,6 +28,7 @@ type FormState = {
  * Endurecimiento acordado: número con trim, bruto > 0.
  */
 export const PagoForm = ({ cid, onDone }: { cid: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'pagos'));
   const [form, setForm] = useState<FormState>({
     numero: '',
     factura: '',
@@ -45,7 +48,8 @@ export const PagoForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
   if (!form.bruto || Number(form.bruto) <= 0)
     addError("bruto", 'El valor bruto debe ser positivo: sin él no se liquidan IVA, retenciones ni neto.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -78,7 +82,7 @@ export const PagoForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
       nuevo: money(neto)
     });
     notify('Pago registrado (Pendiente)');
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -92,6 +96,8 @@ export const PagoForm = ({ cid, onDone }: { cid: string; onDone: () => void }) =
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel="Guardar pago"
       submitIcon="check"
       onCancel={onDone}

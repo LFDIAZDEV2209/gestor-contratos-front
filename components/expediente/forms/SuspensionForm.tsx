@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { useSoportes } from '../../ui/Soportes';
+import { contractHref } from '../../app/routes';
 import { Input, Textarea } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
@@ -15,6 +17,7 @@ import { ExpedienteFormShell, createFieldValidation } from './ExpedienteFormShel
  * obligatoria (el modal original la pedía con label req pero no la validaba).
  */
 export const SuspensionForm = ({ cid, onDone }: { cid: string; onDone: () => void }) => {
+  const sop = useSoportes(cid, contractHref(cid, 'suspensiones'));
   const c = Store.get('contracts', cid) as Contract;
   const [fecha, setFecha] = useState(todayIso());
   const [justificacion, setJustificacion] = useState('');
@@ -25,7 +28,8 @@ export const SuspensionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
   if (!fecha) addError("fecha", 'La fecha efectiva de la suspensión es obligatoria.');
   if (!justificacion.trim()) addError("justificacion", 'La justificación de la actuación es obligatoria.');
 
-  const guardar = () => {
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -71,7 +75,7 @@ export const SuspensionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
     });
 
     notify(`Contrato ${c.numero} suspendido formalmente`);
-    onDone();
+    await sop.finalizar(onDone);
   };
 
   return (
@@ -85,6 +89,8 @@ export const SuspensionForm = ({ cid, onDone }: { cid: string; onDone: () => voi
       errores={errores}
       intentado={intentado}
       onSubmit={guardar}
+      submitting={sop.subiendo}
+      soportes={sop.node}
       submitLabel="Registrar suspensión"
       submitIcon="pause"
       onCancel={onDone}

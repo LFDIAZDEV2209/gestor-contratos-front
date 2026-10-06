@@ -14,6 +14,7 @@ import { Store, AuthService, Audit } from '../../lib/store';
 import { M } from '../../lib/metrics';
 import { money, moneyM, fdate, todayIso, uid } from '../../lib/format';
 import { Icon } from '../icons';
+import { useSoportes } from '../ui/Soportes';
 
 /**
  * Modificación contractual en VISTA dedicada (reemplaza al modal de
@@ -87,7 +88,10 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
     addError("nuevoTexto", 'El nuevo supervisor es obligatorio.');
   }
 
-  const guardar = () => {
+  const sop = useSoportes(() => form.contractId, '/modificaciones');
+
+  const guardar = async () => {
+    if (sop.bloqueado()) return;
     setIntentado(true);
     if (errores.length) {
       notify('Corrige los errores del formulario antes de guardar.');
@@ -183,7 +187,7 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
     }
 
     notify(`Modificación ${numero} aplicada al contrato ${c.numero}.`);
-    onDone();
+    await sop.finalizar(() => onDone());
   };
 
   const err = (campo: string) => (intentado ? errCampo[campo] : undefined);
@@ -424,11 +428,13 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
         </FormSection>
       </Surface>
 
+      {sop.node}
+
       <div className="form-foot">
         <Button className="btn ghost" onClick={cancelar}>
           <Icon name="chevron-left" /> Cancelar
         </Button>
-        <Button className="btn pri" onClick={guardar}>
+        <Button className="btn pri" onClick={guardar} loading={sop.subiendo}>
           <Icon name="check" /> Aplicar modificación
         </Button>
       </div>

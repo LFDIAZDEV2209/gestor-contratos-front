@@ -484,7 +484,16 @@ export function portfolio() {
   };
 
   const db = Store.getDB();
-  const alertsByC = groupBy(db.alertState ? Object.keys(db.alertState) : [], (k) => k);
+  // Claves de alertState con formato tipo|contractId|... (server y cliente):
+  // contar contratos con al menos una alerta no resuelta (fix conAlerta=0)
+  const contratosConAlerta = new Set<string>();
+  const alertState = db.alertState || {};
+  for (const [key, st] of Object.entries(alertState)) {
+    const estado = (st as { estado?: string } | null)?.estado ?? 'Nueva';
+    if (estado === 'Resuelta') continue;
+    const cid = key.split('|')[1] ?? '';
+    if (cid) contratosConAlerta.add(cid);
+  }
 
   cs.forEach((c) => {
     const m = M(c);
@@ -500,7 +509,7 @@ export function portfolio() {
     P.saldo += m.saldo;
     P.fis += m.pctFis * m.valorActual;
 
-    if (alertsByC[c.id]) P.conAlerta++;
+    if (contratosConAlerta.has(c.id)) P.conAlerta++;
     if (m.incAbiertos) P.conInc++;
     P.byLevel[m.nivel] = (P.byLevel[m.nivel] || 0) + 1;
   });
