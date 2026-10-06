@@ -215,6 +215,7 @@ export const SubcontratoForm = ({
             <span aria-current="page">{isEdit ? 'Editar subcontrato' : 'Nuevo subcontrato'}</span>
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+            <span className="form-shell-icon" aria-hidden="true"><Icon name="diagram-project" size={22} /></span>
             {isEdit ? 'Editar Subcontrato' : 'Nuevo Subcontrato'}
           </h1>
           <p style={{ margin: '4px 0 0' }}>

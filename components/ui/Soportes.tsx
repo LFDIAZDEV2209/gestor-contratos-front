@@ -93,10 +93,15 @@ export function useSoportes(contractId: string | (() => string), destino: string
   const bloqueado = () => lock.current || subiendo;
 
   const node: ReactNode = (
-    <fieldset className="soportes" style={{ border: '1px dashed var(--line)', borderRadius: 8, padding: '10px 12px', margin: '0 0 12px', position: 'relative' }}>
-      <legend className="small muted" style={{ padding: '0 6px' }}>Soportes (opcional)</legend>
+    <fieldset className="soportes">
+      <legend>Soportes (opcional)</legend>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-        <label className="btn xs ghost" style={{ cursor: subiendo || creada ? 'default' : 'pointer', margin: 0, opacity: creada ? 0.5 : 1 }}>
+        <label
+          className="soportes-btn"
+          aria-disabled={subiendo || creada}
+          style={{ cursor: subiendo || creada ? 'not-allowed' : 'pointer' }}
+          title="Adjuntar archivos de soporte (opcional)"
+        >
           <Icon name="upload" /> Adjuntar archivos
           <input
             ref={input}
@@ -111,18 +116,17 @@ export function useSoportes(contractId: string | (() => string), destino: string
         {items.map((it, i) => (
           <span
             key={`${it.file.name}-${i}`}
-            className={`badge ${it.estado === 'ok' ? 'b-ok' : it.estado === 'error' ? 'b-err' : 'b-na'}`}
+            className={`badge soportes-chip ${it.estado === 'ok' ? 'b-ok' : it.estado === 'error' ? 'b-err' : 'b-na'}`}
             title={it.error}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
           >
             <Icon name={it.estado === 'ok' ? 'check-circle' : it.estado === 'error' ? 'alert-circle' : 'file-text'} size={12} /> {it.file.name}
-            <span className="small" role="status">· {ETIQUETA[it.estado]}</span>
+            <span className="small estado" role="status">· {ETIQUETA[it.estado]}</span>
             {!creada && (
               <button
                 type="button"
                 aria-label={`Quitar ${it.file.name}`}
                 onClick={() => setItems(itemsRef.current.filter((_, j) => j !== i))}
-                style={{ background: 'none', border: 0, cursor: 'pointer', padding: 0, color: 'inherit' }}
+                style={{ background: 'none', border: 0, cursor: 'pointer', padding: '0 2px', color: 'inherit', fontSize: 13, lineHeight: 1 }}
               >
                 ×
               </button>
@@ -147,7 +151,7 @@ export function useSoportes(contractId: string | (() => string), destino: string
           </div>
         </div>
       )}
-      <p className="small muted" style={{ margin: '6px 0 0' }}>
+      <p className="small soportes-hint">
         Se guardan en el expediente (pestaña Documentos, categoría «Soporte»). Máx. {MAX_ARCHIVO_MB} MB c/u.
       </p>
     </fieldset>

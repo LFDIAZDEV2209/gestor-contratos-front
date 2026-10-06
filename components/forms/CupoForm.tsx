@@ -110,6 +110,7 @@ export const CupoForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
             <span aria-current="page">Nuevo cupo</span>
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+            <span className="form-shell-icon" aria-hidden="true"><Icon name="wallet" size={22} /></span>
             Nuevo cupo de aseguradora
           </h1>
           <p style={{ margin: '4px 0 0' }}>

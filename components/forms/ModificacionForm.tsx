@@ -202,6 +202,7 @@ export const ModificacionForm = ({ onDone }: { onDone: () => void }) => {
             <span aria-current="page">Nueva modificación</span>
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+            <span className="form-shell-icon" aria-hidden="true"><Icon name="code-compare" size={22} /></span>
             Nueva modificación contractual
           </h1>
           <p style={{ margin: '4px 0 0' }}>

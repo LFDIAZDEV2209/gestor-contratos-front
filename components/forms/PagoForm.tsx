@@ -124,6 +124,7 @@ export const PagoForm = ({ onDone }: { onDone: () => void }) => {
             <span aria-current="page">Nuevo pago</span>
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+            <span className="form-shell-icon" aria-hidden="true"><Icon name="money-check-dollar" size={22} /></span>
             Registrar pago o cuenta de cobro
           </h1>
           <p style={{ margin: '4px 0 0' }}>

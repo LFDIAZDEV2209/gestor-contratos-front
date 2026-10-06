@@ -118,6 +118,7 @@ export const EmpresaForm = ({
             <span aria-current="page">{isEdit ? 'Editar ficha' : 'Nueva empresa'}</span>
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+            <span className="form-shell-icon" aria-hidden="true"><Icon name="building" size={22} /></span>
             {isEdit ? 'Editar Empresa' : 'Nueva Empresa'}
           </h1>
           <p style={{ margin: '4px 0 0' }}>

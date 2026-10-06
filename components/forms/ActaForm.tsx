@@ -103,6 +103,7 @@ export const ActaForm = ({ onDone }: { onDone: (savedId: string) => void }) => {
             <span aria-current="page">Nueva acta</span>
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+            <span className="form-shell-icon" aria-hidden="true"><Icon name="file-signature" size={22} /></span>
             Nueva acta contractual
           </h1>
           <p style={{ margin: '4px 0 0' }}>

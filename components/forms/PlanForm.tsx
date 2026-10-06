@@ -145,6 +145,7 @@ export const PlanForm = ({
             <span aria-current="page">{isEdit ? 'Editar plan' : 'Nuevo plan de mejoramiento'}</span>
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+            <span className="form-shell-icon" aria-hidden="true"><Icon name="list-check" size={22} /></span>
             {isEdit ? 'Editar Plan de Mejoramiento' : 'Nuevo Plan de Mejoramiento'}
           </h1>
           <p style={{ margin: '4px 0 0' }}>

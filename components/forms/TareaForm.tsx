@@ -89,6 +89,7 @@ export const TareaForm = ({ alert, onDone }: { alert: Alert; onDone: (id: string
             <span aria-current="page">Crear tarea</span>
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+            <span className="form-shell-icon" aria-hidden="true"><Icon name="clipboard-check" size={22} /></span>
             Crear tarea desde alerta
           </h1>
           <p style={{ margin: '4px 0 0' }}>

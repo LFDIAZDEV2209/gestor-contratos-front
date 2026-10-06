@@ -161,6 +161,7 @@ export const RiesgoForm = ({
             <span aria-current="page">{isEdit ? 'Editar riesgo' : 'Nuevo riesgo'}</span>
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+            <span className="form-shell-icon" aria-hidden="true"><Icon name="shield" size={22} /></span>
             {isEdit ? 'Editar Riesgo' : 'Nuevo Riesgo'}
           </h1>
           <p style={{ margin: '4px 0 0' }}>

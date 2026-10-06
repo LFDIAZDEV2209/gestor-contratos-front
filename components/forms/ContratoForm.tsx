@@ -248,6 +248,7 @@ export const ContratoForm = ({
             <span aria-current="page">{isEdit ? 'Editar contrato' : 'Nuevo contrato'}</span>
           </nav>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0, flexWrap: 'wrap' }}>
+            <span className="form-shell-icon" aria-hidden="true"><Icon name="file-contract" size={22} /></span>
             {isEdit ? 'Editar Contrato' : 'Registro de Nuevo Contrato'}
             {isEdit && <span className="badge b-info mono">{String(currentNumber || '')}</span>}
           </h1>

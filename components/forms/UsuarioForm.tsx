@@ -128,6 +128,7 @@ export const UsuarioForm = ({
               margin: 0,
             }}
           >
+            <span className="form-shell-icon" aria-hidden="true"><Icon name="user" size={22} /></span>
             {isEdit ? "Editar Usuario" : "Nuevo Usuario"}
           </h1>
           <p style={{ margin: "4px 0 0" }}>
