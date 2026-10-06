@@ -1,16 +1,15 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Store, AuthService } from '../../lib/store';
+import { AuthService } from '../../lib/store';
+import { hidratar } from '../../lib/remote';
 import { Icon } from '../../components/icons';
-import type { User } from '../../lib/types';
 import { BrandLogo } from '../../components/app/BrandLogo';
 
 type FieldErrors = { email?: string; password?: string };
 
 export default function LoginPage() {
   const router = useRouter();
-  const [users, setUsers] = useState<User[]>([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -19,21 +18,14 @@ export default function LoginPage() {
   const [banner, setBanner] = useState<string | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [helpOpen, setHelpOpen] = useState(false);
-  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (AuthService.isAuthed()) {
       router.replace('/dashboard');
-      return;
     }
-    Store.init();
-    setUsers((Store.getDB()?.users || []).filter((u) => u.estado === 'Activo'));
-    return () => {
-      if (timerRef.current) window.clearTimeout(timerRef.current);
-    };
   }, [router]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
     const errs: FieldErrors = {};
@@ -46,27 +38,21 @@ export default function LoginPage() {
     setBanner(null);
     if (Object.keys(errs).length > 0) return;
 
-    const user = users.find((u) => (u.email || '').toLowerCase() === mail);
     setBusy(true);
-    // Simulación de autenticación (fase 0, sin backend): 650 ms con estado de carga real
-    timerRef.current = window.setTimeout(() => {
-      setBusy(false);
-      if (!user) {
-        setBanner(
-          'No encontramos una cuenta con ese correo. Selecciona un usuario demo o intenta con otro correo.'
-        );
-        return;
-      }
-      AuthService.signIn(user.id, remember);
+    try {
+      await AuthService.login(mail, password, remember);
+      await hidratar().catch((err) => {
+        console.warn('[Login] Hidratación inicial con advertencia:', err);
+      });
       router.replace('/dashboard');
-    }, 650);
-  };
-
-  const useDemo = (u: User) => {
-    setEmail(u.email || '');
-    setPassword('demo1234');
-    setErrors({});
-    setBanner(null);
+    } catch (err: any) {
+      const msg =
+        err?.message ||
+        'No fue posible iniciar sesión. Verifica tu correo corporativo o la conexión con la API.';
+      setBanner(msg);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -158,8 +144,8 @@ export default function LoginPage() {
               <div className="login-help-note" role="note">
                 <Icon name="circle-info" />
                 <span>
-                  En esta demo la recuperación de contraseña no está conectada a un servidor. Usa un
-                  usuario demo y cualquier contraseña de 6 o más caracteres.
+                  Para restablecer tu contraseña corporativa o reportar problemas de acceso, contacta al
+                  administrador del sistema.
                 </span>
               </div>
             )}
@@ -184,36 +170,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {users.length > 0 && (
-            <details className="login-demo">
-              <summary>Acceso rápido (demo) <Icon name="chevron-down" /></summary>
-              <p className="login-demo-note">Selecciona una cuenta para completar el formulario.</p>
-              <div className="login-demo-chips">
-                {users.slice(0, 6).map((u) => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    className="login-chip"
-                    onClick={() => useDemo(u)}
-                    title={`Llenar formulario con ${u.nombre}`}
-                  >
-                    <span className="login-chip-ava" aria-hidden="true">
-                      {(u.nombre || 'U')
-                        .split(' ')
-                        .map((p) => p[0])
-                        .slice(0, 2)
-                        .join('')}
-                    </span>
-                    <span className="login-chip-txt">
-                      <span className="n">{u.nombre}</span>
-                      <span className="r">{u.rol}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </details>
-          )}
 
           <footer className="login-foot">
             <span>Seven Safe</span>

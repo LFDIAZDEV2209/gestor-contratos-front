@@ -1,8 +1,11 @@
 // Capa de datos y persistencia en localStorage ('gic_store_v2') según files/02, files/08 y prototipo HTML
+// Adaptado con write-through y conexión real a la API según CONEXION_API.md § 2.4
 import type { DB, UID, User, Perm } from './types';
 import { Seed } from './demo';
 import { nowStamp, iso, pad, uid } from './format';
 import { PERM_LABEL } from './catalog';
+import { api } from './api';
+import { enCola, hidratar } from './remote';
 
 const STORE_KEY = 'gic_store_v2';
 
@@ -38,24 +41,91 @@ export const LocalStorageAdapter = {
 
 export const AuthService = {
   AUTH_KEY: 'ss_auth_v1',
+  TOKEN_KEY: 'ss_token_v1',
+  USER_KEY: 'ss_user_v1',
+  PERMS_KEY: 'ss_perms_v1',
+
   getToken(): string {
-    return 'demo-token';
+    if (typeof window === 'undefined') return '';
+    return (
+      window.localStorage.getItem(AuthService.TOKEN_KEY) ||
+      window.sessionStorage.getItem(AuthService.TOKEN_KEY) ||
+      ''
+    );
   },
+
   isAuthed(): boolean {
     if (typeof window === 'undefined') return true; // SSR seguro: el guard decide en cliente
-    return window.localStorage.getItem(AuthService.AUTH_KEY) === '1' || window.sessionStorage.getItem(AuthService.AUTH_KEY) === '1';
+    return Boolean(AuthService.getToken());
   },
-  signIn(id: string, remember = true): void {
+
+  /** Login real contra la API (POST /auth/login con email) */
+  async login(
+    email: string,
+    _password?: string,
+    remember = true
+  ): Promise<{ token: string; usuario: User; permisos: string[] }> {
+    const res = await api.post<{ token: string; usuario: User; permisos: string[] }>('/auth/login', {
+      email: email.trim().toLowerCase(),
+    });
+
+    const storage = remember ? window.localStorage : window.sessionStorage;
+    storage.setItem(AuthService.TOKEN_KEY, res.token);
+    storage.setItem(AuthService.AUTH_KEY, '1');
+    storage.setItem(AuthService.USER_KEY, JSON.stringify(res.usuario));
+    storage.setItem(AuthService.PERMS_KEY, JSON.stringify(res.permisos || []));
+
+    const otherStorage = remember ? window.sessionStorage : window.localStorage;
+    otherStorage.removeItem(AuthService.TOKEN_KEY);
+    otherStorage.removeItem(AuthService.AUTH_KEY);
+    otherStorage.removeItem(AuthService.USER_KEY);
+    otherStorage.removeItem(AuthService.PERMS_KEY);
+
+    AuthService.setCurrentUser(res.usuario.id);
+    return res;
+  },
+
+  /** Compatibilidad: si recibe correo o ID */
+  async signIn(emailOrId: string, remember = true): Promise<void> {
     if (typeof window === 'undefined') return;
-    (remember ? window.localStorage : window.sessionStorage).setItem(AuthService.AUTH_KEY, '1');
-    AuthService.setCurrentUser(id);
+    if (emailOrId.includes('@')) {
+      await AuthService.login(emailOrId, 'demo1234', remember);
+    } else {
+      const db = Store.getDB();
+      const u = (db?.users || []).find((x) => x.id === emailOrId);
+      if (u?.email) {
+        await AuthService.login(u.email, 'demo1234', remember);
+      } else {
+        (remember ? window.localStorage : window.sessionStorage).setItem(AuthService.AUTH_KEY, '1');
+        AuthService.setCurrentUser(emailOrId);
+      }
+    }
   },
+
   signOut(): void {
     if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(AuthService.TOKEN_KEY);
+    window.sessionStorage.removeItem(AuthService.TOKEN_KEY);
     window.localStorage.removeItem(AuthService.AUTH_KEY);
     window.sessionStorage.removeItem(AuthService.AUTH_KEY);
+    window.localStorage.removeItem(AuthService.USER_KEY);
+    window.sessionStorage.removeItem(AuthService.USER_KEY);
+    window.localStorage.removeItem(AuthService.PERMS_KEY);
+    window.sessionStorage.removeItem(AuthService.PERMS_KEY);
   },
+
   currentUser(): User {
+    if (typeof window !== 'undefined') {
+      const rawUser =
+        window.localStorage.getItem(AuthService.USER_KEY) ||
+        window.sessionStorage.getItem(AuthService.USER_KEY);
+      if (rawUser) {
+        try {
+          const u = JSON.parse(rawUser);
+          if (u && u.id) return u;
+        } catch {}
+      }
+    }
     const db = Store.getDB();
     if (!db) {
       return { id: 'U1', nombre: 'Laura Méndez', email: 'lmendez@empresa.co', rol: 'ADMINISTRADOR', estado: 'Activo' };
@@ -64,21 +134,38 @@ export const AuthService = {
     const u = (db.users || []).find((x) => x.id === curId);
     return u || (db.users && db.users[0]) || { id: 'U1', nombre: 'Laura Méndez', email: 'lmendez@empresa.co', rol: 'ADMINISTRADOR', estado: 'Activo' };
   },
+
   setCurrentUser(id: string) {
     const db = Store.getDB();
     if (db && db.settings) {
       db.settings.currentUser = id;
+      const found = (db.users || []).find((u) => u.id === id);
+      if (found && typeof window !== 'undefined') {
+        const storage = window.localStorage.getItem(AuthService.TOKEN_KEY)
+          ? window.localStorage
+          : window.sessionStorage;
+        storage.setItem(AuthService.USER_KEY, JSON.stringify(found));
+      }
       Store.persist();
     }
   },
+
   can(p: string): boolean {
     const u = AuthService.currentUser();
     if (!u) return false;
     if (u.rol === 'ADMINISTRADOR') return true;
+    const pLower = p.toLowerCase();
+    const pUpper = p.toUpperCase();
     const db = Store.getDB();
     const r = (db?.settings?.perms && db.settings.perms[u.rol]) || {};
-    return Boolean(r[p]);
+    if (r[pLower] !== undefined) return Boolean(r[pLower]);
+    if (r[pUpper] !== undefined) return Boolean(r[pUpper]);
+    if (Array.isArray(u.perms)) {
+      return u.perms.map((x) => x.toLowerCase()).includes(pLower);
+    }
+    return false;
   },
+
   guard(p: string): boolean {
     if (AuthService.can(p)) return true;
     const u = AuthService.currentUser();
@@ -180,6 +267,13 @@ export const Store = {
     if (!dbInstance.alertState) dbInstance.alertState = {};
     if (!dbInstance.tasks) dbInstance.tasks = [];
     if (!dbInstance.audit) dbInstance.audit = [];
+
+    // Si hay sesión activa en navegador, refrescar en segundo plano con la API
+    if (typeof window !== 'undefined' && AuthService.isAuthed()) {
+      hidratar().catch((err) => {
+        console.warn('[Store] Hidratación inicial en segundo plano completada con caché:', err);
+      });
+    }
   },
   persist() {
     if (dbInstance) {
@@ -208,18 +302,39 @@ export const Store = {
     list.push(obj);
     (db as any)[col] = list;
     Store.persist();
+
+    // Write-through a la API
+    enCola({
+      tipo: 'insert',
+      col: String(col),
+      tempId: obj.id,
+      obj: { ...obj }
+    });
+
     return obj;
   },
   update<K extends keyof DB>(col: K, id: UID, patch: any): any | null {
     const item = Store.get(col, id);
     if (!item) return null;
+    const versionAntes = item.version;
     Object.assign(item, patch);
     Store.persist();
+
+    // Write-through a la API
+    enCola({
+      tipo: 'update',
+      col: String(col),
+      id: String(id),
+      patch: { ...patch },
+      version: versionAntes
+    });
+
     return item;
   },
   anular(col: string, id: UID, motivo: string): boolean {
     const item = Store.get(col as any, id);
     if (!item) return false;
+    const estadoPrevio = item.estado;
     if (col === 'contracts') {
       item.anulado = true;
       item.estado = 'Anulado';
@@ -231,14 +346,30 @@ export const Store = {
       modulo: col.charAt(0).toUpperCase() + col.slice(1),
       accion: 'Anulación',
       campo: 'Estado',
-      anterior: item.estado,
-      nuevo: 'Anulado',
+      anterior: estadoPrevio,
+      nuevo: item.estado,
       obs: motivo
     });
     Store.persist();
+
+    // Write-through a la API
+    enCola({
+      tipo: 'anular',
+      col: String(col),
+      id: String(id),
+      motivo
+    });
+
     return true;
   },
   reset(seed?: DB) {
+    // Si hay sesión activa, reset SOLO re-hidrata de la API
+    if (typeof window !== 'undefined' && AuthService.isAuthed()) {
+      hidratar().catch((err) => {
+        console.warn('[Store] Error al re-hidratar en reset:', err);
+      });
+      return;
+    }
     LocalStorageAdapter.clear();
     dbInstance = seed || Seed.build();
     LocalStorageAdapter.save(dbInstance);
