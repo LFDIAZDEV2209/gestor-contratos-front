@@ -12,7 +12,8 @@ env:
 phases:
   build:
     commands:
-      - export TD_ARN=$(jq -r '.taskDefinitionArn' "$CODEBUILD_SRC_DIR_BuildOut/build-out.json")
+      - TD_ARN=$(jq -r '.taskDefinitionArn' build-out.json) && echo "Taskdef nueva $TD_ARN" || exit 1
+      - export TD_ARN
       - echo "Desplegando $TD_ARN en $SERVICE (rolling)"
       - aws ecs update-service --region "$AWS_DEFAULT_REGION" --cluster "$CLUSTER" --service "$SERVICE" --task-definition "$TD_ARN" --query "service.taskDefinition" --output text
       - aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"
