@@ -347,7 +347,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {showBellDropdown && (
-          <div className="dropdown" style={{ width: 380, right: 0 }}>
+          <div className="dropdown" style={{ width: 380, left: 'auto', right: 0 }}>
             <div className="dd-h">
               <span>Notificaciones</span>
               {unreadAlerts.length > 0 && (
@@ -449,7 +449,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Dropdown de cambio de usuario */}
         {showUserDropdown && (
-          <div className="dropdown" style={{ width: 300, right: 0, maxHeight: 'calc(100vh - 96px)', display: 'flex', flexDirection: 'column' }}>
+          <div className="dropdown" style={{ width: 300, left: 'auto', right: 0, maxHeight: 'calc(100vh - 96px)', display: 'flex', flexDirection: 'column' }}>
             <div className="dd-h" style={{ flexShrink: 0 }}>
               <span>Cambiar usuario</span>
               <span className="badge b-info" style={{ fontSize: '9.5px' }}>
