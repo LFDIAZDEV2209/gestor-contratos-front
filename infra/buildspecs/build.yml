@@ -1,0 +1,41 @@
+# nexogc - CodeBuild: build + push ECR del front (Next.js SSR).
+# Invocado por CodePipeline (nexogc-front-pipeline, etapa Build).
+# Produce build-out.json (taskDef nueva con imagen SHA inmutable) para la etapa Deploy.
+version: 0.2
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_ACCOUNT_ID: "933629770820"
+    ECR_REPO: nexogc/front
+    FAMILY: nexogc-front
+    CONTAINER: front
+    DOCKERFILE: infra/Dockerfile.prod
+    COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+
+phases:
+  install:
+    commands:
+      - corepack enable
+      - pnpm --version
+  build:
+    commands:
+      - export IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual-$(date +%s)}"
+      - export IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}"
+      - export IMAGE_LATEST="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:latest"
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
+      - docker build -f "$DOCKERFILE" -t "$IMAGE_URI" -t "$IMAGE_LATEST" .
+      - docker push "$IMAGE_URI"
+      - docker push "$IMAGE_LATEST"
+  post_build:
+    commands:
+      - aws ecs describe-task-definition --task-definition "$FAMILY" --query taskDefinition > td.json
+      - |
+        jq --arg img "$IMAGE_URI" --arg c "$CONTAINER" 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy,.deregisteredAt,.deregisteredBy,.createdAt,.enableFaultInjection,.tags) | .containerDefinitions[] |= (if .name == $c then .image = $img else . end)' td.json > td-new.json
+      - export TD_ARN=$(aws ecs register-task-definition --cli-input-json file://td-new.json --query "taskDefinition.taskDefinitionArn" --output text)
+      - printf '{"taskDefinitionArn":"%s","imageUri":"%s","imageTag":"%s","commit":"%s"}\n' "$TD_ARN" "$IMAGE_URI" "$IMAGE_TAG" "${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}" > build-out.json
+      - echo "TaskDef registrada: $TD_ARN / Imagen: $IMAGE_URI"
+
+artifacts:
+  files:
+    - build-out.json

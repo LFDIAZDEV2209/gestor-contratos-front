@@ -1,0 +1,26 @@
+# nexogc - CodeBuild: despliegue rolling del servicio FRONT + espera de estabilidad.
+# Si el circuit breaker revierte el despliegue, este paso falla explicitamente
+# comparando la taskdef activa del servicio contra la que se pidio desplegar.
+version: 0.2
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: us-east-1
+    CLUSTER: nexogc-cluster
+    SERVICE: nexogc-front-svc
+
+phases:
+  build:
+    commands:
+      - export TD_ARN=$(jq -r '.taskDefinitionArn' "$CODEBUILD_SRC_DIR_BuildOut/build-out.json")
+      - echo "Desplegando $TD_ARN en $SERVICE (rolling)"
+      - aws ecs update-service --region "$AWS_DEFAULT_REGION" --cluster "$CLUSTER" --service "$SERVICE" --task-definition "$TD_ARN" --query "service.taskDefinition" --output text
+      - aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"
+      - export CURRENT=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --query "services[0].taskDefinition" --output text)
+      - echo "Taskdef activa del servicio: $CURRENT"
+      - |
+        if [ "$CURRENT" != "$TD_ARN" ]; then
+          echo "ERROR: el servicio NO esta en la taskdef nueva (posible rollback del circuit breaker)."
+          exit 1
+        fi
+      - echo "Deploy estable y verificado."
