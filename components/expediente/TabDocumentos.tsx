@@ -10,6 +10,7 @@ import type { Document } from '../../lib/types';
 import { Store, AuthService } from '../../lib/store';
 import { anularDocumento, mensajeErrorDocumento, ultimaVersion } from '../../lib/documents';
 import { DescargarVersion } from '../ui/DescargarVersion';
+import { VistaPreviaModal, VistaPreviaBoton } from '../ui/VistaPrevia';
 import { M } from '../../lib/metrics';
 import { fdate } from '../../lib/format';
 import { CAT } from '../../lib/catalog';
@@ -24,6 +25,7 @@ import { Kpi } from '../ui/Kpi';
 export const TabDocumentos = ({ cid }: { cid: string }) => {
   const [catFilter, setCatFilter] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [previa, setPrevia] = useState<{ doc: Document; v: number } | null>(null);
   const [anulando, setAnulando] = useState<string | null>(null);
 
   const docs = Store.byContract('documents', cid) as Document[];
@@ -170,6 +172,15 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                     </td>
                     <td>
                       <div className="acts">
+                        {latest && (
+                          <VistaPreviaBoton
+                            documentId={d.id}
+                            v={latest.v}
+                            nombre={d.nombre}
+                            archivo={latest.archivo}
+                            onAbrir={() => setPrevia({ doc: d, v: latest.v })}
+                          />
+                        )}
                         <Button
                           className="btn xs ghost"
                           onClick={() => setSelectedDoc(d)}
@@ -230,7 +241,7 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                   <th>Usuario</th>
                   <th>Archivo</th>
                   <th>Motivo / Cambios</th>
-                  <th>Descarga</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -250,13 +261,35 @@ export const TabDocumentos = ({ cid }: { cid: string }) => {
                       <div>{v.motivo || 'Actualización de versión'}</div>
                       {v.cambios && <div className="small muted">{v.cambios}</div>}
                     </td>
-                    <td><DescargarVersion documentId={selectedDoc.id} v={v.v} archivo={v.archivo} /></td>
+                    <td>
+                      <div className="flex items-center gap-1" style={{ flexWrap: 'wrap' }}>
+                        <VistaPreviaBoton
+                          documentId={selectedDoc.id}
+                          v={v.v}
+                          nombre={selectedDoc.nombre}
+                          archivo={v.archivo}
+                          onAbrir={() => setPrevia({ doc: selectedDoc, v: v.v })}
+                        />
+                        <DescargarVersion documentId={selectedDoc.id} v={v.v} archivo={v.archivo} />
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </DataTable>
           </TableViewport>
         </Modal>
+      )}
+
+      {/* Modal Vista Previa (PDF/imagen inline; otros formatos → descarga) */}
+      {previa && (
+        <VistaPreviaModal
+          documentId={previa.doc.id}
+          v={previa.v}
+          nombre={previa.doc.nombre}
+          archivo={previa.doc.versions?.find((x) => x.v === previa.v)?.archivo}
+          onClose={() => setPrevia(null)}
+        />
       )}
     </div>
   );

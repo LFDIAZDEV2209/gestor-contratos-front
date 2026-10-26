@@ -80,7 +80,8 @@ import {
   Paperclip,
   List,
   CirclePlay,
-  OctagonAlert
+  OctagonAlert,
+  LoaderCircle
 } from 'lucide-react';
 
 export const Icon = ({
@@ -175,6 +176,7 @@ export const Icon = ({
     'chevron-right': ChevronRight,
     'chevron-down': ChevronDown,
     'eye': Eye,
+    'spinner': LoaderCircle,
     'close': X,
     'xmark': X,
     'circle-xmark': X,

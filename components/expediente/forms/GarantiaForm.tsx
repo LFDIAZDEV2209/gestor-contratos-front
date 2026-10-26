@@ -37,7 +37,8 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
     poliza: '',
     tipo: CAT('tiposGarantia')[0] || 'Cumplimiento',
     aseguradora: CAT('aseguradoras')[0] || '',
-    modalidadPoliza: 'Individual',
+    // Debe coincidir con el enum del API (insurance.dto.ts): 'Póliza individual' | 'Póliza por cupo'.
+    modalidadPoliza: 'Póliza individual',
     cupoId: '',
     valor: 0,
     porcentaje: 10,
@@ -81,13 +82,13 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
       aseguradora: form.aseguradora,
       poliza: form.poliza.trim(),
       modalidadPoliza: form.modalidadPoliza,
-      cupoId: form.cupoId || '',
+      // Póliza individual ⇒ sin cupo (undefined, no ''), el API valida la referencia.
+      cupoId: form.modalidadPoliza === 'Póliza por cupo' ? form.cupoId : undefined,
       porcentaje: Number(form.porcentaje) || 0,
       valor: Number(form.valor),
       fechaInicio: form.fechaInicio,
       fechaVenc: form.fechaVenc,
-      estado: 'Pendiente',
-      documento: `${form.poliza.trim()}.pdf`
+      estado: 'Pendiente'
     };
 
     Store.insert('guarantees', garObj);
@@ -180,7 +181,7 @@ export const GarantiaForm = ({ cid, onDone }: { cid: string; onDone: () => void 
             value={form.modalidadPoliza}
             onChange={(e) => set({ modalidadPoliza: e.target.value, cupoId: '' })}
           >
-            <option value="Individual">Individual</option>
+            <option value="Póliza individual">Individual</option>
             <option value="Póliza por cupo">Póliza por cupo</option>
           </Select>
         </Field>

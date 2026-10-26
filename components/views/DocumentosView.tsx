@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Input, Select } from '../ui/Controls';
 import { requestReason, notify } from '../ui/Feedback';
 import { DescargarVersion } from '../ui/DescargarVersion';
+import { VistaPreviaModal, VistaPreviaBoton } from '../ui/VistaPrevia';
 import { anularDocumento, mensajeErrorDocumento, ultimaVersion } from '../../lib/documents';
 import { Button } from '../ui/button';
 import { PageHeader, Surface, Field, TableViewport, DataTable, EmptyState } from '../ui/Workspace';
@@ -65,6 +66,7 @@ export const DocumentosView = ({
   const [viewEstado, setViewEstado] = useState<'todos' | 'Activos' | 'Anulados'>('todos');
   const [page, setPage] = useState(1);
   const [selectedDocHistory, setSelectedDocHistory] = useState<Document | null>(null);
+  const [previa, setPrevia] = useState<{ doc: Document; v: number } | null>(null);
 
   const allDocs = (Store.all('documents') as Document[]).slice();
   const allContracts = (Store.all('contracts') as Contract[]).filter((c) => !c.anulado);
@@ -434,6 +436,15 @@ export const DocumentosView = ({
                     </td>
                     <td className="nw">
                       <div className="row-flex" style={{ gap: '4px', flexWrap: 'nowrap' }}>
+                        {lastVer && (
+                          <VistaPreviaBoton
+                            documentId={d.id}
+                            v={lastVer.v}
+                            nombre={d.nombre}
+                            archivo={lastVer.archivo}
+                            onAbrir={() => setPrevia({ doc: d, v: lastVer.v })}
+                          />
+                        )}
                         <Button
                           className="btn sm"
                           onClick={() => setSelectedDocHistory(d)}
@@ -562,7 +573,7 @@ export const DocumentosView = ({
                     <th>Usuario</th>
                     <th>Archivo</th>
                     <th>Motivo / Cambios</th>
-                    <th className="nw">Descarga</th>
+                    <th className="nw">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -582,7 +593,18 @@ export const DocumentosView = ({
                         {ver.motivo}
                         {ver.cambios && <div className="small muted">Cambios: {ver.cambios}</div>}
                       </td>
-                      <td className="nw"><DescargarVersion documentId={selectedDocHistory.id} v={ver.v} archivo={ver.archivo} /></td>
+                      <td className="nw">
+                        <div className="row-flex" style={{ gap: '4px', flexWrap: 'wrap' }}>
+                          <VistaPreviaBoton
+                            documentId={selectedDocHistory.id}
+                            v={ver.v}
+                            nombre={selectedDocHistory.nombre}
+                            archivo={ver.archivo}
+                            onAbrir={() => setPrevia({ doc: selectedDocHistory, v: ver.v })}
+                          />
+                          <DescargarVersion documentId={selectedDocHistory.id} v={ver.v} archivo={ver.archivo} />
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -590,6 +612,17 @@ export const DocumentosView = ({
             </TableViewport>
           </div>
         </Modal>
+      )}
+
+      {/* Modal Vista Previa (PDF/imagen inline; otros formatos → descarga) */}
+      {previa && (
+        <VistaPreviaModal
+          documentId={previa.doc.id}
+          v={previa.v}
+          nombre={previa.doc.nombre}
+          archivo={previa.doc.versions?.find((x) => x.v === previa.v)?.archivo}
+          onClose={() => setPrevia(null)}
+        />
       )}
 
     </div>

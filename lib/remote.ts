@@ -28,6 +28,7 @@ import { api, ApiCallError, getStoredToken } from './api';
 import { Store } from './store';
 import { defaultPerms, defaultCatalogs } from './catalog';
 import { nowStamp, todayIso } from './format';
+import { notify } from '../components/ui/Feedback';
 
 const QUEUE_STORAGE_KEY = 'ss_write_queue_v1';
 
@@ -446,6 +447,35 @@ export function enCola(op: RemoteOp) {
   });
 }
 
+/** ¿El API rechazó la operación de forma definitiva (4xx)? ⇒ no reintentar. */
+function esRechazoPermanente(err: unknown): err is ApiCallError {
+  if (!(err instanceof ApiCallError)) return false;
+  return [400, 401, 403, 404, 409, 422].includes(err.status);
+}
+
+/**
+ * Descarta el cambio local que el servidor rechazó:
+ * - insert ⇒ quita el registro local (rollback del optimistic UI).
+ * - update/anular ⇒ restaura la verdad del servidor refrescando la entidad.
+ */
+async function descartarCambioRechazado(op: RemoteOp, err: ApiCallError): Promise<void> {
+  const detalle = err.message || 'Error del servidor';
+  if (op.tipo === 'insert') {
+    const db = Store.getDB();
+    const lista = (db as any)[op.col] as any[] | undefined;
+    const idLocal = op.tempId || op.obj?.id;
+    if (Array.isArray(lista) && idLocal) {
+      const idx = lista.findIndex((x) => x?.id === idLocal);
+      if (idx >= 0) lista.splice(idx, 1);
+      Store.persist();
+    }
+    notify(`El servidor rechazó el registro y se descartó para evitar datos inconsistentes: ${detalle}`);
+  } else {
+    await refrescarEntidad(op.col, op.id);
+    notify(`El cambio no se guardó en el servidor y se restauró la versión actual: ${detalle}`);
+  }
+}
+
 /** Ejecuta las escrituras pendientes contra la API */
 export async function flush(): Promise<void> {
   if (isFlushing || typeof window === 'undefined') return;
@@ -497,6 +527,7 @@ export async function flush(): Promise<void> {
                 `[Remote] Conflicto 409 al actualizar ${op.col}/${op.id}. Re-hidratando entidad.`
               );
               await refrescarEntidad(op.col, op.id);
+              notify('El registro cambió en el servidor y se actualizó con la versión más reciente.');
               memQueue.shift();
               saveStoredQueue(memQueue);
             } else {
@@ -510,7 +541,18 @@ export async function flush(): Promise<void> {
           saveStoredQueue(memQueue);
         }
       } catch (err: any) {
+        // Rechazo definitivo del servidor (datos inválidos, permisos, conflicto):
+        // NO se reintenta. Se descarta el cambio local y se avisa al usuario.
+        if (esRechazoPermanente(err)) {
+          console.error(`[Remote] ${op.tipo} de ${op.col} rechazado por el API (${err.status}):`, err.message);
+          await descartarCambioRechazado(op, err);
+          memQueue.shift();
+          saveStoredQueue(memQueue);
+          continue;
+        }
+        // Fallo transitorio (red/5xx): reintento con backoff persistido.
         op.retries = (op.retries || 0) + 1;
+        saveStoredQueue(memQueue); // el contador sobrevive recargas: la op no queda envenenando la cola
         if (op.retries <= 3) {
           const backoffMs = Math.min(5000, 1000 * Math.pow(2, op.retries));
           console.warn(
@@ -522,8 +564,12 @@ export async function flush(): Promise<void> {
           break;
         } else {
           console.error(
-            `[Remote] Máximo de reintentos alcanzado para ${op.tipo} ${op.col}. Se mantiene cambio local.`,
+            `[Remote] Máximo de reintentos alcanzado para ${op.tipo} ${op.col}. Se descarta el cambio local.`,
             err
+          );
+          await descartarCambioRechazado(
+            op,
+            new ApiCallError(0, 'SYNC_FAILED', 'No se pudo sincronizar con el servidor después de varios intentos.')
           );
           memQueue.shift();
           saveStoredQueue(memQueue);

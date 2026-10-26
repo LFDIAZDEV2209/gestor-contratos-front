@@ -4,6 +4,7 @@ import { AvisoApi } from '../../ui/AvisoApi';
 import { Input, Select } from '../../ui/Controls';
 import { notify } from '../../ui/Feedback';
 import { FormGrid, Field } from '../../ui/Workspace';
+import { Icon } from '../../icons';
 import { AuthService } from '../../../lib/store';
 import { CAT } from '../../../lib/catalog';
 import { subirDocumento, advertenciasDe, esConflicto, mensajeErrorDocumento, MAX_ARCHIVO_MB } from '../../../lib/documents';
@@ -116,6 +117,11 @@ export const DocumentoForm = ({ cid, catInicial, onDone }: { cid: string; catIni
             accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
             onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
           />
+          {archivo && (
+            <div className="small muted flex items-center gap-1" style={{ marginTop: 6 }}>
+              <Icon name="paperclip" /> {archivo.name} · {(archivo.size / 1024).toFixed(0)} KB
+            </div>
+          )}
           {intentado && fieldErrors.archivo && <span className="emsg">{fieldErrors.archivo}</span>}
         </Field>
       </FormGrid>

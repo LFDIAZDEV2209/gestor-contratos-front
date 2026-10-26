@@ -97,6 +97,28 @@ export async function descargarVersion(documentId: string, v: number, nombreArch
   guardar(await fetchBlob(destino.toString()), nombreArchivo.split(/[\\/]/).pop() || nombreArchivo);
 }
 
+/**
+ * URL de previsualización inline (iframe/img) de una versión.
+ * Devuelve null si el formato no admite previsualización (Office, etc.).
+ */
+export async function urlPrevisual(
+  documentId: string,
+  v: number,
+): Promise<{ url: string; expira?: string; tipo: 'pdf' | 'imagen' } | null> {
+  const res = await fetchJson<{ url: string; expira?: string; tipo: 'pdf' | 'imagen' | 'otro' }>(
+    'GET',
+    `/documents/${encodeURIComponent(documentId)}/versions/${v}/preview-url`,
+  );
+  if (res.tipo === 'otro') return null;
+  return { url: new URL(res.url, API_BASE).toString(), expira: res.expira, tipo: res.tipo };
+}
+
+/** ¿La versión puede previsualizarse inline según la extensión del archivo? */
+export function esPrevisualizable(archivo: string | undefined): boolean {
+  const ext = (archivo ?? '').split('.').pop()?.toLowerCase() || '';
+  return ['pdf', 'png', 'jpg', 'jpeg'].includes(ext);
+}
+
 /** Error 422 con advertencias del servidor (permite «Continuar de todos modos» con force=true). */
 export function advertenciasDe(e: unknown): string[] | null {
   const err = e as Partial<ApiCallError>;
